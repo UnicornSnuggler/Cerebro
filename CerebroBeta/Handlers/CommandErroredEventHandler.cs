@@ -1,9 +1,9 @@
-﻿using Bounty.Attributes;
+﻿using CerebroBeta.Attributes;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Exceptions;
 using System.Threading.Tasks;
 
-namespace Bounty.Handlers
+namespace CerebroBeta.Handlers
 {
     class CommandErroredEventHandler
     {

@@ -1,6 +1,6 @@
-﻿using Bounty.CommandModules;
-using Bounty.Dao;
-using Bounty.Handlers;
+﻿using CerebroBeta.CommandModules;
+using CerebroBeta.Dao;
+using CerebroBeta.Handlers;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Converters;
@@ -9,7 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Bounty.Extensions
+namespace CerebroBeta.Extensions
 {
     internal static class ServiceCollectionExtensions
     {
@@ -26,9 +26,9 @@ namespace Bounty.Extensions
                     log.AddConsole();
                 })
                 .AddSingleton(configuration)
-                .AddSingleton<IGenericDao, GenericDao>()
+                .AddSingleton<ICardDao, CardDao>()
                 .AddSingleton<DebugCommandModule>()
-                .AddSingleton<ProfileCommandModule>();
+                .AddSingleton<SearchCommandModule>();
 
             var client = new DiscordClient(new DiscordConfiguration
             {
@@ -38,6 +38,7 @@ namespace Bounty.Extensions
             });
 
             client.MessageCreated += MessageCreatedEventHandler.HelpFormatterOnBlankMessage;
+            client.MessageCreated += MessageCreatedEventHandler.FindCardNames;
 
             var commands = client.UseCommandsNext(new CommandsNextConfiguration
             {
@@ -50,7 +51,7 @@ namespace Bounty.Extensions
 
             commands.SetHelpFormatter<DefaultHelpFormatter>();
             commands.RegisterCommands<DebugCommandModule>();
-            commands.RegisterCommands<ProfileCommandModule>();
+            commands.RegisterCommands<SearchCommandModule>();
 
             commands.CommandErrored += CommandErroredEventHandler.TriggerDefaultHelpFormatter;
 

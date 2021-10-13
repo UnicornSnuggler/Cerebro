@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "CerebroBeta": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "azure_connection_string": "DefaultEndpointsProtocol=https;AccountName=loganstorage2020;AccountKey=yZk5ZldpdGNVod7uzvw31szcx1+D5iV87tmJ+lmUW3pCNl1qVW5vcb9VUtfBW0xDPLqw8PG8xVuiVaGZnS7e2A==;EndpointSuffix=core.windows.net",
+        "discord_token": "ODY5MDcxNDE1MzIyNzQyODM1.YP430w.2JqdvPlWJHruAH54jtTP5xZfs2g"
+      }
+    }
+  }
+}

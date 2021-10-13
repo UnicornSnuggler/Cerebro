@@ -1,10 +1,10 @@
-﻿using Bounty.Extensions;
+﻿using CerebroBeta.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
 
-namespace Bounty
+namespace CerebroBeta
 {
     class Program
     {

@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 
-namespace Bounty
+namespace CerebroBeta
 {
     public class BotService
     {
