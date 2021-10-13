@@ -1,4 +1,5 @@
-﻿using Cerebro.Extensions;
+﻿using Azure.Storage.Blobs;
+using Cerebro.Extensions;
 using Cerebro.Models;
 using FuzzySharp;
 using Microsoft.Azure.Cosmos.Table;
@@ -7,14 +8,13 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace Cerebro.Dao
 {
     public interface ICardDao
     {
+        List<string> FindAlternateArt(CardEntity card);
         List<CardEntity> FindRelatedCards(CardEntity card);
-        Task FixQuotes();
         string ParseArtificialId(PrintingEntity printing);
         CardEntity Retrieve(string packName, string cardId);
         List<CardEntity> RetrieveByName(string cardName);
@@ -23,21 +23,60 @@ namespace Cerebro.Dao
 
     public class CardDao : ICardDao
     {
+        private BlobServiceClient _blobClient;
+        private CloudStorageAccount _storageAccount;
+
         private List<CardEntity> _cards;
+        private List<string> _images;
         private List<PrintingEntity> _printings;
         private List<SetEntity> _sets;
         private readonly IConfigurationRoot _configuration;
         private readonly ILogger _logger;
-        private CloudStorageAccount _storageAccount;
 
         public CardDao(IConfigurationRoot configuration, ILogger<ICardDao> logger)
         {
             _configuration = configuration;
             _logger = logger;
-            _storageAccount = CloudStorageAccount.Parse(_configuration.GetValue<string>(Constants.CONFIG_STORAGE));
+
+            string connectionString = _configuration.GetValue<string>(Constants.CONFIG_STORAGE);
+
+            _storageAccount = CloudStorageAccount.Parse(connectionString);
+            _blobClient = new BlobServiceClient(connectionString);
 
             UpdateCardList();
-            UpdateSetList();
+        }
+
+        public List<string> FindAlternateArt(CardEntity card)
+        {
+            List<string> results = new List<string>();
+            List<PrintingEntity> reprints = card.GetReprints();
+
+            if (reprints != null)
+            {
+                foreach (PrintingEntity printing in reprints)
+                {
+                    string fileName = $"{printing.RowKey}.png";
+                    int index = _images.IndexOf(fileName);
+
+                    if (index != -1)
+                    {
+                        results.Add($"{Constants.IMAGE_PREFIX}{fileName}");
+                    }
+                }
+
+                if (results.Count > 0)
+                {
+                    return results;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            else
+            {
+                return null;
+            }
         }
 
         public List<CardEntity> FindRelatedCards(CardEntity card)
@@ -58,32 +97,6 @@ namespace Cerebro.Dao
             else
             {
                 return null;
-            }
-        }
-
-        public async Task FixQuotes()
-        {
-            try
-            {
-                var cardTable = _storageAccount.CreateCloudTableClient(new TableClientConfiguration()).GetTableReference(CardEntity.TABLE_NAME);
-
-                foreach (CardEntity card in _cards)
-                {
-                    if (card.Flavor != null && card.Flavor.Contains("\"—"))
-                    {
-                        CardEntity newCard = card;
-
-                        card.Flavor = card.Flavor.Replace("\"—", "\" — ");
-
-                        await cardTable.ExecuteAsync(TableOperation.Merge(card));
-
-                        _logger.LogInformation($"Fixed flavor text for {card.RowKey}!");
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                _logger.LogError($"Exception caught while fixing flavor text...\n\n{e}");
             }
         }
 
@@ -155,7 +168,9 @@ namespace Cerebro.Dao
 
         public void UpdateCardList()
         {
+            UpdateImageList();
             UpdatePrintingList();
+            UpdateSetList();
 
             _cards = new List<CardEntity>();
 
@@ -187,6 +202,29 @@ namespace Cerebro.Dao
             catch(Exception e)
             {
                 _logger.LogError($"Exception caught while updating the card list...\n\n{e}");
+            }
+        }
+
+        public void UpdateImageList()
+        {
+            _images = new List<string>();
+
+            try
+            {
+                BlobContainerClient container = _blobClient.GetBlobContainerClient("cerebro-images");
+
+                var blobs = container.GetBlobs();
+
+                foreach (var image in blobs)
+                {
+                    _images.Add(image.Name);
+                }
+
+                _logger.LogInformation($"Loaded {_images.Count()} images from the database!");
+            }
+            catch (Exception e)
+            {
+                _logger.LogError($"Exception caught while updating the image list...\n\n{e}");
             }
         }
 

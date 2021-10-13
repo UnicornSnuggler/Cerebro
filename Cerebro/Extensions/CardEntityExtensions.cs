@@ -1,17 +1,15 @@
 ﻿using Cerebro.Models;
 using DSharpPlus;
 using DSharpPlus.Entities;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace Cerebro.Extensions
 {
     internal static class CardEntityExtensions
     {
-        internal static DiscordEmbed BuildEmbed(this CardEntity card)
+        internal static DiscordEmbed BuildEmbed(this CardEntity card, string art = null)
         {
             var embed = new DiscordEmbedBuilder();
 
@@ -57,7 +55,7 @@ namespace Cerebro.Extensions
 
             embed.WithColor(Constants.COLORS.GetValueOrDefault(card.Type == "Villain" || card.Type == "Main Scheme" ? "Villain" : card.Classification, new DiscordColor("2337CF")));
             embed.WithTitle((card.Unique ? Constants.UNIQUE_SYMBOL : "") + card.Name + (card.Subname != null ? $" — {card.Subname}" : "" ));
-            embed.WithThumbnail(card.Image);
+            embed.WithThumbnail(art != null ? art : card.Image);
             embed.WithDescription(description.ToString());
             embed.WithFooter(card.BuildFooter());
 
@@ -242,6 +240,20 @@ namespace Cerebro.Extensions
             }
 
             return output;
+        }
+
+        internal static List<PrintingEntity> GetReprints(this CardEntity card)
+        {
+            List<PrintingEntity> reprints = card.Printings.FindAll(x => !x.IsOriginalPrinting());
+
+            if (reprints.Count == 0)
+            {
+                return null;
+            }
+            else
+            {
+                return reprints;
+            }
         }
 
         internal static bool IsRelatedTo(this CardEntity thisCard, CardEntity thatCard)

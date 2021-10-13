@@ -131,6 +131,37 @@ namespace Cerebro.Extensions
             return message;
         }
 
+        public static async void MakeBrowsable(this CommandContext context, DiscordMessage message, CardEntity card, List<string> choices, string current = null)
+        {
+            var artReaction = DiscordEmoji.FromName(context.Client, Constants.ART_EMOJI);
+
+            await message.CreateReactionAsync(artReaction);
+
+            var reaction = await message.WaitForReactionAsync(context.Message.Author);
+
+            if (!reaction.TimedOut)
+            {
+                if (reaction.Result.Emoji == artReaction)
+                {
+                    var nextChoice = choices[0];
+
+                    choices.RemoveAt(0);
+                    choices.Add(current != null ? current : card.Image);
+
+                    await message.DeleteAllReactionsAsync();
+
+                    var embed = card.BuildEmbed(nextChoice);
+                    var newMessage = await message.ModifyAsync(embed);
+
+                    context.MakeBrowsable(newMessage, card, choices, nextChoice);
+                }
+            }
+            else
+            {
+                await message.DeleteAllReactionsAsync();
+            }
+        }
+
         public static async void MakeFlippable(this CommandContext context, DiscordMessage message, List<CardEntity> choices, CardEntity current)
         {
             var flipReaction = DiscordEmoji.FromName(context.Client, Constants.REPEAT_EMOJI);
@@ -148,10 +179,9 @@ namespace Cerebro.Extensions
                     choices.RemoveAt(0);
                     choices.Add(current);
 
-                    var embed = nextChoice.BuildEmbed();
-
                     await message.DeleteAllReactionsAsync();
 
+                    var embed = nextChoice.BuildEmbed();
                     var newMessage = await message.ModifyAsync(embed);
 
                     context.MakeFlippable(newMessage, choices, nextChoice);
