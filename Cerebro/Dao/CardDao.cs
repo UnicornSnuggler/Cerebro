@@ -1,5 +1,5 @@
-﻿using CerebroBeta.Extensions;
-using CerebroBeta.Models;
+﻿using Cerebro.Extensions;
+using Cerebro.Models;
 using FuzzySharp;
 using Microsoft.Azure.Cosmos.Table;
 using Microsoft.Extensions.Configuration;
@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace CerebroBeta.Dao
+namespace Cerebro.Dao
 {
     public interface ICardDao
     {

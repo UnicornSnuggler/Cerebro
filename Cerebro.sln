@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31402.337
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CerebroBeta", "CerebroBeta\CerebroBeta.csproj", "{B8BF1CC7-9174-42E1-BF37-7B9A05DA91EC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cerebro", "Cerebro\Cerebro.csproj", "{B8BF1CC7-9174-42E1-BF37-7B9A05DA91EC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace CerebroBeta
+namespace Cerebro
 {
     public class Constants
     {

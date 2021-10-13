@@ -1,9 +1,9 @@
-﻿using CerebroBeta.Models;
+﻿using Cerebro.Models;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace CerebroBeta.Extensions
+namespace Cerebro.Extensions
 {
     internal static class PrintingEntityExtensions
     {

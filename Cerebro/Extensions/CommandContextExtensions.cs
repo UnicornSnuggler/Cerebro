@@ -1,4 +1,4 @@
-﻿using CerebroBeta.Models;
+﻿using Cerebro.Models;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity.Extensions;
@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CerebroBeta.Extensions
+namespace Cerebro.Extensions
 {
     public static class CommandContextExtensions
     {

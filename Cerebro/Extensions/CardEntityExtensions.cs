@@ -1,4 +1,4 @@
-﻿using CerebroBeta.Models;
+﻿using Cerebro.Models;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using System;
@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace CerebroBeta.Extensions
+namespace Cerebro.Extensions
 {
     internal static class CardEntityExtensions
     {

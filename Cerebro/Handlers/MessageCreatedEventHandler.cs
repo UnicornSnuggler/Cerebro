@@ -4,7 +4,7 @@ using DSharpPlus.EventArgs;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace CerebroBeta.Handlers
+namespace Cerebro.Handlers
 {
     class MessageCreatedEventHandler
     {

@@ -1,9 +1,9 @@
-﻿using CerebroBeta.Extensions;
+﻿using Cerebro.Extensions;
 using Microsoft.Azure.Cosmos.Table;
 using System;
 using System.Collections.Generic;
 
-namespace CerebroBeta.Models
+namespace Cerebro.Models
 {
     public class CardEntity : TableEntity,  IEquatable<CardEntity>
     {

@@ -1,9 +1,9 @@
-﻿using CerebroBeta.Attributes;
+﻿using Cerebro.Attributes;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Exceptions;
 using System.Threading.Tasks;
 
-namespace CerebroBeta.Handlers
+namespace Cerebro.Handlers
 {
     class CommandErroredEventHandler
     {

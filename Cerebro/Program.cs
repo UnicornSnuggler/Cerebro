@@ -1,10 +1,10 @@
-﻿using CerebroBeta.Extensions;
+﻿using Cerebro.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
 
-namespace CerebroBeta
+namespace Cerebro
 {
     class Program
     {

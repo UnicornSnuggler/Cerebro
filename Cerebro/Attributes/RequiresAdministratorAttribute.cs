@@ -3,7 +3,7 @@ using DSharpPlus.CommandsNext.Attributes;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace CerebroBeta.Attributes
+namespace Cerebro.Attributes
 {
     class RequiresAdministratorAttribute : CheckBaseAttribute
     {

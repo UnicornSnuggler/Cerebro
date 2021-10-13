@@ -1,6 +1,6 @@
 ﻿using Microsoft.Azure.Cosmos.Table;
 
-namespace CerebroBeta.Models
+namespace Cerebro.Models
 {
     public class PrintingEntity : TableEntity
     {

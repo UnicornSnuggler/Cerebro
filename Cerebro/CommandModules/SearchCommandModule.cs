@@ -1,7 +1,7 @@
-﻿using CerebroBeta.Attributes;
-using CerebroBeta.Dao;
-using CerebroBeta.Extensions;
-using CerebroBeta.Models;
+﻿using Cerebro.Attributes;
+using Cerebro.Dao;
+using Cerebro.Extensions;
+using Cerebro.Models;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using Microsoft.Extensions.Logging;
@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace CerebroBeta.CommandModules
+namespace Cerebro.CommandModules
 {
     [Group("search")]
     [Description("All searching functionality.")]
