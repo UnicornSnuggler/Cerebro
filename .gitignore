@@ -4,9 +4,9 @@
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
 # Personal additions
-/Bounty/Properties
-/Bounty/obj
-/Bounty/bin
+/Cerebro/Properties
+/Cerebro/obj
+/Cerebro/bin
 
 # User-specific files
 *.rsuser
