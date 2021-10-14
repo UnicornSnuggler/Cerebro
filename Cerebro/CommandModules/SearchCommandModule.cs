@@ -47,14 +47,21 @@ namespace Cerebro.CommandModules
 
                     if (relatedCards != null)
                     {
-                        context.MakeFlippable(message, relatedCards, card);
+                        context.GiveFlip(message, relatedCards, card);
                     }
 
                     List<string> alternateArts = _cardDao.FindAlternateArt(card);
 
                     if (alternateArts != null)
                     {
-                        context.MakeBrowsable(message, card, alternateArts);
+                        context.GiveAlternateArt(message, card, alternateArts);
+                    }
+
+                    List<CardEntity> stages = _cardDao.FindStages(card);
+
+                    if (stages != null)
+                    {
+                        context.GiveBrowse(message, stages, card);
                     }
                 }
                 else
@@ -79,14 +86,21 @@ namespace Cerebro.CommandModules
 
                         if (relatedCards != null)
                         {
-                            context.MakeFlippable(message, relatedCards, card);
+                            context.GiveFlip(message, relatedCards, card);
                         }
 
                         List<string> alternateArts = _cardDao.FindAlternateArt(card);
 
                         if (alternateArts != null)
                         {
-                            context.MakeBrowsable(message, card, alternateArts);
+                            context.GiveAlternateArt(message, card, alternateArts);
+                        }
+
+                        List<CardEntity> stages = _cardDao.FindStages(card);
+
+                        if (stages != null)
+                        {
+                            context.GiveBrowse(message, stages, card);
                         }
                     }
                 }

@@ -131,7 +131,7 @@ namespace Cerebro.Extensions
             return message;
         }
 
-        public static async void MakeBrowsable(this CommandContext context, DiscordMessage message, CardEntity card, List<string> choices, string current = null)
+        public static async void GiveAlternateArt(this CommandContext context, DiscordMessage message, CardEntity card, List<string> choices, string current = null)
         {
             var artReaction = DiscordEmoji.FromName(context.Client, Constants.ART_EMOJI);
 
@@ -153,7 +153,7 @@ namespace Cerebro.Extensions
                     var embed = card.BuildEmbed(nextChoice);
                     var newMessage = await message.ModifyAsync(embed);
 
-                    context.MakeBrowsable(newMessage, card, choices, nextChoice);
+                    context.GiveAlternateArt(newMessage, card, choices, nextChoice);
                 }
             }
             else
@@ -162,7 +162,55 @@ namespace Cerebro.Extensions
             }
         }
 
-        public static async void MakeFlippable(this CommandContext context, DiscordMessage message, List<CardEntity> choices, CardEntity current)
+        public static async void GiveBrowse(this CommandContext context, DiscordMessage message, List<CardEntity> stages, CardEntity current)
+        {
+            var leftArrowReaction = DiscordEmoji.FromName(context.Client, Constants.ARROW_LEFT_EMOJI);
+            var rightArrowReaction = DiscordEmoji.FromName(context.Client, Constants.ARROW_RIGHT_EMOJI);
+
+            await message.CreateReactionAsync(leftArrowReaction);
+            await message.CreateReactionAsync(rightArrowReaction);
+
+            var reaction = await message.WaitForReactionAsync(context.Message.Author);
+
+            if (!reaction.TimedOut)
+            {
+                if (reaction.Result.Emoji == leftArrowReaction)
+                {
+                    var nextStage = stages[stages.Count - 1];
+
+                    stages.RemoveAt(stages.Count - 1);
+                    stages.Insert(0, current);
+
+                    await message.DeleteAllReactionsAsync();
+
+                    var embed = nextStage.BuildEmbed();
+                    var newMessage = await message.ModifyAsync(embed);
+
+                    context.GiveBrowse(newMessage, stages, nextStage);
+                }
+
+                if (reaction.Result.Emoji == rightArrowReaction)
+                {
+                    var nextStage = stages[0];
+
+                    stages.RemoveAt(0);
+                    stages.Add(current);
+
+                    await message.DeleteAllReactionsAsync();
+
+                    var embed = nextStage.BuildEmbed();
+                    var newMessage = await message.ModifyAsync(embed);
+
+                    context.GiveBrowse(newMessage, stages, nextStage);
+                }
+            }
+            else
+            {
+                await message.DeleteAllReactionsAsync();
+            }
+        }
+
+        public static async void GiveFlip(this CommandContext context, DiscordMessage message, List<CardEntity> choices, CardEntity current)
         {
             var flipReaction = DiscordEmoji.FromName(context.Client, Constants.REPEAT_EMOJI);
 
@@ -184,7 +232,7 @@ namespace Cerebro.Extensions
                     var embed = nextChoice.BuildEmbed();
                     var newMessage = await message.ModifyAsync(embed);
 
-                    context.MakeFlippable(newMessage, choices, nextChoice);
+                    context.GiveFlip(newMessage, choices, nextChoice);
                 }
             }
             else

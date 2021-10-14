@@ -15,6 +15,7 @@ namespace Cerebro.Dao
     {
         List<string> FindAlternateArt(CardEntity card);
         List<CardEntity> FindRelatedCards(CardEntity card);
+        List<CardEntity> FindStages(CardEntity card);
         string ParseArtificialId(PrintingEntity printing);
         CardEntity Retrieve(string packName, string cardId);
         List<CardEntity> RetrieveByName(string cardName);
@@ -97,6 +98,59 @@ namespace Cerebro.Dao
             }
             else
             {
+                return null;
+            }
+        }
+
+        public List<CardEntity> FindStages(CardEntity card)
+        {
+            if (card.Stage != null)
+            {
+                _cards.Sort(delegate (CardEntity x, CardEntity y)
+                { 
+                    return x.RowKey.CompareTo(y.RowKey);
+                });
+
+                List<CardEntity> stages = new List<CardEntity>();
+
+                bool isVillain = card.Type == "Villain";
+                int nextIndex = _cards.IndexOf(card) + 1;
+                string lastStage = Constants.STAGES[card.Stage];
+
+                while (nextIndex < _cards.Count)
+                {
+                    CardEntity nextCard = _cards[nextIndex];
+                    string nextStage = Constants.STAGES[nextCard.Stage];
+
+                    if (nextCard.Stage == null || lastStage.CompareTo(nextStage) == 1)
+                    {
+                        break;
+                    }
+                    else if (lastStage.CompareTo(nextStage) == 0)
+                    {
+                        nextIndex = _cards.IndexOf(nextCard) + 1;
+                        lastStage = nextStage;
+                    }
+                    else
+                    {
+                        stages.Add(nextCard);
+
+                        nextIndex = _cards.IndexOf(nextCard) + 1;
+                        lastStage = nextStage;
+                    }
+                }
+
+                if (stages.Count > 0)
+                {
+                    return stages;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            else
+            { 
                 return null;
             }
         }

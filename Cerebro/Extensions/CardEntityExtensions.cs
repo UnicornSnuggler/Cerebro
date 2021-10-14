@@ -244,6 +244,11 @@ namespace Cerebro.Extensions
             return output;
         }
 
+        internal static string GetBaseId(this CardEntity card)
+        {
+            return card.RowKey.Substring(0, Constants.ID_LENGTH);
+        }
+
         internal static List<PrintingEntity> GetReprints(this CardEntity card)
         {
             List<PrintingEntity> reprints = card.Printings.FindAll(x => !x.IsOriginalPrinting());
@@ -262,9 +267,7 @@ namespace Cerebro.Extensions
         {
             if (thisCard.RowKey.Length > Constants.ID_LENGTH && thatCard.RowKey.Length > Constants.ID_LENGTH)
             {
-                string baseId = thatCard.RowKey.Substring(0, Constants.ID_LENGTH);
-
-                return thisCard.RowKey != thatCard.RowKey && thisCard.RowKey.Contains(baseId);
+                return thisCard.RowKey != thatCard.RowKey && thisCard.RowKey.Contains(thatCard.GetBaseId());
             }
             else
             {
