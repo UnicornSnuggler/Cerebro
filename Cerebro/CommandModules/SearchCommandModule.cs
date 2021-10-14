@@ -4,6 +4,8 @@ using Cerebro.Extensions;
 using Cerebro.Models;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
+using DSharpPlus.Entities;
+using DSharpPlus.Interactivity.Extensions;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -27,7 +29,7 @@ namespace Cerebro.CommandModules
 
         [Command("name")]
         [Description("Retrieve a card by name.")]
-        public async Task CardCommand(CommandContext context, [Description("The name of the card being queried.")] [RemainingText] string cardName)
+        public async Task CardCommand(CommandContext context, [Description("The name of the card being queried.")][RemainingText] string cardName)
         {
             List<CardEntity> results = _cardDao.RetrieveByName(cardName);
 
@@ -43,26 +45,11 @@ namespace Cerebro.CommandModules
                     var embed = card.BuildEmbed();
                     var message = await context.RespondAsync(embed);
 
-                    List<CardEntity> faces = _cardDao.FindFaces(card);
-
-                    if (faces != null)
-                    {
-                        context.AddFaces(message, faces, faces.IndexOf(card));
-                    }
-
                     List<string> artStyles = _cardDao.FindArtStyles(card);
-
-                    if (artStyles != null)
-                    {
-                        context.AddArtStyles(message, card, artStyles);
-                    }
-
+                    List<CardEntity> faces = _cardDao.FindFaces(card);
                     List<CardEntity> stages = _cardDao.FindStages(card);
 
-                    if (stages != null)
-                    {
-                        context.AddStages(message, stages, stages.IndexOf(card));
-                    }
+                    await Imbibe(context, message, card, artStyles, 0, faces, faces != null ? faces.IndexOf(card) : -1, stages, stages != null ? stages.IndexOf(card) : -1);
                 }
                 else
                 {
@@ -79,32 +66,139 @@ namespace Cerebro.CommandModules
                     {
                         var card = results[choice];
                         var embed = card.BuildEmbed();
-
                         var message = await context.RespondAsync(embed);
 
-                        List<CardEntity> faces = _cardDao.FindFaces(card);
-
-                        if (faces != null)
-                        {
-                            context.AddFaces(message, faces, faces.IndexOf(card));
-                        }
-
                         List<string> artStyles = _cardDao.FindArtStyles(card);
-
-                        if (artStyles != null)
-                        {
-                            context.AddArtStyles(message, card, artStyles);
-                        }
-
+                        List<CardEntity> faces = _cardDao.FindFaces(card);
                         List<CardEntity> stages = _cardDao.FindStages(card);
 
-                        if (stages != null)
-                        {
-                            context.AddStages(message, stages, stages.IndexOf(card));
-                        }
+                        await Imbibe(context, message, card, artStyles, 0, faces, faces != null ? faces.IndexOf(card) : -1, stages, stages != null ? stages.IndexOf(card) : -1);
                     }
                 }
             }
+        }
+
+        public async Task Imbibe(CommandContext context, DiscordMessage message, CardEntity card, List<string> artStyles, int currentArtStyle, List<CardEntity> faces, int currentFace, List<CardEntity> stages, int currentStage)
+        {
+            var artReaction = DiscordEmoji.FromName(context.Client, Constants.ART_EMOJI);
+            var flipReaction = DiscordEmoji.FromName(context.Client, Constants.REPEAT_EMOJI);
+            var leftArrowReaction = DiscordEmoji.FromName(context.Client, Constants.ARROW_LEFT_EMOJI);
+            var rightArrowReaction = DiscordEmoji.FromName(context.Client, Constants.ARROW_RIGHT_EMOJI);
+
+            List<DiscordEmoji> expectedEmojis = new List<DiscordEmoji>();
+
+            if (faces != null)
+            {
+                expectedEmojis.Add(flipReaction);
+
+                await message.CreateReactionAsync(flipReaction);
+            }
+
+            if (stages != null)
+            {
+                expectedEmojis.Add(leftArrowReaction);
+                expectedEmojis.Add(rightArrowReaction);
+
+                await message.CreateReactionAsync(leftArrowReaction);
+                await message.CreateReactionAsync(rightArrowReaction);
+            }
+            
+            if (artStyles != null)
+            {
+                expectedEmojis.Add(artReaction);
+
+                await message.CreateReactionAsync(artReaction);
+            }
+
+            var reaction = await message.WaitForReactionAsync(context.Message.Author);
+
+            while (!reaction.TimedOut)
+            {
+                if (expectedEmojis.Contains(reaction.Result.Emoji))
+                {
+                    DiscordMessage nextMessage;
+                    CardEntity nextCard = card;
+                    int nextArtStyle = currentArtStyle;
+                    List<string> nextArtStyles = artStyles;
+                    int nextFace = currentFace;
+                    List<CardEntity> nextFaces = faces;
+                    int nextStage = currentStage;
+                    List<CardEntity> nextStages = stages;
+
+                    if (reaction.Result.Emoji == artReaction)
+                    {
+                        nextArtStyle = currentArtStyle + 1 < artStyles.Count ? currentArtStyle + 1 : 0;
+                        var nextChoice = artStyles[nextArtStyle];
+
+                        await message.DeleteAllReactionsAsync();
+
+                        var embed = card.BuildEmbed(nextChoice);
+                        nextMessage = await message.ModifyAsync(embed);
+                    }
+                    else if (reaction.Result.Emoji == flipReaction)
+                    {
+                        nextFace = currentFace + 1 < faces.Count ? currentFace + 1 : 0;
+                        nextCard = faces[nextFace];
+
+                        await message.DeleteAllReactionsAsync();
+
+                        var embed = nextCard.BuildEmbed();
+                        nextMessage = await message.ModifyAsync(embed);
+
+                        nextArtStyles = _cardDao.FindArtStyles(nextCard);
+                        nextArtStyle = 0;
+
+                        nextStages = _cardDao.FindStages(nextCard);
+                        nextStage = nextStages != null ? nextStages.IndexOf(nextCard) : -1;
+                    }
+                    else if (reaction.Result.Emoji == leftArrowReaction)
+                    {
+                        nextStage = currentStage - 1 >= 0 ? currentStage - 1 : stages.Count - 1;
+                        nextCard = stages[nextStage];
+
+                        await message.DeleteAllReactionsAsync();
+
+                        var embed = nextCard.BuildEmbed();
+                        nextMessage = await message.ModifyAsync(embed);
+
+                        nextArtStyles = _cardDao.FindArtStyles(nextCard);
+                        nextArtStyle = 0;
+
+                        nextFaces = _cardDao.FindFaces(nextCard);
+                        nextFace = nextFaces != null ? nextFaces.IndexOf(nextCard) : -1;
+                    }
+                    else if (reaction.Result.Emoji == rightArrowReaction)
+                    {
+                        nextStage = currentStage + 1 < stages.Count ? currentStage + 1 : 0;
+                        nextCard = stages[nextStage];
+
+                        await message.DeleteAllReactionsAsync();
+
+                        var embed = nextCard.BuildEmbed();
+                        nextMessage = await message.ModifyAsync(embed);
+
+                        nextArtStyles = _cardDao.FindArtStyles(nextCard);
+                        nextArtStyle = 0;
+
+                        nextFaces = _cardDao.FindFaces(nextCard);
+                        nextFace = nextFaces != null ? nextFaces.IndexOf(nextCard) : -1;
+                    }
+                    else
+                    {
+                        break;
+                    }
+
+                    await Imbibe(context, nextMessage, nextCard, nextArtStyles, nextArtStyle, nextFaces, nextFace, nextStages, nextStage);
+
+                    break;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            await message.DeleteAllReactionsAsync();
         }
     }
 }

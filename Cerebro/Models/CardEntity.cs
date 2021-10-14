@@ -2,30 +2,15 @@
 using Microsoft.Azure.Cosmos.Table;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Cerebro.Models
 {
-    public class CardEntity : TableEntity,  IEquatable<CardEntity>
+    public class CardEntity : TableEntity
     {
         public const string TABLE_NAME = "CerebroCards";
 
         public CardEntity() { }
-
-        public bool Equals(CardEntity card)
-        {
-            if (ReferenceEquals(card, null)) return false;
-
-            if (ReferenceEquals(this, card)) return true;
-
-            return this.IsRelatedTo(card);
-        }
-
-        public override int GetHashCode()
-        {
-            string baseId = RowKey.Substring(0, Constants.ID_LENGTH);
-
-            return baseId.GetHashCode();
-        }
 
         public string Acceleration { get; set; }
 
@@ -76,5 +61,20 @@ namespace Cerebro.Models
         public string Type { get; set; }
 
         public bool Unique { get; set; }
+    }
+
+    public class RelatedComparer : IEqualityComparer<CardEntity>
+    {
+        public bool Equals(CardEntity thisCard, CardEntity thatCard)
+        {
+            return thisCard.IsRelatedTo(thatCard);
+        }
+
+        public int GetHashCode(CardEntity card)
+        {
+            string baseId = card.RowKey.Substring(0, Constants.ID_LENGTH);
+
+            return baseId.GetHashCode();
+        }
     }
 }

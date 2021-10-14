@@ -120,40 +120,31 @@ namespace Cerebro.Dao
                     return x.RowKey.CompareTo(y.RowKey);
                 });
 
-                List<CardEntity> stages = new List<CardEntity>()
+                List<CardEntity> stages = new List<CardEntity>();
+
+                int first = _cards.IndexOf(card);
+
+                while (_cards[first - 1].Type == card.Type)
                 {
-                    card
-                };
-
-                bool isVillain = card.Type == "Villain";
-                int nextIndex = _cards.IndexOf(card) + 1;
-                string lastStage = Constants.STAGES[card.Stage];
-
-                while (nextIndex < _cards.Count)
-                {
-                    CardEntity nextCard = _cards[nextIndex];
-                    string nextStage = Constants.STAGES[nextCard.Stage];
-
-                    if (nextCard.Type != card.Type || nextCard.Stage == null || lastStage.CompareTo(nextStage) == 1)
-                    {
-                        break;
-                    }
-                    else if (lastStage.CompareTo(nextStage) == 0)
-                    {
-                        nextIndex = _cards.IndexOf(nextCard) + 1;
-                        lastStage = nextStage;
-                    }
-                    else
-                    {
-                        stages.Add(nextCard);
-
-                        nextIndex = _cards.IndexOf(nextCard) + 1;
-                        lastStage = nextStage;
-                    }
+                    first--;
                 }
 
-                if (stages.Count > 0)
+                int last = _cards.IndexOf(card);
+
+                while (_cards[last + 1].Type == card.Type)
                 {
+                    last++;
+                }
+
+                stages = _cards.GetRange(first, last - first + 1);
+
+                if (stages.Count > 1)
+                {
+                    stages.Sort(delegate (CardEntity x, CardEntity y)
+                    {
+                        return x.RowKey.CompareTo(y.RowKey);
+                    });
+
                     return stages;
                 }
                 else
@@ -229,7 +220,7 @@ namespace Cerebro.Dao
                     });
                 }
 
-                return results.Distinct().ToList();
+                return results.Distinct(new RelatedComparer()).ToList();
             }
         }
 

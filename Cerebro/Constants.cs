@@ -100,23 +100,6 @@ namespace Cerebro
 
         // Card Text
 
-        public static Dictionary<string, string> STAGES = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            { "I", "1" },
-            { "II", "2" },
-            { "III", "3" },
-            { "1A", "1" },
-            { "1B", "1" },
-            { "2A", "2" },
-            { "2B", "2" },
-            { "3A", "3" },
-            { "3B", "3" },
-            { "4A", "4" },
-            { "4B", "4" },
-            { "5A", "5" },
-            { "5B", "5" },
-        };
-
         public static Dictionary<string, string> SYMBOLS = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             { "{a}", ACCELERATION_SYMBOL },
