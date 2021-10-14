@@ -43,25 +43,25 @@ namespace Cerebro.CommandModules
                     var embed = card.BuildEmbed();
                     var message = await context.RespondAsync(embed);
 
-                    List<CardEntity> relatedCards = _cardDao.FindRelatedCards(card);
+                    List<CardEntity> faces = _cardDao.FindFaces(card);
 
-                    if (relatedCards != null)
+                    if (faces != null)
                     {
-                        context.GiveFlip(message, relatedCards, card);
+                        context.AddFaces(message, faces, faces.IndexOf(card));
                     }
 
-                    List<string> alternateArts = _cardDao.FindAlternateArt(card);
+                    List<string> artStyles = _cardDao.FindArtStyles(card);
 
-                    if (alternateArts != null)
+                    if (artStyles != null)
                     {
-                        context.GiveAlternateArt(message, card, alternateArts);
+                        context.AddArtStyles(message, card, artStyles);
                     }
 
                     List<CardEntity> stages = _cardDao.FindStages(card);
 
                     if (stages != null)
                     {
-                        context.GiveBrowse(message, stages, card);
+                        context.AddStages(message, stages, stages.IndexOf(card));
                     }
                 }
                 else
@@ -82,25 +82,25 @@ namespace Cerebro.CommandModules
 
                         var message = await context.RespondAsync(embed);
 
-                        List<CardEntity> relatedCards = _cardDao.FindRelatedCards(card);
+                        List<CardEntity> faces = _cardDao.FindFaces(card);
 
-                        if (relatedCards != null)
+                        if (faces != null)
                         {
-                            context.GiveFlip(message, relatedCards, card);
+                            context.AddFaces(message, faces, faces.IndexOf(card));
                         }
 
-                        List<string> alternateArts = _cardDao.FindAlternateArt(card);
+                        List<string> artStyles = _cardDao.FindArtStyles(card);
 
-                        if (alternateArts != null)
+                        if (artStyles != null)
                         {
-                            context.GiveAlternateArt(message, card, alternateArts);
+                            context.AddArtStyles(message, card, artStyles);
                         }
 
                         List<CardEntity> stages = _cardDao.FindStages(card);
 
                         if (stages != null)
                         {
-                            context.GiveBrowse(message, stages, card);
+                            context.AddStages(message, stages, stages.IndexOf(card));
                         }
                     }
                 }

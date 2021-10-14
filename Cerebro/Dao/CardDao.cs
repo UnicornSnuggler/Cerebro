@@ -13,8 +13,8 @@ namespace Cerebro.Dao
 {
     public interface ICardDao
     {
-        List<string> FindAlternateArt(CardEntity card);
-        List<CardEntity> FindRelatedCards(CardEntity card);
+        List<string> FindArtStyles(CardEntity card);
+        List<CardEntity> FindFaces(CardEntity card);
         List<CardEntity> FindStages(CardEntity card);
         string ParseArtificialId(PrintingEntity printing);
         CardEntity Retrieve(string packName, string cardId);
@@ -48,9 +48,13 @@ namespace Cerebro.Dao
             UpdateCardList();
         }
 
-        public List<string> FindAlternateArt(CardEntity card)
+        public List<string> FindArtStyles(CardEntity card)
         {
-            List<string> results = new List<string>();
+            List<string> results = new List<string>()
+            {
+                $"{Constants.IMAGE_PREFIX}{card.RowKey}.png"
+            };
+
             List<PrintingEntity> reprints = card.GetReprints();
 
             if (reprints != null)
@@ -66,7 +70,7 @@ namespace Cerebro.Dao
                     }
                 }
 
-                if (results.Count > 0)
+                if (results.Count > 1)
                 {
                     return results;
                 }
@@ -81,11 +85,11 @@ namespace Cerebro.Dao
             }
         }
 
-        public List<CardEntity> FindRelatedCards(CardEntity card)
+        public List<CardEntity> FindFaces(CardEntity card)
         {
             if (card.RowKey.Length > Constants.ID_LENGTH)
             {
-                var cards = _cards.FindAll(x => x.IsRelatedTo(card));
+                var cards = _cards.FindAll(x => x.IsRelatedTo(card) || x == card);
 
                 if (cards.Count() == 0)
                 {
@@ -93,6 +97,11 @@ namespace Cerebro.Dao
                 }
                 else
                 {
+                    cards.Sort(delegate (CardEntity a, CardEntity b)
+                    {
+                        return a.RowKey.CompareTo(b.RowKey);
+                    });
+
                     return cards;
                 }
             }
@@ -111,7 +120,10 @@ namespace Cerebro.Dao
                     return x.RowKey.CompareTo(y.RowKey);
                 });
 
-                List<CardEntity> stages = new List<CardEntity>();
+                List<CardEntity> stages = new List<CardEntity>()
+                {
+                    card
+                };
 
                 bool isVillain = card.Type == "Villain";
                 int nextIndex = _cards.IndexOf(card) + 1;
@@ -122,7 +134,7 @@ namespace Cerebro.Dao
                     CardEntity nextCard = _cards[nextIndex];
                     string nextStage = Constants.STAGES[nextCard.Stage];
 
-                    if (nextCard.Stage == null || lastStage.CompareTo(nextStage) == 1)
+                    if (nextCard.Type != card.Type || nextCard.Stage == null || lastStage.CompareTo(nextStage) == 1)
                     {
                         break;
                     }

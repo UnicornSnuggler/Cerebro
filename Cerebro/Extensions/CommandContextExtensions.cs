@@ -131,7 +131,7 @@ namespace Cerebro.Extensions
             return message;
         }
 
-        public static async void GiveAlternateArt(this CommandContext context, DiscordMessage message, CardEntity card, List<string> choices, string current = null)
+        public static async void AddArtStyles(this CommandContext context, DiscordMessage message, CardEntity card, List<string> choices, int currentIndex = 0)
         {
             var artReaction = DiscordEmoji.FromName(context.Client, Constants.ART_EMOJI);
 
@@ -143,17 +143,15 @@ namespace Cerebro.Extensions
             {
                 if (reaction.Result.Emoji == artReaction)
                 {
-                    var nextChoice = choices[0];
-
-                    choices.RemoveAt(0);
-                    choices.Add(current != null ? current : card.Image);
+                    var nextIndex = currentIndex + 1 < choices.Count ? currentIndex + 1 : 0;
+                    var nextChoice = choices[nextIndex];
 
                     await message.DeleteAllReactionsAsync();
 
                     var embed = card.BuildEmbed(nextChoice);
                     var newMessage = await message.ModifyAsync(embed);
 
-                    context.GiveAlternateArt(newMessage, card, choices, nextChoice);
+                    context.AddArtStyles(newMessage, card, choices, nextIndex);
                 }
             }
             else
@@ -162,7 +160,36 @@ namespace Cerebro.Extensions
             }
         }
 
-        public static async void GiveBrowse(this CommandContext context, DiscordMessage message, List<CardEntity> stages, CardEntity current)
+        public static async void AddFaces(this CommandContext context, DiscordMessage message, List<CardEntity> choices, int currentIndex)
+        {
+            var flipReaction = DiscordEmoji.FromName(context.Client, Constants.REPEAT_EMOJI);
+
+            await message.CreateReactionAsync(flipReaction);
+
+            var reaction = await message.WaitForReactionAsync(context.Message.Author);
+
+            if (!reaction.TimedOut)
+            {
+                if (reaction.Result.Emoji == flipReaction)
+                {
+                    var nextIndex = currentIndex + 1 < choices.Count ? currentIndex + 1 : 0;
+                    var nextChoice = choices[nextIndex];
+
+                    await message.DeleteAllReactionsAsync();
+
+                    var embed = nextChoice.BuildEmbed();
+                    var newMessage = await message.ModifyAsync(embed);
+
+                    context.AddFaces(newMessage, choices, nextIndex);
+                }
+            }
+            else
+            {
+                await message.DeleteAllReactionsAsync();
+            }
+        }
+
+        public static async void AddStages(this CommandContext context, DiscordMessage message, List<CardEntity> stages, int currentIndex)
         {
             var leftArrowReaction = DiscordEmoji.FromName(context.Client, Constants.ARROW_LEFT_EMOJI);
             var rightArrowReaction = DiscordEmoji.FromName(context.Client, Constants.ARROW_RIGHT_EMOJI);
@@ -176,32 +203,28 @@ namespace Cerebro.Extensions
             {
                 if (reaction.Result.Emoji == leftArrowReaction)
                 {
-                    var nextStage = stages[stages.Count - 1];
-
-                    stages.RemoveAt(stages.Count - 1);
-                    stages.Insert(0, current);
+                    var nextIndex = currentIndex - 1 >= 0 ? currentIndex - 1 : stages.Count - 1;
+                    var nextStage = stages[nextIndex];
 
                     await message.DeleteAllReactionsAsync();
 
                     var embed = nextStage.BuildEmbed();
                     var newMessage = await message.ModifyAsync(embed);
 
-                    context.GiveBrowse(newMessage, stages, nextStage);
+                    context.AddStages(newMessage, stages, nextIndex);
                 }
 
                 if (reaction.Result.Emoji == rightArrowReaction)
                 {
-                    var nextStage = stages[0];
-
-                    stages.RemoveAt(0);
-                    stages.Add(current);
+                    var nextIndex = currentIndex + 1 < stages.Count ? currentIndex + 1 : 0;
+                    var nextStage = stages[nextIndex];
 
                     await message.DeleteAllReactionsAsync();
 
                     var embed = nextStage.BuildEmbed();
                     var newMessage = await message.ModifyAsync(embed);
 
-                    context.GiveBrowse(newMessage, stages, nextStage);
+                    context.AddStages(newMessage, stages, nextIndex);
                 }
             }
             else
@@ -210,36 +233,10 @@ namespace Cerebro.Extensions
             }
         }
 
-        public static async void GiveFlip(this CommandContext context, DiscordMessage message, List<CardEntity> choices, CardEntity current)
+        /*public static async Task Imbibe(this CommandContext context, DiscordMessage message, List<CardEntity> faces, List<string> artStyles, List<CardEntity> stages)
         {
-            var flipReaction = DiscordEmoji.FromName(context.Client, Constants.REPEAT_EMOJI);
 
-            await message.CreateReactionAsync(flipReaction);
-
-            var reaction = await message.WaitForReactionAsync(context.Message.Author);
-
-            if (!reaction.TimedOut)
-            {
-                if (reaction.Result.Emoji == flipReaction)
-                {
-                    var nextChoice = choices[0];
-
-                    choices.RemoveAt(0);
-                    choices.Add(current);
-
-                    await message.DeleteAllReactionsAsync();
-
-                    var embed = nextChoice.BuildEmbed();
-                    var newMessage = await message.ModifyAsync(embed);
-
-                    context.GiveFlip(newMessage, choices, nextChoice);
-                }
-            }
-            else
-            {
-                await message.DeleteAllReactionsAsync();
-            }
-        }
+        }*/
 
         public static async Task SendEmbed(this CommandContext context, string content)
         {
