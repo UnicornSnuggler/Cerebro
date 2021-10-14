@@ -81,6 +81,13 @@ namespace Cerebro.CommandModules
                         {
                             context.MakeFlippable(message, relatedCards, card);
                         }
+
+                        List<string> alternateArts = _cardDao.FindAlternateArt(card);
+
+                        if (alternateArts != null)
+                        {
+                            context.MakeBrowsable(message, card, alternateArts);
+                        }
                     }
                 }
             }

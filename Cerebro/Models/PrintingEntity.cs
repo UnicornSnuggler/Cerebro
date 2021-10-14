@@ -15,5 +15,7 @@ namespace Cerebro.Models
         public string PackNumber { get; set; }
 
         public string SetNumber { get; set; }
+
+        public PackEntity Pack { get; set; }
     }
 }

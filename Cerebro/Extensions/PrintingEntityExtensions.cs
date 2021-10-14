@@ -14,9 +14,9 @@ namespace Cerebro.Extensions
         {
             StringBuilder summary = new StringBuilder($"{printing.PartitionKey} #{printing.SetNumber}");
 
-            if (printing.PackName != null)
+            if (printing.Pack != null)
             {
-                summary.Append($", {printing.PackName}");
+                summary.Append($", {printing.Pack.RowKey}");
 
                 if (printing.PackNumber != null)
                 {

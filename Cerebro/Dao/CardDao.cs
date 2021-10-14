@@ -28,6 +28,7 @@ namespace Cerebro.Dao
 
         private List<CardEntity> _cards;
         private List<string> _images;
+        private List<PackEntity> _packs;
         private List<PrintingEntity> _printings;
         private List<SetEntity> _sets;
         private readonly IConfigurationRoot _configuration;
@@ -169,6 +170,7 @@ namespace Cerebro.Dao
         public void UpdateCardList()
         {
             UpdateImageList();
+            UpdatePackList();
             UpdatePrintingList();
             UpdateSetList();
 
@@ -228,6 +230,30 @@ namespace Cerebro.Dao
             }
         }
 
+        public void UpdatePackList()
+        {
+            _packs = new List<PackEntity>();
+
+            try
+            {
+                var packTable = _storageAccount.CreateCloudTableClient(new TableClientConfiguration()).GetTableReference(PackEntity.TABLE_NAME);
+
+                IQueryable<PackEntity> packs = packTable.CreateQuery<PackEntity>()
+                    .Select(x => x);
+
+                foreach (PackEntity pack in packs)
+                {
+                    _packs.Add(pack);
+                }
+
+                _logger.LogInformation($"Loaded {_packs.Count} packs from the database!");
+            }
+            catch (Exception e)
+            {
+                _logger.LogError($"Exception caught while updating the pack list...\n\n{e}");
+            }
+        }
+
         public void UpdatePrintingList()
         {
             _printings = new List<PrintingEntity>();
@@ -241,6 +267,11 @@ namespace Cerebro.Dao
 
                 foreach (PrintingEntity printing in printings)
                 {
+                    if (printing.PackName != null)
+                    {
+                        printing.Pack = _packs.Find(x => x.Id == printing.PackName);
+                    }
+
                     _printings.Add(printing);
                 }
 

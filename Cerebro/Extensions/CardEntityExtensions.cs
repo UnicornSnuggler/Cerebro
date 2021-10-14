@@ -213,12 +213,12 @@ namespace Cerebro.Extensions
 
         private static string FormatText(string text, string cardName = null)
         {
-            List<string> exemptions = Constants.UNFORMATTED;
-            exemptions.Add(cardName);
+            List<KeyValuePair<string, string>> overrides = Constants.OVERRIDES.ToList();
+            overrides.Add(new KeyValuePair<string, string>(cardName, null));
 
-            for (int i = 0; i < exemptions.Count(); i++)
+            for (int i = 0; i < overrides.Count(); i++)
             {
-                text = text.Replace(exemptions[i], $"[[{i}]]");
+                text = text.Replace(overrides[i].Key, $"[[{i}]]");
             }
 
             string[] lines = text.Split("\n");
@@ -234,9 +234,11 @@ namespace Cerebro.Extensions
 
             string output = FormatSymbols(string.Join("\n", lines));
 
-            for (int i = 0; i < exemptions.Count(); i++)
+            for (int i = 0; i < overrides.Count(); i++)
             {
-                output = output.Replace($"[[{i}]]", exemptions[i]);
+                string key = overrides[i].Key;
+
+                output = output.Replace($"[[{i}]]", overrides[i].Value != null ? overrides[i].Value : overrides[i].Key);
             }
 
             return output;
