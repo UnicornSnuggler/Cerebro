@@ -62,19 +62,4 @@ namespace Cerebro.Models
 
         public bool Unique { get; set; }
     }
-
-    public class RelatedComparer : IEqualityComparer<CardEntity>
-    {
-        public bool Equals(CardEntity thisCard, CardEntity thatCard)
-        {
-            return thisCard.IsRelatedTo(thatCard);
-        }
-
-        public int GetHashCode(CardEntity card)
-        {
-            string baseId = card.RowKey.Substring(0, Constants.ID_LENGTH);
-
-            return baseId.GetHashCode();
-        }
-    }
 }

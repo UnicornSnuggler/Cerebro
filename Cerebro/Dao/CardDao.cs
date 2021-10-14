@@ -220,8 +220,27 @@ namespace Cerebro.Dao
                     });
                 }
 
-                return results.Distinct(new RelatedComparer()).ToList();
+                return TrimDuplicates(results);
             }
+        }
+
+        private List<CardEntity> TrimDuplicates(List<CardEntity> cards)
+        {
+            List<CardEntity> results = new List<CardEntity>();
+
+            foreach (CardEntity card in cards)
+            {
+                if (results.Find(x => x.IsRelatedTo(card)) == null) {
+                    List<CardEntity> stages = FindStages(card);
+
+                    if (stages == null || results.Find(x => stages.Contains(x)) == null)
+                    {
+                        results.Add(card);
+                    }
+                }
+            }
+
+            return results;
         }
 
         public void UpdateCardList()
