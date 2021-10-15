@@ -44,6 +44,8 @@ namespace Cerebro.Models
 
         public string Scheme { get; set; }
 
+        public bool Slash { get; set; }
+
         public string Special { get; set; }
 
         public string Stage { get; set; }
