@@ -19,9 +19,9 @@ namespace Cerebro.CommandModules
     class SearchCommandModule : BaseCommandModule
     {
         private readonly ILogger _logger;
-        private readonly ICardDao _cardDao;
+        private readonly ICerebroDao _cardDao;
 
-        public SearchCommandModule(ILogger<SearchCommandModule> logger, ICardDao cardDao)
+        public SearchCommandModule(ILogger<SearchCommandModule> logger, ICerebroDao cardDao)
         {
             _logger = logger;
             _cardDao = cardDao;

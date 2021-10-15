@@ -1,9 +1,11 @@
-﻿using Cerebro.Models;
+﻿using Cerebro.Dao;
+using Cerebro.Models;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Cerebro.Extensions
 {
@@ -213,37 +215,80 @@ namespace Cerebro.Extensions
             return Constants.SYMBOLS.Aggregate(text, (filter, entry) => filter.Replace(entry.Key, entry.Value));
         }
 
-        private static string FormatText(string text, string cardName = null)
+        private static string FormatText(string text, string exclusion = null)
         {
-            List<KeyValuePair<string, string>> overrides = Constants.OVERRIDES.ToList();
-            overrides.Add(new KeyValuePair<string, string>(cardName, null));
+            List<KeyValuePair<string, string>> replacements = new List<KeyValuePair<string, string>>();
 
-            for (int i = 0; i < overrides.Count(); i++)
+            if (exclusion != null)
             {
-                text = text.Replace(overrides[i].Key, $"[[{i}]]");
+                if (text.Contains(exclusion))
+                {
+                    replacements.Add(new KeyValuePair<string, string>("{0}", exclusion));
+                    text = text.Replace(exclusion, "{0}");
+                }
             }
 
-            string[] lines = text.Split("\n");
 
-            for (int i = 0; i < lines.Count(); i++)
+            foreach (string priority in new List<string>() { "High", "Medium", "Low" })
             {
-                lines[i] = Constants.BOLDS.Aggregate(lines[i], (filter, word) => filter.Replace(word, Formatter.Bold(word)));
-                lines[i] = Constants.ITALICS.Aggregate(lines[i], (filter, word) => filter.Replace(word, Formatter.Italic(word)));
-                lines[i] = Constants.EMPHASES.Aggregate(lines[i], (filter, word) => filter.Replace(word, Formatter.Italic(Formatter.Bold(word))));
-                lines[i] = lines[i].Replace("(**", "**(");
-                lines[i] = lines[i].Replace("**)", ")**");
+                List<FormattingEntity> formattings = CerebroDao._formattings.FindAll(x => x.Priority == priority);
+
+                foreach (FormattingEntity formatting in formattings)
+                {
+                    string matchedText = null;
+
+                    if (formatting.Regex != null)
+                    {
+                        var match = Regex.Match(text, formatting.Regex);
+
+                        if (match.Success)
+                        {
+                            matchedText = match.ToString();
+                        }
+                    }
+                    else
+                    {
+                        if (text.Contains(formatting.Text))
+                        {
+                            matchedText = formatting.Text;
+                        }
+                    }
+
+                    if (matchedText != null)
+                    {
+                        string replacedText = null;
+
+                        if (formatting.PartitionKey == "Bold")
+                        {
+                            replacedText = Formatter.Bold(matchedText);
+                        }
+                        else if (formatting.PartitionKey == "Emphasis")
+                        {
+                            replacedText = Formatter.Bold(Formatter.Italic(matchedText));
+                        }
+                        else if (formatting.PartitionKey == "Italic")
+                        {
+                            replacedText = Formatter.Italic(matchedText);
+                        }
+                        else if (formatting.PartitionKey == "Override")
+                        {
+                            replacedText = formatting.Replacement ?? matchedText;
+                        }
+
+                        int index = replacements.Count;
+
+                        replacements.Add(new KeyValuePair<string, string>($"{{{index}}}", replacedText));
+                        text = text.Replace(matchedText, $"{{{index}}}");
+                    }
+                }
             }
 
-            string output = FormatSymbols(string.Join("\n", lines));
-
-            for (int i = 0; i < overrides.Count(); i++)
+            for (int i = 0; i < replacements.Count; i++)
             {
-                string key = overrides[i].Key;
-
-                output = output.Replace($"[[{i}]]", overrides[i].Value != null ? overrides[i].Value : overrides[i].Key);
+                text = text.Replace(replacements[i].Key, replacements[i].Value);
             }
 
-            return output;
+            return FormatSymbols(text);
         }
 
         internal static string GetBaseId(this CardEntity card)

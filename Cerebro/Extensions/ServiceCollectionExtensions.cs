@@ -26,7 +26,7 @@ namespace Cerebro.Extensions
                     log.AddConsole();
                 })
                 .AddSingleton(configuration)
-                .AddSingleton<ICardDao, CardDao>()
+                .AddSingleton<ICerebroDao, CerebroDao>()
                 .AddSingleton<DebugCommandModule>()
                 .AddSingleton<SearchCommandModule>();
 

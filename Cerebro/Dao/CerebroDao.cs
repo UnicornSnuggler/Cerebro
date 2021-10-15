@@ -1,6 +1,7 @@
 ﻿using Azure.Storage.Blobs;
 using Cerebro.Extensions;
 using Cerebro.Models;
+using DSharpPlus;
 using FuzzySharp;
 using Microsoft.Azure.Cosmos.Table;
 using Microsoft.Extensions.Configuration;
@@ -8,10 +9,11 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Cerebro.Dao
 {
-    public interface ICardDao
+    public interface ICerebroDao
     {
         List<string> FindArtStyles(CardEntity card);
         List<CardEntity> FindFaces(CardEntity card);
@@ -22,12 +24,13 @@ namespace Cerebro.Dao
         void UpdateCardList();
     }
 
-    public class CardDao : ICardDao
+    public class CerebroDao : ICerebroDao
     {
         private BlobServiceClient _blobClient;
         private CloudStorageAccount _storageAccount;
 
         private List<CardEntity> _cards;
+        public static List<FormattingEntity> _formattings;
         private List<string> _images;
         private List<PackEntity> _packs;
         private List<PrintingEntity> _printings;
@@ -35,7 +38,7 @@ namespace Cerebro.Dao
         private readonly IConfigurationRoot _configuration;
         private readonly ILogger _logger;
 
-        public CardDao(IConfigurationRoot configuration, ILogger<ICardDao> logger)
+        public CerebroDao(IConfigurationRoot configuration, ILogger<ICerebroDao> logger)
         {
             _configuration = configuration;
             _logger = logger;
@@ -245,6 +248,7 @@ namespace Cerebro.Dao
 
         public void UpdateCardList()
         {
+            UpdateFormattingList();
             UpdateImageList();
             UpdatePackList();
             UpdatePrintingList();
@@ -280,6 +284,30 @@ namespace Cerebro.Dao
             catch(Exception e)
             {
                 _logger.LogError($"Exception caught while updating the card list...\n\n{e}");
+            }
+        }
+
+        public void UpdateFormattingList()
+        {
+            _formattings = new List<FormattingEntity>();
+
+            try
+            {
+                var formattingTable = _storageAccount.CreateCloudTableClient(new TableClientConfiguration()).GetTableReference(FormattingEntity.TABLE_NAME);
+
+                IQueryable<FormattingEntity> formattings = formattingTable.CreateQuery<FormattingEntity>()
+                    .Select(x => x);
+
+                foreach (FormattingEntity formatting in formattings)
+                {
+                    _formattings.Add(formatting);
+                }
+
+                _logger.LogInformation($"Loaded {_formattings.Count} formattings from the database!");
+            }
+            catch (Exception e)
+            {
+                _logger.LogError($"Exception caught while updating the formatting list...\n\n{e}");
             }
         }
 
@@ -375,11 +403,11 @@ namespace Cerebro.Dao
                     _sets.Add(set);
                 }
 
-                Console.WriteLine($"Loaded {_sets.Count} sets from the database!");
+                _logger.LogInformation($"Loaded {_sets.Count} sets from the database!");
             }
             catch (Exception e)
             {
-                Console.Error.WriteLine($"Exception caught while updating the set list...\n\n{e}");
+                _logger.LogError($"Exception caught while updating the set list...\n\n{e}");
             }
         }
     }

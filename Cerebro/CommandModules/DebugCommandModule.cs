@@ -14,9 +14,9 @@ namespace Cerebro.CommandModules
     class DebugCommandModule : BaseCommandModule
     {
         private readonly ILogger _logger;
-        private readonly ICardDao _cardDao;
+        private readonly ICerebroDao _cardDao;
 
-        public DebugCommandModule(ILogger<DebugCommandModule> logger, ICardDao cardDao)
+        public DebugCommandModule(ILogger<DebugCommandModule> logger, ICerebroDao cardDao)
         {
             _logger = logger;
             _cardDao = cardDao;
