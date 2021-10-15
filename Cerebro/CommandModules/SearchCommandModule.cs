@@ -33,38 +33,17 @@ namespace Cerebro.CommandModules
         {
             List<CardEntity> results = _cardDao.RetrieveByName(cardName);
 
-            if (results == null)
+            try
             {
-                await context.SendEmbed("No matching cards were found...");
-            }
-            else
-            {
-                if (results.Count == 1)
+                if (results == null)
                 {
-                    var card = results[0];
-                    var embed = card.BuildEmbed();
-                    var message = await context.RespondAsync(embed);
-
-                    List<string> artStyles = _cardDao.FindArtStyles(card);
-                    List<CardEntity> faces = _cardDao.FindFaces(card);
-                    List<CardEntity> stages = _cardDao.FindStages(card);
-
-                    await Imbibe(context, message, card, artStyles, 0, faces, faces != null ? faces.IndexOf(card) : -1, stages, stages != null ? stages.IndexOf(card) : -1);
+                    await context.SendEmbed("No matching cards were found...");
                 }
                 else
                 {
-                    List<string> choices = new List<string>();
-
-                    foreach (CardEntity card in results)
+                    if (results.Count == 1)
                     {
-                        choices.Add(card.Summary());
-                    }
-
-                    int choice = await context.AwaitChoice("Multiple matches were found for your query.  Please select one of the following...", choices);
-
-                    if (choice != -1 && choice < choices.Count)
-                    {
-                        var card = results[choice];
+                        var card = results[0];
                         var embed = card.BuildEmbed();
                         var message = await context.RespondAsync(embed);
 
@@ -74,6 +53,43 @@ namespace Cerebro.CommandModules
 
                         await Imbibe(context, message, card, artStyles, 0, faces, faces != null ? faces.IndexOf(card) : -1, stages, stages != null ? stages.IndexOf(card) : -1);
                     }
+                    else
+                    {
+                        List<string> choices = new List<string>();
+
+                        foreach (CardEntity card in results)
+                        {
+                            choices.Add(card.Summary());
+                        }
+
+                        int choice = await context.AwaitChoice("Multiple matches were found for your query.  Please select one of the following...", choices);
+
+                        if (choice != -1 && choice < choices.Count)
+                        {
+                            var card = results[choice];
+                            var embed = card.BuildEmbed();
+                            var message = await context.RespondAsync(embed);
+
+                            List<string> artStyles = _cardDao.FindArtStyles(card);
+                            List<CardEntity> faces = _cardDao.FindFaces(card);
+                            List<CardEntity> stages = _cardDao.FindStages(card);
+
+                            await Imbibe(context, message, card, artStyles, 0, faces, faces != null ? faces.IndexOf(card) : -1, stages, stages != null ? stages.IndexOf(card) : -1);
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError($"Encountered an exception:\n\n{e}");
+
+                if (e.GetType() == typeof(DSharpPlus.Exceptions.UnauthorizedException))
+                {
+                    try
+                    {
+                        await context.SendEmbed($"{Constants.OWNER_MENTION} — I'm missing some required permissions! Contact the server administrator to rectify this issue.");
+                    }
+                    catch { }
                 }
             }
         }

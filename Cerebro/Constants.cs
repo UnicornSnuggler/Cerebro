@@ -14,15 +14,15 @@ namespace Cerebro
 
         // General
 
-        public const string COMMAND_PREFIX = "/cerebro ";
-
         public const string BOT_MENTION = "<@!869071415322742835> ";
 
-        public const string IMAGE_PREFIX = "https://loganstorage2020.blob.core.windows.net/cerebro-images/";
+        public const string COMMAND_PREFIX = "/cerebro ";
 
         public const int ID_LENGTH = 5;
 
-        public const string TEST_USER = "132708937584607233";
+        public const string IMAGE_PREFIX = "https://loganstorage2020.blob.core.windows.net/cerebro-images/";
+
+        public const string OWNER_MENTION = "<@!132708937584607233>";
 
         public const double TIMEOUT = 10;
 
