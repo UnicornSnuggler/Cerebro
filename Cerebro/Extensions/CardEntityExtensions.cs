@@ -150,7 +150,8 @@ namespace Cerebro.Extensions
 
                 if (card.Scheme != null)
                 {
-                    abilities.Add($"SCH: {card.Scheme}");
+                    string suffix = card.Slash ? "/THW" : "";
+                    abilities.Add($"SCH{suffix}: {card.Scheme}");
                 }
 
                 if (card.Thwart != null)
