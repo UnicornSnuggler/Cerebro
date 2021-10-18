@@ -76,6 +76,8 @@ namespace Cerebro
 
         public const string ACCELERATION_SYMBOL = "<:mc_acceleration:896032683266809876>";
 
+        public const string AMPLIFY_SYMBOL = "<:mc_amplify:898957049000505354>";
+
         public const string BOOST_SYMBOL = "<:mc_boost:896031377701629953>";
 
         public const string CONSEQUENTIAL_SYMBOL = "<:mc_consequential:896032683266834432>";
@@ -113,7 +115,8 @@ namespace Cerebro
             { "{p}", PHYSICAL_SYMBOL },
             { "{s}", STAR_SYMBOL },
             { "{u}", UNIQUE_SYMBOL },
-            { "{w}", WILD_SYMBOL }
+            { "{w}", WILD_SYMBOL },
+            { "{y}", AMPLIFY_SYMBOL }
         };
     }
 }
