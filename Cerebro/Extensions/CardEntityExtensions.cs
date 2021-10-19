@@ -37,12 +37,12 @@ namespace Cerebro.Extensions
 
             if (card.Rules != null)
             {
-                body.Add(FormatText(QuoteText(card.Rules), card.Name));
+                body.Add(QuoteText(FormatText(card.Rules, card.Name)));
             }
 
             if (card.Special != null)
             {
-                body.Add(FormatText(QuoteText(card.Special), card.Name));
+                body.Add(QuoteText(FormatText(card.Special, card.Name)));
             }
 
             if (card.Flavor != null)
@@ -219,66 +219,69 @@ namespace Cerebro.Extensions
         {
             List<KeyValuePair<string, string>> replacements = new List<KeyValuePair<string, string>>();
 
-            if (exclusion != null)
+            foreach (string priority in new List<string>() { "Severe", "Exclusion", "High", "Medium", "Low" })
             {
-                if (text.Contains(exclusion))
+                if (priority != "Exclusion")
                 {
-                    replacements.Add(new KeyValuePair<string, string>("{0}", exclusion));
-                    text = text.Replace(exclusion, "{0}");
+                    List<FormattingEntity> formattings = CerebroDao._formattings.FindAll(x => x.Priority == priority);
+
+                    foreach (FormattingEntity formatting in formattings)
+                    {
+                        string matchedText = null;
+
+                        if (formatting.Regex != null)
+                        {
+                            var match = Regex.Match(text, formatting.Regex);
+
+                            if (match.Success)
+                            {
+                                matchedText = match.ToString();
+                            }
+                        }
+                        else
+                        {
+                            if (text.Contains(formatting.Text))
+                            {
+                                matchedText = formatting.Text;
+                            }
+                        }
+
+                        if (matchedText != null)
+                        {
+                            string replacedText = null;
+
+                            if (formatting.PartitionKey == "Bold")
+                            {
+                                replacedText = Formatter.Bold(matchedText);
+                            }
+                            else if (formatting.PartitionKey == "Emphasis")
+                            {
+                                replacedText = Formatter.Bold(Formatter.Italic(matchedText));
+                            }
+                            else if (formatting.PartitionKey == "Italic")
+                            {
+                                replacedText = Formatter.Italic(matchedText);
+                            }
+                            else if (formatting.PartitionKey == "Override")
+                            {
+                                replacedText = formatting.Replacement ?? matchedText;
+                            }
+
+                            int index = replacements.Count;
+
+                            replacements.Add(new KeyValuePair<string, string>($"{{{index}}}", replacedText));
+                            text = text.Replace(matchedText, $"{{{index}}}");
+                        }
+                    }
                 }
-            }
-
-
-            foreach (string priority in new List<string>() { "High", "Medium", "Low" })
-            {
-                List<FormattingEntity> formattings = CerebroDao._formattings.FindAll(x => x.Priority == priority);
-
-                foreach (FormattingEntity formatting in formattings)
+                else
                 {
-                    string matchedText = null;
-
-                    if (formatting.Regex != null)
+                    if (exclusion != null && text.Contains(exclusion))
                     {
-                        var match = Regex.Match(text, formatting.Regex);
-
-                        if (match.Success)
-                        {
-                            matchedText = match.ToString();
-                        }
-                    }
-                    else
-                    {
-                        if (text.Contains(formatting.Text))
-                        {
-                            matchedText = formatting.Text;
-                        }
-                    }
-
-                    if (matchedText != null)
-                    {
-                        string replacedText = null;
-
-                        if (formatting.PartitionKey == "Bold")
-                        {
-                            replacedText = Formatter.Bold(matchedText);
-                        }
-                        else if (formatting.PartitionKey == "Emphasis")
-                        {
-                            replacedText = Formatter.Bold(Formatter.Italic(matchedText));
-                        }
-                        else if (formatting.PartitionKey == "Italic")
-                        {
-                            replacedText = Formatter.Italic(matchedText);
-                        }
-                        else if (formatting.PartitionKey == "Override")
-                        {
-                            replacedText = formatting.Replacement ?? matchedText;
-                        }
-
                         int index = replacements.Count;
 
-                        replacements.Add(new KeyValuePair<string, string>($"{{{index}}}", replacedText));
-                        text = text.Replace(matchedText, $"{{{index}}}");
+                        replacements.Add(new KeyValuePair<string, string>($"{{{index}}}", exclusion));
+                        text = text.Replace(exclusion, $"{{{index}}}");
                     }
                 }
             }

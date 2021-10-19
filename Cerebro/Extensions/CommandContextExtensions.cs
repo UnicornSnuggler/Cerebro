@@ -33,48 +33,12 @@ namespace Cerebro.Extensions
             Timeout
         }
 
-        public static async Task<int> AwaitChoice(this CommandContext context, string message, List<string> choices)
-        {
-            List<DiscordEmoji> emojis = new List<DiscordEmoji>();
-
-            StringBuilder contents = new StringBuilder(message);
-            contents.AppendLine();
-
-            for (int i = 0; i < choices.Count; i++)
-            {
-                emojis.Add(DiscordEmoji.FromName(context.Client, CHOICE_EMOJIS[i]));
-                contents.AppendLine($"{emojis[i]}: {choices[i]}");
-            }
-
-            var embed = await context.RespondAsync(CreateEmbed(context, contents.ToString()));
-
-            for (int i = 0; i < choices.Count; i++)
-            {
-                await embed.CreateReactionAsync(emojis[i]);
-            }
-
-            var reaction = await embed.WaitForReactionAsync(context.Message.Author, TimeSpan.FromSeconds(Constants.TIMEOUT));
-
-            // TODO: Have this modify the message to display a timeout error rather than just poofing.
-
-            await embed.DeleteAsync();
-
-            if (reaction.TimedOut)
-            {
-                return -1;
-            }
-            else
-            {
-                return emojis.FindIndex(x => x.Equals(reaction.Result.Emoji));
-            }
-        }
-
-        public static async Task<CONFIRMATION_CODE> AwaitConfirmationAsync(this CommandContext context, string confirmation)
+        public static async Task<CONFIRMATION_CODE> AwaitConfirmation(this CommandContext context, string confirmation)
         {
             var affirmativeEmoji = DiscordEmoji.FromName(context.Client, Constants.AFFIRMATIVE_EMOJI);
             var negativeEmoji = DiscordEmoji.FromName(context.Client, Constants.NEGATIVE_EMOJI);
 
-            var message = await context.RespondAsync(CreateEmbed(context, confirmation));
+            var message = await context.RespondAsync(CreateMessage(context, confirmation));
 
             await message.CreateReactionAsync(affirmativeEmoji);
             await message.CreateReactionAsync(negativeEmoji);
@@ -98,12 +62,44 @@ namespace Cerebro.Extensions
             }
         }
 
-        public static DiscordMessageBuilder CreateEmbed(this CommandContext context, string content)
+        public static async Task<DiscordEmoji> AwaitChoice(this CommandContext context, DiscordMessage message, List<DiscordEmoji> emojis)
+        {
+            foreach (DiscordEmoji emoji in emojis)
+            {
+                await message.CreateReactionAsync(emoji);
+            }
+
+            var reaction = await message.WaitForReactionAsync(context.Message.Author, TimeSpan.FromSeconds(Constants.TIMEOUT));
+
+            if (reaction.TimedOut)
+            {
+                return null;
+            }
+            else
+            {
+                return reaction.Result.Emoji;
+            }
+        }
+
+        public static DiscordMessageBuilder CreateChoiceMessage(this CommandContext context, string content, List<DiscordEmoji> emojis, List<string> choices)
+        {
+            StringBuilder contents = new StringBuilder();
+            contents.AppendLine(content);
+
+            for (int i = 0; i < choices.Count; i++)
+            {
+                contents.AppendLine($"{emojis[i]} {choices[i]}");
+            }
+
+            return CreateMessage(context, DEFAULT_COLOR, null, contents.ToString(), null);
+        }
+
+        public static DiscordEmbed CreateEmbed(this CommandContext context, string content)
         {
             return CreateEmbed(context, DEFAULT_COLOR, null, content, null);
         }
 
-        public static DiscordMessageBuilder CreateEmbed(this CommandContext context, DiscordColor color, string title, string content, List<KeyValuePair<string, string>> fields)
+        public static DiscordEmbed CreateEmbed(this CommandContext context, DiscordColor color, string title, string content, List<KeyValuePair<string, string>> fields)
         {
             var embed = new DiscordEmbedBuilder()
             {
@@ -124,11 +120,35 @@ namespace Cerebro.Extensions
                 });
             }
 
+            return embed;
+        }
+
+        public static DiscordMessageBuilder CreateMessage(this CommandContext context, string content)
+        {
+            return CreateMessage(context, DEFAULT_COLOR, null, content, null);
+        }
+
+        public static DiscordMessageBuilder CreateMessage(this CommandContext context, DiscordColor color, string title, string content, List<KeyValuePair<string, string>> fields)
+        {
+            var embed = context.CreateEmbed(color, title, content, fields);
+
             var message = new DiscordMessageBuilder()
                 .WithEmbed(embed)
                 .WithReply(context.Message.Id, true);
 
             return message;
+        }
+
+        public static List<DiscordEmoji> GetChoiceEmojis(this CommandContext context, int choices)
+        {
+            List<DiscordEmoji> emojis = new List<DiscordEmoji>();
+
+            for (int i = 0; i < choices; i++)
+            {
+                emojis.Add(DiscordEmoji.FromName(context.Client, CHOICE_EMOJIS[i]));
+            }
+
+            return emojis;
         }
 
         public static async Task SendEmbed(this CommandContext context, string content)
@@ -138,7 +158,7 @@ namespace Cerebro.Extensions
 
         public static async Task SendEmbed(this CommandContext context, DiscordColor color, string title, string content, List<KeyValuePair<string, string>> fields)
         {
-            var message = CreateEmbed(context, color, title, content, fields);
+            var message = CreateMessage(context, color, title, content, fields);
 
             await context.RespondAsync(message);
         }

@@ -62,13 +62,26 @@ namespace Cerebro.CommandModules
                             choices.Add(card.Summary());
                         }
 
-                        int choice = await context.AwaitChoice("Multiple matches were found for your query.  Please select one of the following...", choices);
+                        var emojis = context.GetChoiceEmojis(choices.Count);
+                        var message = await context.RespondAsync(context.CreateChoiceMessage("Multiple matches were found for your query.  Please select one of the following...", emojis, choices));
+                        DiscordEmoji choice = await context.AwaitChoice(message, emojis);
 
-                        if (choice != -1 && choice < choices.Count)
+                        await message.DeleteAllReactionsAsync();
+
+                        if (choice == null)
                         {
-                            var card = results[choice];
+                            await message.ModifyAsync(context.CreateEmbed("The response timeout was reached..."));
+                        }
+                        else if (emojis.IndexOf(choice) == -1)
+                        {
+                            await message.ModifyAsync(context.CreateEmbed($"Your response {choice} did not equate to a valid option..."));
+                        }
+                        else
+                        {
+                            var index = emojis.IndexOf(choice);
+                            var card = results[index];
                             var embed = card.BuildEmbed();
-                            var message = await context.RespondAsync(embed);
+                            message = await message.ModifyAsync(embed);
 
                             List<string> artStyles = _cardDao.FindArtStyles(card);
                             List<CardEntity> faces = _cardDao.FindFaces(card);
@@ -126,7 +139,7 @@ namespace Cerebro.CommandModules
                 await message.CreateReactionAsync(artReaction);
             }
 
-            var reaction = await message.WaitForReactionAsync(context.Message.Author);
+            var reaction = await message.WaitForReactionAsync(context.Message.Author, TimeSpan.FromSeconds(Constants.TIMEOUT));
 
             while (!reaction.TimedOut)
             {
@@ -134,7 +147,7 @@ namespace Cerebro.CommandModules
                 {
                     DiscordMessage nextMessage;
                     CardEntity nextCard = card;
-                    int nextArtStyle = currentArtStyle;
+                    int nextArtStyle;
                     List<string> nextArtStyles = artStyles;
                     int nextFace = currentFace;
                     List<CardEntity> nextFaces = faces;
