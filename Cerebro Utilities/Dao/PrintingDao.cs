@@ -1,7 +1,6 @@
 ﻿using Cerebro_Utilities.Models;
 using Microsoft.Azure.Cosmos.Table;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -40,6 +39,7 @@ namespace Cerebro_Utilities.Dao
             foreach(PrintingEntity printing in entities)
             {
                 printing.Pack = PackDao._packs.Find(x => x.RowKey == printing.PackId);
+                printing.Set = SetDao._sets.Find(x => x.RowKey == printing.PartitionKey);
 
                 printings.Add(printing);
             }

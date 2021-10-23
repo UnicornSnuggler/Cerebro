@@ -16,16 +16,19 @@ namespace Cerebro_Utilities.Models
         [SimpleField]
         public string ArtificialId { get; set; }
 
+        [JsonIgnore]
+        public PackEntity Pack { get; set; }
+
         [SimpleField]
         public string PackId { get; set; }
 
         [SimpleField]
         public string PackNumber { get; set; }
 
+        [JsonIgnore]
+        public SetEntity Set { get; set; }
+
         [SimpleField]
         public string SetNumber { get; set; }
-
-        [JsonIgnore]
-        public PackEntity Pack { get; set; }
     }
 }

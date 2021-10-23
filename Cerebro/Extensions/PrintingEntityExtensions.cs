@@ -7,19 +7,26 @@ namespace Cerebro.Extensions
     {
         internal static string Summary(this PrintingEntity printing)
         {
-            StringBuilder summary = new StringBuilder($"{printing.PartitionKey} #{printing.SetNumber}");
-
-            if (printing.Pack != null)
+            if (printing.Set.Incomplete)
             {
-                summary.Append($", {printing.Pack.Name}");
-
-                if (printing.PackNumber != null)
-                {
-                    summary.Append($" #{printing.PackNumber}");
-                }
+                return "[Redacted]";
             }
+            else
+            {
+                StringBuilder summary = new StringBuilder($"{printing.PartitionKey} #{printing.SetNumber}");
 
-            return summary.ToString();
+                if (printing.Pack != null)
+                {
+                    summary.Append($", {printing.Pack.Name}");
+
+                    if (printing.PackNumber != null)
+                    {
+                        summary.Append($" #{printing.PackNumber}");
+                    }
+                }
+
+                return summary.ToString();
+            }
         }
     }
 }

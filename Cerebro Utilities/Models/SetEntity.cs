@@ -8,6 +8,8 @@ namespace Cerebro_Utilities.Models
 
         public SetEntity() { }
 
+        public bool Incomplete { get; set; }
+
         public string Number { get; set; }
 
         public string Type { get; set; }

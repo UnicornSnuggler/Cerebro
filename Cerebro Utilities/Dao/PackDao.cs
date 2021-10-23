@@ -25,8 +25,6 @@ namespace Cerebro_Utilities.Dao
             _configuration = configuration;
             _logger = logger;
 
-            _packs = new List<PackEntity>();
-
             string connectionString = _configuration.GetValue<string>(Constants.CONFIG_STORAGE);
 
             _cloudTable = CloudStorageAccount.Parse(connectionString)

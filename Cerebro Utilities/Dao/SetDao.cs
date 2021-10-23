@@ -7,20 +7,20 @@ using System.Linq;
 
 namespace Cerebro_Utilities.Dao
 {
-    public interface IFormattingDao
+    public interface ISetDao
     {
-        public void RetrieveAllFormattings();
+        public void RetrieveAllSets();
     }
 
-    public class FormattingDao : IFormattingDao
+    public class SetDao : ISetDao
     {
         private CloudTable _cloudTable;
 
-        public static List<FormattingEntity> _formattings;
+        public static List<SetEntity> _sets;
         private readonly IConfigurationRoot _configuration;
         private readonly ILogger _logger;
 
-        public FormattingDao(IConfigurationRoot configuration, ILogger<ICardDao> logger)
+        public SetDao(IConfigurationRoot configuration, ILogger<ISetDao> logger)
         {
             _configuration = configuration;
             _logger = logger;
@@ -29,24 +29,24 @@ namespace Cerebro_Utilities.Dao
 
             _cloudTable = CloudStorageAccount.Parse(connectionString)
                 .CreateCloudTableClient(new TableClientConfiguration())
-                .GetTableReference(FormattingEntity.TABLE_NAME);
+                .GetTableReference(SetEntity.TABLE_NAME);
 
-            RetrieveAllFormattings();
+            RetrieveAllSets();
         }
 
-        public void RetrieveAllFormattings()
+        public void RetrieveAllSets()
         {
-            _formattings = new List<FormattingEntity>();
+            _sets = new List<SetEntity>();
 
-            IQueryable<FormattingEntity> entities = _cloudTable.CreateQuery<FormattingEntity>()
+            IQueryable<SetEntity> entities = _cloudTable.CreateQuery<SetEntity>()
                 .Select(x => x);
 
-            foreach (FormattingEntity formatting in entities)
+            foreach (SetEntity set in entities)
             {
-                _formattings.Add(formatting);
+                _sets.Add(set);
             }
 
-            _logger.LogInformation($"Loaded {_formattings.Count} formattings from the database!");
+            _logger.LogInformation($"Loaded {_sets.Count} sets from the database!");
         }
     }
 }
