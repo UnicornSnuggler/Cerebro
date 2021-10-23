@@ -42,9 +42,9 @@ namespace Cerebro_Utilities.Models
         
         [SimpleField]
         public string Health { get; set; }
-        
-        [SimpleField]
-        public string Image { get; set; }
+
+        [SimpleField(IsFilterable = true)]
+        public bool Incomplete { get; set; }
 
         [SearchableField(IsFilterable = true, IsSortable = true)]
         public string Name { get; set; }

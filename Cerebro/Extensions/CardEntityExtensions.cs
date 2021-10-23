@@ -16,20 +16,21 @@ namespace Cerebro.Extensions
             var embed = new DiscordEmbedBuilder();
 
             StringBuilder description = new StringBuilder();
-            description.AppendLine(card.BuildHeader());
+            List<string> subheader = new List<string>() { card.BuildHeader() };
 
             if (card.Traits != null)
             {
-                description.AppendLine(Formatter.Italic(Formatter.Bold(card.Traits)));
+                subheader.Add(Formatter.Italic(Formatter.Bold(card.Traits)));
             }
 
+            description.AppendLine(card.SpoilerIfIncomplete(string.Join("\n", subheader)));
             description.AppendLine();
 
             string stats = card.BuildStats();
 
             if (stats.Length > 0)
             {
-                description.AppendLine(FormatSymbols(stats));
+                description.AppendLine(card.SpoilerIfIncomplete(FormatSymbols(stats)));
                 description.AppendLine();
             }
 
@@ -37,17 +38,17 @@ namespace Cerebro.Extensions
 
             if (card.Rules != null)
             {
-                body.Add(QuoteText(FormatText(card.Rules, card.Name)));
+                body.Add(QuoteText(card.SpoilerIfIncomplete(FormatText(card.Rules, card.Name))));
             }
 
             if (card.Special != null)
             {
-                body.Add(QuoteText(FormatText(card.Special, card.Name)));
+                body.Add(QuoteText(card.SpoilerIfIncomplete(FormatText(card.Special, card.Name))));
             }
 
             if (card.Flavor != null)
             {
-                body.Add(Formatter.Italic(Formatter.Sanitize(card.Flavor)));
+                body.Add(card.SpoilerIfIncomplete(Formatter.Italic(Formatter.Sanitize(card.Flavor))));
             }
 
             if (body.Count > 0)
@@ -56,10 +57,15 @@ namespace Cerebro.Extensions
             }
 
             embed.WithColor(Constants.COLORS.GetValueOrDefault(card.Type == "Villain" || card.Type == "Main Scheme" ? "Villain" : card.Classification, new DiscordColor("2337CF")));
-            embed.WithTitle((card.Unique ? Constants.UNIQUE_SYMBOL : "") + card.Name + (card.Subname != null ? $" — {card.Subname}" : "" ));
-            embed.WithThumbnail(card.BuildImagePath(alternateArt));
+            embed.WithTitle(card.SpoilerIfIncomplete((card.Unique ? Constants.UNIQUE_SYMBOL : "") + card.Name + (card.Subname != null ? $" — {card.Subname}" : "" )));
+            embed.WithUrl(card.BuildImagePath(alternateArt));
             embed.WithDescription(description.ToString());
             embed.WithFooter(card.BuildFooter());
+            
+            if (!card.Incomplete)
+            {
+                embed.WithThumbnail(card.BuildImagePath(alternateArt));
+            }
 
             return embed;
         }
@@ -98,17 +104,25 @@ namespace Cerebro.Extensions
 
             if (card.Classification != "Encounter" && card.Type != "Hero" && card.Type != "Alter-Ego")
             {
-                header.Append($"{card.Classification} ");
+                header.Append($"{Formatter.Bold(card.Classification)} ");
             }
 
-            header.Append(card.Type);
+            header.Append(Formatter.Bold(card.Type));
 
-            if (card.Stage != null && forChoices == false)
+            if (card.Stage != null)
             {
-                header.Append($" — Stage {card.Stage}");
+                if (!forChoices)
+                {
+                    header.Append($" — {Formatter.Italic($"Stage {card.Stage}")}");
+                }
+                else
+                {
+                    string packName = card.Printings.First().Pack.Name;
+                    header.Append($" — {Formatter.Italic($"({packName})")}");
+                }
             }
 
-            return Formatter.Bold(header.ToString());
+            return header.ToString();
         }
 
         internal static string BuildImagePath(this CardEntity card, string alternateArt = null)
@@ -353,6 +367,18 @@ namespace Cerebro.Extensions
             return string.Join("\n", text.Split("\n").Select(x => $"> {x}"));
         }
 
+        private static string SpoilerIfIncomplete(this CardEntity card, string text)
+        {
+            if (card.Incomplete)
+            {
+                return Formatter.Spoiler(text);
+            }
+            else
+            {
+                return text;
+            }
+        }
+
         internal static string Summary(this CardEntity card)
         {
             StringBuilder summary = new StringBuilder();
@@ -371,7 +397,7 @@ namespace Cerebro.Extensions
                 summary.Append($" {FormatSymbols(card.Resource)}");
             }
 
-            return summary.ToString();
+            return card.SpoilerIfIncomplete(summary.ToString());
         }
     }
 }
