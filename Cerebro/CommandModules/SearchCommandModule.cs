@@ -1,7 +1,5 @@
-﻿using Cerebro.Attributes;
-using Cerebro.Dao;
+﻿using Cerebro_Utilities.Dao;
 using Cerebro.Extensions;
-using Cerebro.Models;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
@@ -9,8 +7,8 @@ using DSharpPlus.Interactivity.Extensions;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
+using Cerebro_Utilities.Models;
 
 namespace Cerebro.CommandModules
 {
@@ -19,9 +17,9 @@ namespace Cerebro.CommandModules
     class SearchCommandModule : BaseCommandModule
     {
         private readonly ILogger _logger;
-        private readonly ICerebroDao _cardDao;
+        private readonly ICardDao _cardDao;
 
-        public SearchCommandModule(ILogger<SearchCommandModule> logger, ICerebroDao cardDao)
+        public SearchCommandModule(ILogger<SearchCommandModule> logger, ICardDao cardDao)
         {
             _logger = logger;
             _cardDao = cardDao;
@@ -35,7 +33,7 @@ namespace Cerebro.CommandModules
 
             try
             {
-                if (results == null)
+                if (results == null || results.Count == 0)
                 {
                     await context.SendEmbed("No matching cards were found...");
                 }
@@ -47,11 +45,11 @@ namespace Cerebro.CommandModules
                         var embed = card.BuildEmbed();
                         var message = await context.RespondAsync(embed);
 
-                        List<string> artStyles = _cardDao.FindArtStyles(card);
-                        List<CardEntity> faces = _cardDao.FindFaces(card);
-                        List<CardEntity> stages = _cardDao.FindStages(card);
+                        List<string> artStyles = card.GetAlternateArts();
+                        List<CardEntity> faces = _cardDao.FindFaces(card.RowKey);
+                        List<CardEntity> stages = _cardDao.FindGroup(card.Group);
 
-                        await Imbibe(context, message, card, artStyles, 0, faces, faces != null ? faces.IndexOf(card) : -1, stages, stages != null ? stages.IndexOf(card) : -1);
+                        await Imbibe(context, message, card, artStyles, 0, faces, faces != null ? faces.FindIndex(x => x.RowKey == card.RowKey) : -1, stages, stages != null ? stages.FindIndex(x => x.RowKey == card.RowKey) : -1);
                     }
                     else
                     {
@@ -62,8 +60,8 @@ namespace Cerebro.CommandModules
                             choices.Add(card.Summary());
                         }
 
-                        var emojis = context.GetChoiceEmojis(choices.Count);
-                        var message = await context.RespondAsync(context.CreateChoiceMessage("Multiple matches were found for your query.  Please select one of the following...", emojis, choices));
+                        var emojis = context.GetChoiceEmojis(choices.Count > 9 ? 9 : choices.Count);
+                        var message = await context.RespondAsync(context.CreateChoiceMessage($"{choices.Count} matches were found for your query.{(choices.Count > 9 ? " Showing the top 9 results." : "")} Please select one of the following...", emojis, choices.Count > 9 ? choices.GetRange(0, 9) : choices));
                         DiscordEmoji choice = await context.AwaitChoice(message, emojis);
 
                         await message.DeleteAllReactionsAsync();
@@ -83,11 +81,11 @@ namespace Cerebro.CommandModules
                             var embed = card.BuildEmbed();
                             message = await message.ModifyAsync(embed);
 
-                            List<string> artStyles = _cardDao.FindArtStyles(card);
-                            List<CardEntity> faces = _cardDao.FindFaces(card);
-                            List<CardEntity> stages = _cardDao.FindStages(card);
+                            List<string> artStyles = card.GetAlternateArts();
+                            List<CardEntity> faces = _cardDao.FindFaces(card.RowKey);
+                            List<CardEntity> stages = _cardDao.FindGroup(card.Group);
 
-                            await Imbibe(context, message, card, artStyles, 0, faces, faces != null ? faces.IndexOf(card) : -1, stages, stages != null ? stages.IndexOf(card) : -1);
+                            await Imbibe(context, message, card, artStyles, 0, faces, faces != null ? faces.FindIndex(x => x.RowKey == card.RowKey) : -1, stages, stages != null ? stages.FindIndex(x => x.RowKey == card.RowKey) : -1);
                         }
                     }
                 }
@@ -132,7 +130,7 @@ namespace Cerebro.CommandModules
                 await message.CreateReactionAsync(rightArrowReaction);
             }
             
-            if (artStyles != null)
+            if (artStyles.Count > 1)
             {
                 expectedEmojis.Add(artReaction);
 
@@ -174,11 +172,15 @@ namespace Cerebro.CommandModules
                         var embed = nextCard.BuildEmbed();
                         nextMessage = await message.ModifyAsync(embed);
 
-                        nextArtStyles = _cardDao.FindArtStyles(nextCard);
+                        nextArtStyles = nextCard.GetAlternateArts();
                         nextArtStyle = 0;
 
-                        nextStages = _cardDao.FindStages(nextCard);
-                        nextStage = nextStages != null ? nextStages.IndexOf(nextCard) : -1;
+                        if (nextCard.Group != card.Group)
+                        {
+                            nextStages = _cardDao.FindGroup(nextCard.Group);
+                        }
+                        
+                        nextStage = nextStages != null ? nextStages.FindIndex(x => x.RowKey == nextCard.RowKey) : -1;
                     }
                     else if (reaction.Result.Emoji == leftArrowReaction)
                     {
@@ -190,11 +192,15 @@ namespace Cerebro.CommandModules
                         var embed = nextCard.BuildEmbed();
                         nextMessage = await message.ModifyAsync(embed);
 
-                        nextArtStyles = _cardDao.FindArtStyles(nextCard);
+                        nextArtStyles = nextCard.GetAlternateArts();
                         nextArtStyle = 0;
 
-                        nextFaces = _cardDao.FindFaces(nextCard);
-                        nextFace = nextFaces != null ? nextFaces.IndexOf(nextCard) : -1;
+                        if (!nextCard.IsRelatedTo(card))
+                        {
+                            nextFaces = _cardDao.FindFaces(nextCard.RowKey);
+                        }
+                        
+                        nextFace = nextFaces != null ? nextFaces.FindIndex(x => x.RowKey == nextCard.RowKey) : -1;
                     }
                     else if (reaction.Result.Emoji == rightArrowReaction)
                     {
@@ -206,11 +212,15 @@ namespace Cerebro.CommandModules
                         var embed = nextCard.BuildEmbed();
                         nextMessage = await message.ModifyAsync(embed);
 
-                        nextArtStyles = _cardDao.FindArtStyles(nextCard);
+                        nextArtStyles = nextCard.GetAlternateArts();
                         nextArtStyle = 0;
 
-                        nextFaces = _cardDao.FindFaces(nextCard);
-                        nextFace = nextFaces != null ? nextFaces.IndexOf(nextCard) : -1;
+                        if (!nextCard.IsRelatedTo(card))
+                        {
+                            nextFaces = _cardDao.FindFaces(nextCard.RowKey);
+                        }
+                        
+                        nextFace = nextFaces != null ? nextFaces.FindIndex(x => x.RowKey == nextCard.RowKey) : -1;
                     }
                     else
                     {

@@ -1,6 +1,6 @@
 ﻿using Microsoft.Azure.Cosmos.Table;
 
-namespace Cerebro.Models
+namespace Cerebro_Utilities.Models
 {
     public class PackEntity : TableEntity
     {

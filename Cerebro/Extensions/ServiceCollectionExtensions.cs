@@ -1,6 +1,6 @@
 ﻿using Cerebro.CommandModules;
-using Cerebro.Dao;
 using Cerebro.Handlers;
+using Cerebro_Utilities.Dao;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Converters;
@@ -26,7 +26,10 @@ namespace Cerebro.Extensions
                     log.AddConsole();
                 })
                 .AddSingleton(configuration)
-                .AddSingleton<ICerebroDao, CerebroDao>()
+                .AddSingleton<ICardDao, CardDao>()
+                .AddSingleton<IFormattingDao, FormattingDao>()
+                .AddSingleton<IPackDao, PackDao>()
+                .AddSingleton<IPrintingDao, PrintingDao>()
                 .AddSingleton<DebugCommandModule>()
                 .AddSingleton<SearchCommandModule>();
 

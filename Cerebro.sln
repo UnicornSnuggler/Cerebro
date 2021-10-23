@@ -5,6 +5,8 @@ VisualStudioVersion = 16.0.31402.337
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cerebro", "Cerebro\Cerebro.csproj", "{B8BF1CC7-9174-42E1-BF37-7B9A05DA91EC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cerebro Utilities", "Cerebro Utilities\Cerebro Utilities.csproj", "{1669713C-B23B-4BE5-9CC9-84B8BD513BE7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{B8BF1CC7-9174-42E1-BF37-7B9A05DA91EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B8BF1CC7-9174-42E1-BF37-7B9A05DA91EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B8BF1CC7-9174-42E1-BF37-7B9A05DA91EC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1669713C-B23B-4BE5-9CC9-84B8BD513BE7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1669713C-B23B-4BE5-9CC9-84B8BD513BE7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1669713C-B23B-4BE5-9CC9-84B8BD513BE7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1669713C-B23B-4BE5-9CC9-84B8BD513BE7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

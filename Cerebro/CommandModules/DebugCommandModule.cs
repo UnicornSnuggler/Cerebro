@@ -1,34 +1,42 @@
 ﻿using Cerebro.Attributes;
-using Cerebro.Dao;
+using Cerebro_Utilities.Dao;
 using Cerebro.Extensions;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
-using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 
 namespace Cerebro.CommandModules
 {
-    [Group("debug")]
-    [Description("Administrator debugging activities.")]
+    [Group("update")]
+    [Description("Administrator update utilities.")]
     [RequiresAdministrator]
     class DebugCommandModule : BaseCommandModule
     {
-        private readonly ILogger _logger;
-        private readonly ICerebroDao _cardDao;
+        private readonly IFormattingDao _formattingDao;
+        private readonly IPackDao _packDao;
 
-        public DebugCommandModule(ILogger<DebugCommandModule> logger, ICerebroDao cardDao)
+        public DebugCommandModule(IFormattingDao formattingDao, IPackDao packDao)
         {
-            _logger = logger;
-            _cardDao = cardDao;
+            _formattingDao = formattingDao;
+            _packDao = packDao;
         }
 
-        [Command("update")]
-        [Description("Update card database.")]
-        public async Task CardCommand(CommandContext context)
+        [Command("formattings")]
+        [Description("Update the formattings list.")]
+        public async Task FormattingsCommand(CommandContext context)
         {
-            _cardDao.UpdateCardList();
+            _formattingDao.RetrieveAllFormattings();
 
-            await context.SendEmbed("Card database updated successfully!");
+            await context.SendEmbed($"Successfully imported {FormattingDao._formattings.Count} formattings from the database!");
+        }
+
+        [Command("packs")]
+        [Description("Update the packs list.")]
+        public async Task PacksCommand(CommandContext context)
+        {
+            _packDao.RetrieveAllPacks();
+
+            await context.SendEmbed($"Successfully imported {PackDao._packs.Count} packs from the database!");
         }
     }
 }

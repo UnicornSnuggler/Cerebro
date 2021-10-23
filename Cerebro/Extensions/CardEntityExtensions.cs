@@ -1,5 +1,5 @@
-﻿using Cerebro.Dao;
-using Cerebro.Models;
+﻿using Cerebro_Utilities.Dao;
+using Cerebro_Utilities.Models;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using System.Collections.Generic;
@@ -11,7 +11,7 @@ namespace Cerebro.Extensions
 {
     internal static class CardEntityExtensions
     {
-        internal static DiscordEmbed BuildEmbed(this CardEntity card, string art = null)
+        internal static DiscordEmbed BuildEmbed(this CardEntity card, string alternateArt = null)
         {
             var embed = new DiscordEmbedBuilder();
 
@@ -57,7 +57,7 @@ namespace Cerebro.Extensions
 
             embed.WithColor(Constants.COLORS.GetValueOrDefault(card.Type == "Villain" || card.Type == "Main Scheme" ? "Villain" : card.Classification, new DiscordColor("2337CF")));
             embed.WithTitle((card.Unique ? Constants.UNIQUE_SYMBOL : "") + card.Name + (card.Subname != null ? $" — {card.Subname}" : "" ));
-            embed.WithThumbnail(art != null ? art : card.Image);
+            embed.WithThumbnail(card.BuildImagePath(alternateArt));
             embed.WithDescription(description.ToString());
             embed.WithFooter(card.BuildFooter());
 
@@ -109,6 +109,11 @@ namespace Cerebro.Extensions
             }
 
             return Formatter.Bold(header.ToString());
+        }
+
+        internal static string BuildImagePath(this CardEntity card, string alternateArt = null)
+        {
+            return $"{Constants.IMAGE_PREFIX}{(alternateArt != null ? alternateArt : card.RowKey)}.png";
         }
 
         internal static string BuildStats(this CardEntity card)
@@ -223,7 +228,7 @@ namespace Cerebro.Extensions
             {
                 if (priority != "Exclusion")
                 {
-                    List<FormattingEntity> formattings = CerebroDao._formattings.FindAll(x => x.Priority == priority);
+                    List<FormattingEntity> formattings = FormattingDao._formattings.FindAll(x => x.Priority == priority);
 
                     foreach (FormattingEntity formatting in formattings)
                     {
@@ -294,6 +299,24 @@ namespace Cerebro.Extensions
             return FormatSymbols(text);
         }
 
+        internal static List<string> GetAlternateArts(this CardEntity card)
+        {
+            List<string> arts = new List<string>()
+            {
+                card.RowKey
+            };
+
+            foreach (PrintingEntity printing in card.Printings)
+            {
+                if (printing.AlternateArt)
+                {
+                    arts.Add(printing.RowKey);
+                }
+            }
+
+            return arts;
+        }
+
         internal static string GetBaseId(this CardEntity card)
         {
             return card.RowKey.Substring(0, Constants.ID_LENGTH);
@@ -301,7 +324,7 @@ namespace Cerebro.Extensions
 
         internal static List<PrintingEntity> GetReprints(this CardEntity card)
         {
-            List<PrintingEntity> reprints = card.Printings.FindAll(x => !x.IsOriginalPrinting());
+            List<PrintingEntity> reprints = card.Printings.FindAll(x => x.RowKey != x.ArtificialId);
 
             if (reprints.Count == 0)
             {
@@ -317,7 +340,7 @@ namespace Cerebro.Extensions
         {
             if (thisCard.RowKey.Length > Constants.ID_LENGTH && thatCard.RowKey.Length > Constants.ID_LENGTH)
             {
-                return thisCard.RowKey != thatCard.RowKey && thisCard.RowKey.Contains(thatCard.GetBaseId());
+                return thisCard.RowKey != thatCard.RowKey && thisCard.GetBaseId() == thatCard.GetBaseId();
             }
             else
             {

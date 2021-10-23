@@ -6,10 +6,6 @@ namespace Cerebro
 {
     public class Constants
     {
-        // Configuration
-
-        public const string CONFIG_STORAGE = "azure_connection_string";
-
         public const string CONFIG_TOKEN = "discord_token";
 
         // General
@@ -20,11 +16,11 @@ namespace Cerebro
 
         public const int ID_LENGTH = 5;
 
-        public const string IMAGE_PREFIX = "https://loganstorage2020.blob.core.windows.net/cerebro-images/";
+        public const string IMAGE_PREFIX = "https://cerebrodatastorage.blob.core.windows.net/cerebro-images/";
 
         public const string OWNER_MENTION = "<@!132708937584607233>";
 
-        public const double TIMEOUT = 10;
+        public const double TIMEOUT = 15;
 
         // Colors
 
