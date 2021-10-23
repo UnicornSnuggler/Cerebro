@@ -30,6 +30,7 @@ namespace Cerebro.Extensions
                 .AddSingleton<IFormattingDao, FormattingDao>()
                 .AddSingleton<IPackDao, PackDao>()
                 .AddSingleton<IPrintingDao, PrintingDao>()
+                .AddSingleton<IRuleDao, RuleDao>()
                 .AddSingleton<ISetDao, SetDao>()
                 .AddSingleton<DebugCommandModule>()
                 .AddSingleton<SearchCommandModule>();

@@ -47,9 +47,10 @@ namespace Cerebro.CommandModules
 
                         List<string> artStyles = card.GetAlternateArts();
                         List<CardEntity> faces = _cardDao.FindFaces(card.RowKey);
+                        Dictionary<string, string> rules = card.EvaluateRules();
                         List<CardEntity> stages = _cardDao.FindGroup(card.Group);
 
-                        await Imbibe(context, message, card, artStyles, 0, faces, faces != null ? faces.FindIndex(x => x.RowKey == card.RowKey) : -1, stages, stages != null ? stages.FindIndex(x => x.RowKey == card.RowKey) : -1);
+                        await Imbibe(context, message, card, artStyles, 0, faces, faces != null ? faces.FindIndex(x => x.RowKey == card.RowKey) : -1, stages, stages != null ? stages.FindIndex(x => x.RowKey == card.RowKey) : -1, rules, false);
                     }
                     else
                     {
@@ -83,9 +84,10 @@ namespace Cerebro.CommandModules
 
                             List<string> artStyles = card.GetAlternateArts();
                             List<CardEntity> faces = _cardDao.FindFaces(card.RowKey);
+                            Dictionary<string, string> rules = card.EvaluateRules();
                             List<CardEntity> stages = _cardDao.FindGroup(card.Group);
 
-                            await Imbibe(context, message, card, artStyles, 0, faces, faces != null ? faces.FindIndex(x => x.RowKey == card.RowKey) : -1, stages, stages != null ? stages.FindIndex(x => x.RowKey == card.RowKey) : -1);
+                            await Imbibe(context, message, card, artStyles, 0, faces, faces != null ? faces.FindIndex(x => x.RowKey == card.RowKey) : -1, stages, stages != null ? stages.FindIndex(x => x.RowKey == card.RowKey) : -1, rules, false);
                         }
                     }
                 }
@@ -105,14 +107,22 @@ namespace Cerebro.CommandModules
             }
         }
 
-        public async Task Imbibe(CommandContext context, DiscordMessage message, CardEntity card, List<string> artStyles, int currentArtStyle, List<CardEntity> faces, int currentFace, List<CardEntity> stages, int currentStage)
+        public async Task Imbibe(CommandContext context, DiscordMessage message, CardEntity card, List<string> artStyles, int currentArtStyle, List<CardEntity> faces, int currentFace, List<CardEntity> stages, int currentStage, Dictionary<string, string> rules, bool rulesToggle)
         {
-            var artReaction = DiscordEmoji.FromName(context.Client, Constants.ART_EMOJI);
+            var pageReaction = DiscordEmoji.FromName(context.Client, Constants.PAGE_EMOJI);
             var flipReaction = DiscordEmoji.FromName(context.Client, Constants.REPEAT_EMOJI);
             var leftArrowReaction = DiscordEmoji.FromName(context.Client, Constants.ARROW_LEFT_EMOJI);
             var rightArrowReaction = DiscordEmoji.FromName(context.Client, Constants.ARROW_RIGHT_EMOJI);
+            var artReaction = DiscordEmoji.FromName(context.Client, Constants.ART_EMOJI);
 
             List<DiscordEmoji> expectedEmojis = new List<DiscordEmoji>();
+
+            if (rules != null && rules.Count > 0)
+            {
+                expectedEmojis.Add(pageReaction);
+
+                await message.CreateReactionAsync(pageReaction);
+            }
 
             if (faces != null)
             {
@@ -145,10 +155,12 @@ namespace Cerebro.CommandModules
                 {
                     DiscordMessage nextMessage;
                     CardEntity nextCard = card;
-                    int nextArtStyle;
+                    int nextArtStyle = currentArtStyle;
                     List<string> nextArtStyles = artStyles;
                     int nextFace = currentFace;
                     List<CardEntity> nextFaces = faces;
+                    Dictionary<string, string> nextRules = rules;
+                    bool nextRulesToggle = rulesToggle;
                     int nextStage = currentStage;
                     List<CardEntity> nextStages = stages;
 
@@ -159,7 +171,17 @@ namespace Cerebro.CommandModules
 
                         await message.DeleteAllReactionsAsync();
 
-                        var embed = card.BuildEmbed(nextChoice);
+                        DiscordEmbed embed;
+
+                        if (nextRulesToggle)
+                        {
+                            embed = nextCard.BuildRulesEmbed(nextRules, artStyles[nextArtStyle]);
+                        }
+                        else
+                        {
+                            embed = nextCard.BuildEmbed(artStyles[nextArtStyle]);
+                        }
+
                         nextMessage = await message.ModifyAsync(embed);
                     }
                     else if (reaction.Result.Emoji == flipReaction)
@@ -181,6 +203,9 @@ namespace Cerebro.CommandModules
                         }
                         
                         nextStage = nextStages != null ? nextStages.FindIndex(x => x.RowKey == nextCard.RowKey) : -1;
+
+                        nextRules = nextCard.EvaluateRules();
+                        nextRulesToggle = false;
                     }
                     else if (reaction.Result.Emoji == leftArrowReaction)
                     {
@@ -201,6 +226,9 @@ namespace Cerebro.CommandModules
                         }
                         
                         nextFace = nextFaces != null ? nextFaces.FindIndex(x => x.RowKey == nextCard.RowKey) : -1;
+
+                        nextRules = nextCard.EvaluateRules();
+                        nextRulesToggle = false;
                     }
                     else if (reaction.Result.Emoji == rightArrowReaction)
                     {
@@ -221,13 +249,35 @@ namespace Cerebro.CommandModules
                         }
                         
                         nextFace = nextFaces != null ? nextFaces.FindIndex(x => x.RowKey == nextCard.RowKey) : -1;
+
+                        nextRules = nextCard.EvaluateRules();
+                        nextRulesToggle = false;
+                    }
+                    else if (reaction.Result.Emoji == pageReaction)
+                    {
+                        await message.DeleteAllReactionsAsync();
+
+                        DiscordEmbed embed;
+
+                        if (!nextRulesToggle)
+                        {
+                            embed = nextCard.BuildRulesEmbed(nextRules, artStyles[currentArtStyle]);
+                        }
+                        else
+                        {
+                            embed = nextCard.BuildEmbed(artStyles[currentArtStyle]);
+                        }
+
+                        nextMessage = await message.ModifyAsync(embed);
+
+                        nextRulesToggle = !nextRulesToggle;
                     }
                     else
                     {
                         break;
                     }
 
-                    await Imbibe(context, nextMessage, nextCard, nextArtStyles, nextArtStyle, nextFaces, nextFace, nextStages, nextStage);
+                    await Imbibe(context, nextMessage, nextCard, nextArtStyles, nextArtStyle, nextFaces, nextFace, nextStages, nextStage, nextRules, nextRulesToggle);
 
                     break;
                 }

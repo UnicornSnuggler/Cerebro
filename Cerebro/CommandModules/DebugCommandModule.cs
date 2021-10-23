@@ -14,12 +14,14 @@ namespace Cerebro.CommandModules
     {
         private readonly IFormattingDao _formattingDao;
         private readonly IPackDao _packDao;
+        private readonly IRuleDao _ruleDao;
         private readonly ISetDao _setDao;
 
-        public DebugCommandModule(IFormattingDao formattingDao, IPackDao packDao, ISetDao setDao)
+        public DebugCommandModule(IFormattingDao formattingDao, IPackDao packDao, IRuleDao ruleDao, ISetDao setDao)
         {
             _formattingDao = formattingDao;
             _packDao = packDao;
+            _ruleDao = ruleDao;
             _setDao = setDao;
         }
 
@@ -39,6 +41,15 @@ namespace Cerebro.CommandModules
             _packDao.RetrieveAllPacks();
 
             await context.SendEmbed($"Successfully imported {PackDao._packs.Count} packs from the database!");
+        }
+
+        [Command("rules")]
+        [Description("Update the rules list.")]
+        public async Task RulesCommand(CommandContext context)
+        {
+            _ruleDao.RetrieveAllRules();
+
+            await context.SendEmbed($"Successfully imported {RuleDao._rules.Count} rules from the database!");
         }
 
         [Command("sets")]

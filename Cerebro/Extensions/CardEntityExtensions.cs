@@ -130,6 +130,28 @@ namespace Cerebro.Extensions
             return $"{Constants.IMAGE_PREFIX}{(alternateArt != null ? alternateArt : card.RowKey)}.png";
         }
 
+        internal static DiscordEmbed BuildRulesEmbed(this CardEntity card, Dictionary<string, string> rules, string alternateArt = null)
+        {
+            var embed = new DiscordEmbedBuilder();
+
+            foreach (KeyValuePair<string, string> rule in rules)
+            {
+                embed.AddField(FormatSymbols(rule.Key), FormatSymbols(rule.Value));
+            }
+
+            embed.WithColor(Constants.COLORS.GetValueOrDefault(card.Type == "Villain" || card.Type == "Main Scheme" ? "Villain" : card.Classification, new DiscordColor("2337CF")));
+            embed.WithTitle(card.SpoilerIfIncomplete((card.Unique ? Constants.UNIQUE_SYMBOL : "") + card.Name + (card.Subname != null ? $" — {card.Subname}" : "")));
+            embed.WithUrl(card.BuildImagePath(alternateArt));
+            embed.WithFooter(card.BuildFooter());
+
+            if (!card.Incomplete)
+            {
+                embed.WithThumbnail(card.BuildImagePath(alternateArt));
+            }
+
+            return embed;
+        }
+
         internal static string BuildStats(this CardEntity card)
         {
             List<string> components = new List<string>();
@@ -227,6 +249,48 @@ namespace Cerebro.Extensions
             }
 
             return string.Join("\n\n", components);
+        }
+
+        internal static Dictionary<string, string> EvaluateRules(this CardEntity card)
+        {
+            if (card.Rules != null || card.Special != null)
+            {
+                Dictionary<string, string> rules = new Dictionary<string, string>();
+
+                foreach (RuleEntity rule in RuleDao._rules)
+                {
+                    string pattern = $"{rule.RowKey}{(rule.Magnitude ? @" (?<magnitude>[0-9](\{[a-z]\})?)" : "")}";
+
+                    List<Match> matches = Regex.Matches(card.Rules ?? "", pattern, RegexOptions.IgnoreCase).ToList();
+                    matches.AddRange(Regex.Matches(card.Special ?? "", pattern, RegexOptions.IgnoreCase).ToList());
+
+                    foreach (Match match in matches.Distinct())
+                    {
+                        if (match.Success)
+                        {
+                            string name = rule.RowKey;
+                            string description = rule.Description;
+
+                            if (rule.Magnitude)
+                            {
+                                name = Regex.Replace(name, @"{X}", match.Groups["magnitude"].Value);
+                                description = Regex.Replace(description, @"{X}", match.Groups["magnitude"].Value);
+                            }
+
+                            if (!rules.Keys.ToList().Exists(x => x == name))
+                            {
+                                rules.Add(name, description);
+                            }
+                        }
+                    }
+                }
+
+                return rules;
+            }
+            else
+            {
+                return null;
+            }
         }
 
         private static string FormatSymbols(string text)

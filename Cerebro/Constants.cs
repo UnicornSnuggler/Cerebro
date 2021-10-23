@@ -48,6 +48,8 @@ namespace Cerebro
 
         public const string NEGATIVE_EMOJI = ":negative_squared_cross_mark:";
 
+        public const string PAGE_EMOJI = ":page_facing_up:";
+
         public const string REPEAT_EMOJI = ":repeat:";
 
         public const string ONE_EMOJI = ":one:";
