@@ -17,7 +17,7 @@ namespace Cerebro_Utilities.Models
         public string ArtificialId { get; set; }
 
         [SimpleField]
-        public string PackName { get; set; }
+        public string PackId { get; set; }
 
         [SimpleField]
         public string PackNumber { get; set; }

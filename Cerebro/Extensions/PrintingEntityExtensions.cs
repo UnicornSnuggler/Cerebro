@@ -11,7 +11,7 @@ namespace Cerebro.Extensions
 
             if (printing.Pack != null)
             {
-                summary.Append($", {printing.Pack.RowKey}");
+                summary.Append($", {printing.Pack.Name}");
 
                 if (printing.PackNumber != null)
                 {

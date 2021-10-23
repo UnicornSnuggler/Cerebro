@@ -92,7 +92,7 @@ namespace Cerebro.Extensions
             return footer.ToString();
         }
 
-        internal static string BuildHeader(this CardEntity card)
+        internal static string BuildHeader(this CardEntity card, bool forChoices = false)
         {
             StringBuilder header = new StringBuilder();
 
@@ -103,7 +103,7 @@ namespace Cerebro.Extensions
 
             header.Append(card.Type);
 
-            if (card.Stage != null)
+            if (card.Stage != null && forChoices == false)
             {
                 header.Append($" — Stage {card.Stage}");
             }
@@ -364,7 +364,7 @@ namespace Cerebro.Extensions
                 summary.Append($" — {card.Subname}");
             }
 
-            summary.Append($" | {card.BuildHeader()}");
+            summary.Append($" | {card.BuildHeader(true)}");
 
             if (card.Resource != null)
             {

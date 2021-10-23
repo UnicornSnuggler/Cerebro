@@ -39,7 +39,7 @@ namespace Cerebro_Utilities.Dao
 
             foreach(PrintingEntity printing in entities)
             {
-                printing.Pack = PackDao._packs.Find(x => x.Id == printing.PackName);
+                printing.Pack = PackDao._packs.Find(x => x.RowKey == printing.PackId);
 
                 printings.Add(printing);
             }

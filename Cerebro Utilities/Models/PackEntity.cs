@@ -8,11 +8,11 @@ namespace Cerebro_Utilities.Models
 
         public PackEntity() { }
 
-        public string Id { get; set; }
+        public string Name { get; set; }
 
         public override string ToString()
         {
-            return $"{RowKey} {PartitionKey}";
+            return $"{Name} {PartitionKey}";
         }
     }
 }
