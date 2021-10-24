@@ -8,8 +8,10 @@ namespace Cerebro_Utilities.Models
 
         public RuleEntity() { }
 
+        public string Description { get; set; }
+
         public bool Magnitude { get; set; }
 
-        public string Description { get; set; }
+        public string Special { get; set; }
     }
 }

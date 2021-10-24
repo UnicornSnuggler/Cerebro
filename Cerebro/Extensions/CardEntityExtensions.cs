@@ -259,7 +259,12 @@ namespace Cerebro.Extensions
 
                 foreach (RuleEntity rule in RuleDao._rules)
                 {
-                    string pattern = $"{rule.RowKey}{(rule.Magnitude ? @" (?<magnitude>[0-9](\{[a-z]\})?)" : "")}";
+                    string pattern = rule.RowKey + (rule.Magnitude ? @" (?<magnitude>[0-9](\{[a-z]\})?)" : "") + (rule.Special != null ? rule.Special : "") + @"\.";
+
+                    if (rule.Special != null)
+                    {
+                        pattern = rule.Special;
+                    }
 
                     List<Match> matches = Regex.Matches(card.Rules ?? "", pattern, RegexOptions.IgnoreCase).ToList();
                     matches.AddRange(Regex.Matches(card.Special ?? "", pattern, RegexOptions.IgnoreCase).ToList());
@@ -273,8 +278,17 @@ namespace Cerebro.Extensions
 
                             if (rule.Magnitude)
                             {
-                                name = Regex.Replace(name, @"{X}", match.Groups["magnitude"].Value);
+                                name = $"{name} {match.Groups["magnitude"].Value}";
                                 description = Regex.Replace(description, @"{X}", match.Groups["magnitude"].Value);
+                            }
+
+                            if (rule.Special != null)
+                            {
+                                if (rule.RowKey == "Uses")
+                                {
+                                    description = Regex.Replace(description, @"{X}", match.Groups["start"].Value);
+                                    description = Regex.Replace(description, @"{Y}", match.Groups["type"].Value);
+                                }
                             }
 
                             if (!rules.Keys.ToList().Exists(x => x == name))

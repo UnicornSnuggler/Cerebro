@@ -11,6 +11,7 @@ using Lucene.Net.QueryParsers.Classic;
 using Azure.Search.Documents;
 using Cerebro_Utilities.Extensions;
 using Lucene.Net.Analysis.Core;
+using Lucene.Net.Analysis.Standard;
 
 namespace Cerebro_Utilities.Dao
 {
@@ -145,7 +146,7 @@ namespace Cerebro_Utilities.Dao
         {
             const string FIELD = "field";
 
-            return new QueryParser(Lucene.Net.Util.LuceneVersion.LUCENE_48, FIELD, new SimpleAnalyzer(Lucene.Net.Util.LuceneVersion.LUCENE_48))
+            return new QueryParser(Lucene.Net.Util.LuceneVersion.LUCENE_48, FIELD, new StandardAnalyzer(Lucene.Net.Util.LuceneVersion.LUCENE_48))
                 .Parse(Regex.Replace(input, @"[\!]", " "))
                 .ToString(FIELD);
         }
