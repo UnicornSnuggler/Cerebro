@@ -259,36 +259,19 @@ namespace Cerebro.Extensions
 
                 foreach (RuleEntity rule in RuleDao._rules)
                 {
-                    string pattern = rule.RowKey + (rule.Magnitude ? @" (?<magnitude>[0-9](\{[a-z]\})?)" : "") + (rule.Special != null ? rule.Special : "") + @"\.";
-
-                    if (rule.Special != null)
-                    {
-                        pattern = rule.Special;
-                    }
-
-                    List<Match> matches = Regex.Matches(card.Rules ?? "", pattern, RegexOptions.IgnoreCase).ToList();
-                    matches.AddRange(Regex.Matches(card.Special ?? "", pattern, RegexOptions.IgnoreCase).ToList());
+                    List<Match> matches = Regex.Matches(card.Rules ?? "", rule.Regex, RegexOptions.IgnoreCase).ToList();
+                    matches.AddRange(Regex.Matches(card.Special ?? "", rule.Regex, RegexOptions.IgnoreCase).ToList());
 
                     foreach (Match match in matches.Distinct())
                     {
                         if (match.Success)
                         {
-                            string name = rule.RowKey;
+                            string name = rule.RowKey + (match.Groups.Keys.Contains("quantity") ? $" {match.Groups["quantity"].Value}" : "");
                             string description = rule.Description;
 
-                            if (rule.Magnitude)
+                            foreach (string replacement in new List<string>() { "quantity", "start", "type" })
                             {
-                                name = $"{name} {match.Groups["magnitude"].Value}";
-                                description = Regex.Replace(description, @"{X}", match.Groups["magnitude"].Value);
-                            }
-
-                            if (rule.Special != null)
-                            {
-                                if (rule.RowKey == "Uses")
-                                {
-                                    description = Regex.Replace(description, @"{X}", match.Groups["start"].Value);
-                                    description = Regex.Replace(description, @"{Y}", match.Groups["type"].Value);
-                                }
+                                description = Regex.Replace(description, $"{{{replacement}}}", match.Groups[replacement].Value ?? "");
                             }
 
                             if (!rules.Keys.ToList().Exists(x => x == name))

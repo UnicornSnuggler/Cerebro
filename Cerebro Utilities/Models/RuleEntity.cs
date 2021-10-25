@@ -10,8 +10,8 @@ namespace Cerebro_Utilities.Models
 
         public string Description { get; set; }
 
-        public bool Magnitude { get; set; }
+        public string Reference { get; set; }
 
-        public string Special { get; set; }
+        public string Regex { get; set; }
     }
 }
