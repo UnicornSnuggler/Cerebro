@@ -10,7 +10,6 @@ using Azure;
 using Lucene.Net.QueryParsers.Classic;
 using Azure.Search.Documents;
 using Cerebro_Utilities.Extensions;
-using Lucene.Net.Analysis.Core;
 using Lucene.Net.Analysis.Standard;
 
 namespace Cerebro_Utilities.Dao

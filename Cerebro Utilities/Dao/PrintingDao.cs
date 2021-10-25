@@ -1,6 +1,10 @@
-﻿using Cerebro_Utilities.Models;
-using Microsoft.Azure.Cosmos.Table;
+﻿using Azure;
+using Azure.Search.Documents;
+using Azure.Search.Documents.Indexes;
+using Azure.Search.Documents.Models;
+using Cerebro_Utilities.Models;
 using Microsoft.Extensions.Configuration;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -13,7 +17,7 @@ namespace Cerebro_Utilities.Dao
 
     public class PrintingDao : IPrintingDao
     {
-        private CloudTable _cloudTable;
+        private SearchClient _searchClient;
 
         private readonly IConfigurationRoot _configuration;
 
@@ -23,16 +27,23 @@ namespace Cerebro_Utilities.Dao
 
             string connectionString = _configuration.GetValue<string>(Constants.CONFIG_STORAGE);
 
-            _cloudTable = CloudStorageAccount.Parse(connectionString)
-                .CreateCloudTableClient(new TableClientConfiguration())
-                .GetTableReference(PrintingEntity.TABLE_NAME);
+            _searchClient = new SearchIndexClient(new Uri(_configuration.GetValue<string>(Constants.INDEX_URI), UriKind.Absolute), new AzureKeyCredential(_configuration.GetValue<string>(Constants.API_KEY)))
+                .GetSearchClient(PrintingEntity.INDEX_NAME);
         }
 
         public List<PrintingEntity> GetPrintings(string cardId)
         {
-            IQueryable<PrintingEntity> entities = _cloudTable.CreateQuery<PrintingEntity>()
-                .Where(x => x.ArtificialId == cardId)
-                .Select(x => x);
+            SearchOptions options = new SearchOptions
+            {
+                QueryType = SearchQueryType.Full,
+                SearchFields = { "ArtificialId" },
+                SearchMode = SearchMode.All
+            };
+
+            Response<SearchResults<PrintingEntity>> response = _searchClient.Search<PrintingEntity>($"{cardId}*", options);
+            List<PrintingEntity> entities = response.Value?.GetResults()
+                .Select(x => x.Document)
+                .ToList();
 
             List<PrintingEntity> printings = new List<PrintingEntity>();
 

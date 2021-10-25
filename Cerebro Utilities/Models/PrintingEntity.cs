@@ -6,6 +6,8 @@ namespace Cerebro_Utilities.Models
 {
     public class PrintingEntity : TableEntity
     {
+        public const string INDEX_NAME = "cerebroprintings-index";
+
         public const string TABLE_NAME = "CerebroPrintings";
 
         public PrintingEntity() { }
