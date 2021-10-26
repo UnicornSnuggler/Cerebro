@@ -14,7 +14,7 @@ namespace Cerebro_Utilities.Dao
 {
     public interface IRuleDao
     {
-        public void RetrieveAllKeywords();
+        public void RetrieveKeywordsAndSchemeIcons();
         public List<RuleEntity> RetrieveByTerm(string term);
     }
 
@@ -22,7 +22,7 @@ namespace Cerebro_Utilities.Dao
     {
         private SearchClient _searchClient;
 
-        public static List<RuleEntity> _keywords;
+        public static List<RuleEntity> _keywordsAndSchemeIcons;
 
         private readonly IConfigurationRoot _configuration;
         private readonly ILogger _logger;
@@ -35,16 +35,16 @@ namespace Cerebro_Utilities.Dao
             _searchClient = new SearchIndexClient(new Uri(_configuration.GetValue<string>(Constants.INDEX_URI), UriKind.Absolute), new AzureKeyCredential(_configuration.GetValue<string>(Constants.API_KEY)))
                 .GetSearchClient(RuleEntity.INDEX_NAME);
 
-            RetrieveAllKeywords();
+            RetrieveKeywordsAndSchemeIcons();
         }
 
-        public void RetrieveAllKeywords()
+        public void RetrieveKeywordsAndSchemeIcons()
         {
-            _keywords = new List<RuleEntity>();
+            _keywordsAndSchemeIcons = new List<RuleEntity>();
 
             SearchOptions options = new SearchOptions
             {
-                Filter = "PartitionKey eq 'Keyword'"
+                Filter = "PartitionKey eq 'Keyword' or PartitionKey eq 'Scheme Icon'"
             };
 
             Response<SearchResults<RuleEntity>> response = _searchClient.Search<RuleEntity>("*", options);
@@ -54,10 +54,10 @@ namespace Cerebro_Utilities.Dao
 
             foreach (RuleEntity keyword in keywords)
             {
-                _keywords.Add(keyword);
+                _keywordsAndSchemeIcons.Add(keyword);
             }
 
-            _logger.LogInformation($"Loaded {_keywords.Count} keywords from the database!");
+            _logger.LogInformation($"Loaded {_keywordsAndSchemeIcons.Count} keywords from the database!");
         }
 
         public List<RuleEntity> RetrieveByTerm(string term)

@@ -253,7 +253,7 @@ namespace Cerebro.Extensions
             {
                 Dictionary<string, string> rules = new Dictionary<string, string>();
 
-                foreach (RuleEntity rule in RuleDao._keywords)
+                foreach (RuleEntity rule in RuleDao._keywordsAndSchemeIcons)
                 {
                     List<Match> matches = Regex.Matches(card.Rules ?? "", rule.Regex, RegexOptions.IgnoreCase).ToList();
                     matches.AddRange(Regex.Matches(card.Special ?? "", rule.Regex, RegexOptions.IgnoreCase).ToList());

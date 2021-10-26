@@ -47,9 +47,9 @@ namespace Cerebro.CommandModules
         [Description("Update the rules list.")]
         public async Task RulesCommand(CommandContext context)
         {
-            _ruleDao.RetrieveAllKeywords();
+            _ruleDao.RetrieveKeywordsAndSchemeIcons();
 
-            await context.SendEmbed($"Successfully imported {RuleDao._keywords.Count} rules from the database!");
+            await context.SendEmbed($"Successfully imported {RuleDao._keywordsAndSchemeIcons.Count} rules from the database!");
         }
 
         [Command("sets")]
