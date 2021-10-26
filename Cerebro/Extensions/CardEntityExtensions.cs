@@ -1,4 +1,5 @@
-﻿using Cerebro_Utilities.Dao;
+﻿using Cerebro.Utilities;
+using Cerebro_Utilities.Dao;
 using Cerebro_Utilities.Models;
 using DSharpPlus;
 using DSharpPlus.Entities;
@@ -30,7 +31,7 @@ namespace Cerebro.Extensions
 
             if (stats.Length > 0)
             {
-                description.AppendLine(card.SpoilerIfIncomplete(FormatSymbols(stats)));
+                description.AppendLine(card.SpoilerIfIncomplete(StringHelper.FormatSymbols(stats)));
                 description.AppendLine();
             }
 
@@ -38,12 +39,12 @@ namespace Cerebro.Extensions
 
             if (card.Rules != null)
             {
-                body.Add(QuoteText(card.SpoilerIfIncomplete(FormatText(card.Rules, card.Name))));
+                body.Add(QuoteText(card.SpoilerIfIncomplete(StringHelper.FormatText(card.Rules, card.Name))));
             }
 
             if (card.Special != null)
             {
-                body.Add(QuoteText(card.SpoilerIfIncomplete(FormatText(card.Special, card.Name))));
+                body.Add(QuoteText(card.SpoilerIfIncomplete(StringHelper.FormatText(card.Special, card.Name))));
             }
 
             if (card.Flavor != null)
@@ -58,13 +59,13 @@ namespace Cerebro.Extensions
 
             embed.WithColor(Constants.COLORS.GetValueOrDefault(card.Type == "Villain" || card.Type == "Main Scheme" ? "Villain" : card.Classification, new DiscordColor("2337CF")));
             embed.WithTitle(card.SpoilerIfIncomplete((card.Unique ? Constants.UNIQUE_SYMBOL : "") + card.Name + (card.Subname != null ? $" — {card.Subname}" : "" )));
-            embed.WithUrl(card.BuildImagePath(alternateArt));
+            embed.WithUrl(StringHelper.BuildImagePath(Constants.CARDS_IMAGE_PREFIX, alternateArt ?? card.RowKey));
             embed.WithDescription(description.ToString());
             embed.WithFooter(card.BuildFooter());
             
             if (!card.Incomplete)
             {
-                embed.WithThumbnail(card.BuildImagePath(alternateArt));
+                embed.WithThumbnail(StringHelper.BuildImagePath(Constants.CARDS_IMAGE_PREFIX, alternateArt ?? card.RowKey));
             }
 
             return embed;
@@ -125,28 +126,23 @@ namespace Cerebro.Extensions
             return header.ToString();
         }
 
-        internal static string BuildImagePath(this CardEntity card, string alternateArt = null)
-        {
-            return $"{Constants.IMAGE_PREFIX}{(alternateArt != null ? alternateArt : card.RowKey)}.png";
-        }
-
         internal static DiscordEmbed BuildRulesEmbed(this CardEntity card, Dictionary<string, string> rules, string alternateArt = null)
         {
             var embed = new DiscordEmbedBuilder();
 
             foreach (KeyValuePair<string, string> rule in rules)
             {
-                embed.AddField(FormatSymbols(rule.Key), FormatSymbols(rule.Value));
+                embed.AddField(StringHelper.FormatSymbols(rule.Key), StringHelper.FormatSymbols(rule.Value));
             }
 
             embed.WithColor(Constants.COLORS.GetValueOrDefault(card.Type == "Villain" || card.Type == "Main Scheme" ? "Villain" : card.Classification, new DiscordColor("2337CF")));
             embed.WithTitle(card.SpoilerIfIncomplete((card.Unique ? Constants.UNIQUE_SYMBOL : "") + card.Name + (card.Subname != null ? $" — {card.Subname}" : "")));
-            embed.WithUrl(card.BuildImagePath(alternateArt));
+            embed.WithUrl(StringHelper.BuildImagePath(Constants.CARDS_IMAGE_PREFIX, alternateArt ?? card.RowKey));
             embed.WithFooter(card.BuildFooter());
 
             if (!card.Incomplete)
             {
-                embed.WithThumbnail(card.BuildImagePath(alternateArt));
+                embed.WithThumbnail(StringHelper.BuildImagePath(Constants.CARDS_IMAGE_PREFIX, alternateArt ?? card.RowKey));
             }
 
             return embed;
@@ -257,7 +253,7 @@ namespace Cerebro.Extensions
             {
                 Dictionary<string, string> rules = new Dictionary<string, string>();
 
-                foreach (RuleEntity rule in RuleDao._rules)
+                foreach (RuleEntity rule in RuleDao._keywords)
                 {
                     List<Match> matches = Regex.Matches(card.Rules ?? "", rule.Regex, RegexOptions.IgnoreCase).ToList();
                     matches.AddRange(Regex.Matches(card.Special ?? "", rule.Regex, RegexOptions.IgnoreCase).ToList());
@@ -266,7 +262,7 @@ namespace Cerebro.Extensions
                     {
                         if (match.Success)
                         {
-                            string name = rule.RowKey + (match.Groups.Keys.Contains("quantity") ? $" {match.Groups["quantity"].Value}" : "");
+                            string name = rule.Title;
                             string description = rule.Description;
 
                             foreach (string replacement in new List<string>() { "quantity", "start", "type" })
@@ -288,90 +284,6 @@ namespace Cerebro.Extensions
             {
                 return null;
             }
-        }
-
-        private static string FormatSymbols(string text)
-        {
-            return Constants.SYMBOLS.Aggregate(text, (filter, entry) => filter.Replace(entry.Key, entry.Value));
-        }
-
-        private static string FormatText(string text, string exclusion = null)
-        {
-            List<KeyValuePair<string, string>> replacements = new List<KeyValuePair<string, string>>();
-
-            foreach (string priority in new List<string>() { "Severe", "Exclusion", "High", "Medium", "Low" })
-            {
-                if (priority != "Exclusion")
-                {
-                    List<FormattingEntity> formattings = FormattingDao._formattings.FindAll(x => x.Priority == priority);
-
-                    foreach (FormattingEntity formatting in formattings)
-                    {
-                        string matchedText = null;
-
-                        if (formatting.Regex != null)
-                        {
-                            var match = Regex.Match(text, formatting.Regex);
-
-                            if (match.Success)
-                            {
-                                matchedText = match.ToString();
-                            }
-                        }
-                        else
-                        {
-                            if (text.Contains(formatting.Text))
-                            {
-                                matchedText = formatting.Text;
-                            }
-                        }
-
-                        if (matchedText != null)
-                        {
-                            string replacedText = null;
-
-                            if (formatting.PartitionKey == "Bold")
-                            {
-                                replacedText = Formatter.Bold(matchedText);
-                            }
-                            else if (formatting.PartitionKey == "Emphasis")
-                            {
-                                replacedText = Formatter.Bold(Formatter.Italic(matchedText));
-                            }
-                            else if (formatting.PartitionKey == "Italic")
-                            {
-                                replacedText = Formatter.Italic(matchedText);
-                            }
-                            else if (formatting.PartitionKey == "Override")
-                            {
-                                replacedText = formatting.Replacement ?? matchedText;
-                            }
-
-                            int index = replacements.Count;
-
-                            replacements.Add(new KeyValuePair<string, string>($"{{{index}}}", replacedText));
-                            text = text.Replace(matchedText, $"{{{index}}}");
-                        }
-                    }
-                }
-                else
-                {
-                    if (exclusion != null && text.Contains(exclusion))
-                    {
-                        int index = replacements.Count;
-
-                        replacements.Add(new KeyValuePair<string, string>($"{{{index}}}", exclusion));
-                        text = text.Replace(exclusion, $"{{{index}}}");
-                    }
-                }
-            }
-
-            for (int i = 0; i < replacements.Count; i++)
-            {
-                text = text.Replace(replacements[i].Key, replacements[i].Value);
-            }
-
-            return FormatSymbols(text);
         }
 
         internal static List<string> GetAlternateArts(this CardEntity card)
@@ -455,7 +367,7 @@ namespace Cerebro.Extensions
 
             if (card.Resource != null)
             {
-                summary.Append($" {FormatSymbols(card.Resource)}");
+                summary.Append($" {StringHelper.FormatSymbols(card.Resource)}");
             }
 
             return card.SpoilerIfIncomplete(summary.ToString());

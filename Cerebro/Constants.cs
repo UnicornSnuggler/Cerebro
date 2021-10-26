@@ -16,7 +16,9 @@ namespace Cerebro
 
         public const int ID_LENGTH = 5;
 
-        public const string IMAGE_PREFIX = "https://cerebrodatastorage.blob.core.windows.net/cerebro-images/";
+        public const string CARDS_IMAGE_PREFIX = "https://cerebrodatastorage.blob.core.windows.net/cerebro-images/";
+
+        public const string RULES_IMAGE_PREFIX = "https://cerebrodatastorage.blob.core.windows.net/cerebro-rules/";
 
         public const string OWNER_MENTION = "<@!132708937584607233>";
 

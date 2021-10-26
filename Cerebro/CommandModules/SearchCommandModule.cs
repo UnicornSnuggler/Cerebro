@@ -18,11 +18,13 @@ namespace Cerebro.CommandModules
     {
         private readonly ILogger _logger;
         private readonly ICardDao _cardDao;
+        private readonly IRuleDao _ruleDao;
 
-        public SearchCommandModule(ILogger<SearchCommandModule> logger, ICardDao cardDao)
+        public SearchCommandModule(ILogger<SearchCommandModule> logger, ICardDao cardDao, IRuleDao ruleDao)
         {
             _logger = logger;
             _cardDao = cardDao;
+            _ruleDao = ruleDao;
         }
 
         [Command("name")]
@@ -88,6 +90,74 @@ namespace Cerebro.CommandModules
                             List<CardEntity> stages = _cardDao.FindGroup(card.Group);
 
                             await Imbibe(context, message, card, artStyles, 0, faces, faces != null ? faces.FindIndex(x => x.RowKey == card.RowKey) : -1, stages, stages != null ? stages.FindIndex(x => x.RowKey == card.RowKey) : -1, rules, false);
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError($"Encountered an exception:\n\n{e}");
+
+                if (e.GetType() == typeof(DSharpPlus.Exceptions.UnauthorizedException))
+                {
+                    try
+                    {
+                        await context.SendEmbed($"{Constants.OWNER_MENTION} — I'm missing some required permissions! Contact the server administrator to rectify this issue.");
+                    }
+                    catch { }
+                }
+            }
+        }
+
+        [Command("rule")]
+        [Description("Retrieve a rule by term.")]
+        public async Task RuleCommand(CommandContext context, [Description("A term associated with the rule being queried.")][RemainingText] string ruleTerm)
+        {
+            List<RuleEntity> results = _ruleDao.RetrieveByTerm(ruleTerm);
+
+            try
+            {
+                if (results == null || results.Count == 0)
+                {
+                    await context.SendEmbed("No matching rules were found...");
+                }
+                else
+                {
+                    if (results.Count == 1)
+                    {
+                        var rule = results[0];
+                        var embed = rule.BuildEmbed();
+                        await context.RespondAsync(embed);
+                    }
+                    else
+                    {
+                        List<string> choices = new List<string>();
+
+                        foreach (RuleEntity rule in results)
+                        {
+                            choices.Add(rule.Summary());
+                        }
+
+                        var emojis = context.GetChoiceEmojis(choices.Count > 9 ? 9 : choices.Count);
+                        var message = await context.RespondAsync(context.CreateChoiceMessage($"{choices.Count} matches were found for your query.{(choices.Count > 9 ? " Showing the top 9 results." : "")} Please select one of the following...", emojis, choices.Count > 9 ? choices.GetRange(0, 9) : choices));
+                        DiscordEmoji choice = await context.AwaitChoice(message, emojis);
+
+                        await message.DeleteAllReactionsAsync();
+
+                        if (choice == null)
+                        {
+                            await message.ModifyAsync(context.CreateEmbed("The response timeout was reached..."));
+                        }
+                        else if (emojis.IndexOf(choice) == -1)
+                        {
+                            await message.ModifyAsync(context.CreateEmbed($"Your response {choice} did not equate to a valid option..."));
+                        }
+                        else
+                        {
+                            var index = emojis.IndexOf(choice);
+                            var rule = results[index];
+                            var embed = rule.BuildEmbed();
+                            await message.ModifyAsync(embed);
                         }
                     }
                 }
