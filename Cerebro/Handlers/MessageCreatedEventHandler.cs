@@ -25,7 +25,7 @@ namespace Cerebro.Handlers
             }
         }
 
-        public async static Task FindQueries(DiscordClient client, MessageCreateEventArgs e)
+        public async static Task EvaluateQueries(DiscordClient client, MessageCreateEventArgs e)
         {
             if (e.Author.IsBot)
             {
@@ -46,7 +46,7 @@ namespace Cerebro.Handlers
             {
                 var message = e.Message.Content;
 
-                Regex cardRegex = new Regex(@"\{\{(.+)\}\}", RegexOptions.Compiled);
+                Regex cardRegex = new Regex(@"\{\{[^\{\}]+\}\}", RegexOptions.Compiled);
 
                 MatchCollection cardMatches = cardRegex.Matches(message);
 
@@ -66,7 +66,7 @@ namespace Cerebro.Handlers
                     }
                 }
 
-                Regex ruleRegex = new Regex(@"\(\((.+)\)\)", RegexOptions.Compiled);
+                Regex ruleRegex = new Regex(@"\(\([^\(\)]+\)\)", RegexOptions.Compiled);
 
                 MatchCollection ruleMatches = ruleRegex.Matches(message);
 

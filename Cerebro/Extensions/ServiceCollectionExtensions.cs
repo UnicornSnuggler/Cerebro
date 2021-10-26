@@ -43,7 +43,7 @@ namespace Cerebro.Extensions
             });
 
             client.MessageCreated += MessageCreatedEventHandler.HelpFormatterOnBlankMessage;
-            client.MessageCreated += MessageCreatedEventHandler.FindQueries;
+            client.MessageCreated += MessageCreatedEventHandler.EvaluateQueries;
 
             var commands = client.UseCommandsNext(new CommandsNextConfiguration
             {
