@@ -10,14 +10,14 @@ namespace Cerebro.CommandModules
     [Group("update")]
     [Description("Administrator update utilities.")]
     [RequiresAdministrator]
-    class DebugCommandModule : BaseCommandModule
+    class UpdateCommandModule : BaseCommandModule
     {
         private readonly IFormattingDao _formattingDao;
         private readonly IPackDao _packDao;
         private readonly IRuleDao _ruleDao;
         private readonly ISetDao _setDao;
 
-        public DebugCommandModule(IFormattingDao formattingDao, IPackDao packDao, IRuleDao ruleDao, ISetDao setDao)
+        public UpdateCommandModule(IFormattingDao formattingDao, IPackDao packDao, IRuleDao ruleDao, ISetDao setDao)
         {
             _formattingDao = formattingDao;
             _packDao = packDao;
@@ -47,9 +47,9 @@ namespace Cerebro.CommandModules
         [Description("Update the rules list.")]
         public async Task RulesCommand(CommandContext context)
         {
-            _ruleDao.RetrieveAllRules();
+            _ruleDao.RetrieveAllKeywords();
 
-            await context.SendEmbed($"Successfully imported {RuleDao._rules.Count} rules from the database!");
+            await context.SendEmbed($"Successfully imported {RuleDao._keywords.Count} rules from the database!");
         }
 
         [Command("sets")]

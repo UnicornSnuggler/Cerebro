@@ -25,7 +25,7 @@ namespace Cerebro.Handlers
             }
         }
 
-        public async static Task FindCardNames(DiscordClient client, MessageCreateEventArgs e)
+        public async static Task FindQueries(DiscordClient client, MessageCreateEventArgs e)
         {
             if (e.Author.IsBot)
             {
@@ -37,7 +37,7 @@ namespace Cerebro.Handlers
                 var embed = new DiscordEmbedBuilder()
                 {
                     Color = DiscordColor.Azure,
-                    Description = "Oops!  At this time, cards cannot be queried from DMs due to functional restrictions, but this feature will be added soon!"
+                    Description = "Oops!  At this time, queries cannot be made from DMs due to functional restrictions, but this feature will be added soon!"
                 };
 
                 await client.SendMessageAsync(e.Channel, embed);
@@ -46,13 +46,13 @@ namespace Cerebro.Handlers
             {
                 var message = e.Message.Content;
 
-                Regex regex = new Regex(@"\{\{(.*?)\}\}", RegexOptions.Compiled);
+                Regex cardRegex = new Regex(@"\{\{(.+)\}\}", RegexOptions.Compiled);
 
-                MatchCollection matches = regex.Matches(message);
+                MatchCollection cardMatches = cardRegex.Matches(message);
 
-                if (matches.Count != 0)
+                if (cardMatches.Count != 0)
                 {
-                    foreach (var match in matches)
+                    foreach (var match in cardMatches)
                     {
                         var cleanedName = match.ToString().Replace("{{", "").Replace("}}", "");
 
@@ -61,6 +61,26 @@ namespace Cerebro.Handlers
                         var command = extension.FindCommand("search name", out var args);
 
                         var context = extension.CreateContext(e.Message, Constants.COMMAND_PREFIX, command, cleanedName);
+
+                        _ = Task.Run(() => extension.ExecuteCommandAsync(context));
+                    }
+                }
+
+                Regex ruleRegex = new Regex(@"\(\((.+)\)\)", RegexOptions.Compiled);
+
+                MatchCollection ruleMatches = ruleRegex.Matches(message);
+
+                if (ruleMatches.Count != 0)
+                {
+                    foreach (var match in ruleMatches)
+                    {
+                        var cleanedTerm = match.ToString().Replace("((", "").Replace("))", "");
+
+                        var extension = client.GetCommandsNext();
+
+                        var command = extension.FindCommand("search rule", out var args);
+
+                        var context = extension.CreateContext(e.Message, Constants.COMMAND_PREFIX, command, cleanedTerm);
 
                         _ = Task.Run(() => extension.ExecuteCommandAsync(context));
                     }

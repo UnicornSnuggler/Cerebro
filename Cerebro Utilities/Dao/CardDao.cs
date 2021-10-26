@@ -1,16 +1,14 @@
-﻿using Cerebro_Utilities.Models;
+﻿using Azure.Search.Documents.Indexes;
+using Azure.Search.Documents.Models;
+using Azure;
+using Azure.Search.Documents;
+using Cerebro_Utilities.Extensions;
+using Cerebro_Utilities.Models;
+using static Cerebro_Utilities.Utilities.QueryHelper;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
-using Azure.Search.Documents.Indexes;
-using Azure.Search.Documents.Models;
-using Azure;
-using Lucene.Net.QueryParsers.Classic;
-using Azure.Search.Documents;
-using Cerebro_Utilities.Extensions;
-using Lucene.Net.Analysis.Standard;
 
 namespace Cerebro_Utilities.Dao
 {
@@ -28,20 +26,6 @@ namespace Cerebro_Utilities.Dao
         private IPrintingDao _printingDao;
 
         private readonly IConfigurationRoot _configuration;
-
-        public enum FlagNames
-        {
-            Bare,
-            Wildcard,
-            Fuzzy
-        };
-
-        private Dictionary<FlagNames, string> QueryFlags = new Dictionary<FlagNames, string>()
-        {
-            { FlagNames.Bare, "" },
-            { FlagNames.Wildcard, "*" },
-            { FlagNames.Fuzzy, "~" },
-        };
 
         public CardDao(IConfigurationRoot configuration, IPrintingDao printingDao)
         {
@@ -139,15 +123,6 @@ namespace Cerebro_Utilities.Dao
             }
 
             return results;
-        }
-
-        private static string LuceneQuery(string input)
-        {
-            const string FIELD = "field";
-
-            return new QueryParser(Lucene.Net.Util.LuceneVersion.LUCENE_48, FIELD, new StandardAnalyzer(Lucene.Net.Util.LuceneVersion.LUCENE_48))
-                .Parse(Regex.Replace(input, @"[\!]", " "))
-                .ToString(FIELD);
         }
 
         public List<CardEntity> RetrieveByName(string name)

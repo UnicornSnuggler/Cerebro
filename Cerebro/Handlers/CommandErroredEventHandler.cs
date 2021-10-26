@@ -1,6 +1,8 @@
 ﻿using Cerebro.Attributes;
+using Cerebro.Extensions;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Exceptions;
+using System;
 using System.Threading.Tasks;
 
 namespace Cerebro.Handlers
@@ -19,7 +21,7 @@ namespace Cerebro.Handlers
                     {
                         if (failedCheck is RequiresAdministratorAttribute)
                         {
-                            await e.Context.RespondAsync($"That command is only usable by administrators.");
+                            await e.Context.SendEmbed($"That command is only usable by administrators.");
 
                             return;
                         }
@@ -28,19 +30,9 @@ namespace Cerebro.Handlers
             }
             catch { }
 
-            var message = e.Context.Message;
+            Console.Error.WriteLine($"Encountered an exception:\n\n{e.Exception}");
 
-            var invocation = message.Content.Substring(e.Context.Prefix.Length);
-
-            var originalCommand = extension.FindCommand(invocation, out _);
-
-            var helpString = originalCommand != null ? $"help {originalCommand.QualifiedName}" : "help";
-
-            var command = extension.FindCommand(helpString, out var args);
-
-            var context = extension.CreateContext(message, e.Context.Prefix, command, args);
-
-            await extension.ExecuteCommandAsync(context);
+            await e.Context.SendEmbed($"I ran into an unexpected error! {Constants.OWNER_MENTION} should check the logs to discover what went wrong...");
         }
     }
 }

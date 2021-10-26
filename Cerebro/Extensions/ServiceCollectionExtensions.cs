@@ -32,7 +32,7 @@ namespace Cerebro.Extensions
                 .AddSingleton<IPrintingDao, PrintingDao>()
                 .AddSingleton<IRuleDao, RuleDao>()
                 .AddSingleton<ISetDao, SetDao>()
-                .AddSingleton<DebugCommandModule>()
+                .AddSingleton<UpdateCommandModule>()
                 .AddSingleton<SearchCommandModule>();
 
             var client = new DiscordClient(new DiscordConfiguration
@@ -43,7 +43,7 @@ namespace Cerebro.Extensions
             });
 
             client.MessageCreated += MessageCreatedEventHandler.HelpFormatterOnBlankMessage;
-            client.MessageCreated += MessageCreatedEventHandler.FindCardNames;
+            client.MessageCreated += MessageCreatedEventHandler.FindQueries;
 
             var commands = client.UseCommandsNext(new CommandsNextConfiguration
             {
@@ -55,7 +55,7 @@ namespace Cerebro.Extensions
             });
 
             commands.SetHelpFormatter<DefaultHelpFormatter>();
-            commands.RegisterCommands<DebugCommandModule>();
+            commands.RegisterCommands<UpdateCommandModule>();
             commands.RegisterCommands<SearchCommandModule>();
 
             commands.CommandErrored += CommandErroredEventHandler.TriggerDefaultHelpFormatter;
