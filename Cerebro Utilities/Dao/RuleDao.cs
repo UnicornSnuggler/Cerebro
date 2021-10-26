@@ -70,7 +70,7 @@ namespace Cerebro_Utilities.Dao
             SearchOptions options = new SearchOptions
             {
                 QueryType = SearchQueryType.Full,
-                SearchFields = { "Title" },
+                SearchFields = { "Title", "Terms" },
                 SearchMode = SearchMode.All
             };
 
@@ -83,11 +83,24 @@ namespace Cerebro_Utilities.Dao
 
             if (rules.Count > 0)
             {
-                return rules;
+                List<RuleEntity> matches = rules.FindAll(x => x.Title == term || x.Terms.Contains(term));
+
+                return (matches.Count > 0 ? matches : rules);
             }
             else
             {
-                return null;
+                if (flag == FlagNames.Bare)
+                {
+                    return RetrieveByTerm(term, FlagNames.Wildcard);
+                }
+                else if (flag == FlagNames.Wildcard)
+                {
+                    return RetrieveByTerm(term, FlagNames.Fuzzy);
+                }
+                else
+                {
+                    return null;
+                }
             }
         }
     }
