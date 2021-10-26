@@ -67,6 +67,8 @@ namespace Cerebro_Utilities.Dao
 
         private List<RuleEntity> RetrieveByTerm(string term, FlagNames flag)
         {
+            term = term.ToLower();
+
             SearchOptions options = new SearchOptions
             {
                 QueryType = SearchQueryType.Full,
@@ -83,9 +85,9 @@ namespace Cerebro_Utilities.Dao
 
             if (rules.Count > 0)
             {
-                List<RuleEntity> matches = rules.FindAll(x => x.Title == term || x.Terms.Contains(term));
+                List<RuleEntity> matches = rules.FindAll(x => x.Title.ToLower() == term || x.Terms.ToLower().Contains(term));
 
-                return (matches.Count > 0 ? matches : rules);
+                return matches.Count > 0 ? matches : rules;
             }
             else
             {

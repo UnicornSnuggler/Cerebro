@@ -1,5 +1,6 @@
 ﻿using Lucene.Net.Analysis.Standard;
 using Lucene.Net.QueryParsers.Classic;
+using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
@@ -25,9 +26,16 @@ namespace Cerebro_Utilities.Utilities
         {
             const string FIELD = "field";
 
-            return new QueryParser(Lucene.Net.Util.LuceneVersion.LUCENE_48, FIELD, new StandardAnalyzer(Lucene.Net.Util.LuceneVersion.LUCENE_48))
-                .Parse(Regex.Replace(input, @"[\!\{\}]", " "))
-                .ToString(FIELD);
+            try
+            {
+                return new QueryParser(Lucene.Net.Util.LuceneVersion.LUCENE_48, FIELD, new StandardAnalyzer(Lucene.Net.Util.LuceneVersion.LUCENE_48))
+                    .Parse(Regex.Replace(input, @"[\!\{\}]", " "))
+                    .ToString(FIELD);
+            }
+            catch (Exception e)
+            {
+                throw e;
+            }
         }
     }
 }

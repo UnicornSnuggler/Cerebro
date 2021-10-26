@@ -31,7 +31,7 @@ namespace Cerebro.Extensions
 
         internal static string Summary(this RuleEntity rule)
         {
-            return Formatter.Bold(rule.Title);
+            return StringHelper.FormatSymbols(Formatter.Bold(rule.Title));
         }
     }
 }
