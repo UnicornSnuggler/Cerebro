@@ -132,6 +132,8 @@ namespace Cerebro_Utilities.Dao
 
         private List<CardEntity> RetrieveByName(string name, FlagNames flag)
         {
+            name = name.ToLower();
+
             SearchOptions options = new SearchOptions
             {
                 QueryType = SearchQueryType.Full,
@@ -150,7 +152,7 @@ namespace Cerebro_Utilities.Dao
 
             if (cards.Count > 0)
             {
-                List<CardEntity> matches = cards.FindAll(x => x.Name == name || x.Subname == name);
+                List<CardEntity> matches = cards.FindAll(x => x.Name.ToLower() == name || x.Subname.ToLower() == name);
                 
                 return GetPrintings(TrimDuplicates(matches.Count > 0 ? matches : cards));
             }
