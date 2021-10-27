@@ -85,7 +85,12 @@ namespace Cerebro_Utilities.Dao
 
             if (rules.Count > 0)
             {
-                List<RuleEntity> matches = rules.FindAll(x => x.Title.ToLower() == term || x.Terms.ToLower().Contains(term));
+                List<RuleEntity> matches = rules.FindAll(x => x.Title.ToLower() == term || x.RowKey.ToLower() == term);
+
+                if (matches.Count == 0)
+                {
+                    matches = rules.FindAll(x => x.Terms.ToLower().Contains(term));
+                }
 
                 return matches.Count > 0 ? matches : rules;
             }
