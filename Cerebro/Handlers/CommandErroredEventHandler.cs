@@ -9,7 +9,7 @@ namespace Cerebro.Handlers
 {
     class CommandErroredEventHandler
     {
-        public async static Task TriggerDefaultHelpFormatter(CommandsNextExtension extension, CommandErrorEventArgs e)
+        public async static Task EvaluateErrors(CommandsNextExtension extension, CommandErrorEventArgs e)
         {
             try
             {

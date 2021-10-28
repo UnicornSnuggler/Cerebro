@@ -135,7 +135,7 @@ namespace Cerebro.Extensions
                 embed.AddField(StringHelper.FormatSymbols(rule.Key), StringHelper.FormatSymbols(rule.Value));
             }
 
-            embed.WithColor(Constants.COLORS.GetValueOrDefault(card.Type == "Villain" || card.Type == "Main Scheme" ? "Villain" : card.Classification, new DiscordColor("2337CF")));
+            embed.WithColor(Constants.COLORS.GetValueOrDefault(card.Type == "Villain" || card.Type == "Main Scheme" ? "Villain" : card.Classification, Constants.DEFAULT_COLOR));
             embed.WithTitle(card.SpoilerIfIncomplete((card.Unique ? Constants.UNIQUE_SYMBOL : "") + card.Name + (card.Subname != null ? $" — {card.Subname}" : "")));
             embed.WithUrl(StringHelper.BuildImagePath(Constants.CARDS_IMAGE_PREFIX, alternateArt ?? card.RowKey));
             embed.WithFooter(card.BuildFooter());

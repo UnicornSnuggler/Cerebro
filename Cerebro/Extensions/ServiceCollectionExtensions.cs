@@ -1,5 +1,6 @@
 ﻿using Cerebro.CommandModules;
 using Cerebro.Handlers;
+using Cerebro.HelpFormatters;
 using Cerebro_Utilities.Dao;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
@@ -58,7 +59,8 @@ namespace Cerebro.Extensions
             commands.RegisterCommands<UpdateCommandModule>();
             commands.RegisterCommands<SearchCommandModule>();
 
-            commands.CommandErrored += CommandErroredEventHandler.TriggerDefaultHelpFormatter;
+            commands.CommandErrored += CommandErroredEventHandler.EvaluateErrors;
+            commands.SetHelpFormatter<RichHelpFormatter>();
 
             client.UseInteractivity();
 

@@ -10,7 +10,9 @@ namespace Cerebro
 
         // General
 
-        public const string BOT_MENTION = "<@!869071415322742835> ";
+        public const string BETA_BOT_MENTION = "<@!869071415322742835> ";
+
+        public const string LIVE_BOT_MENTION = "<@!895469977602236426> ";
 
         public const string COMMAND_PREFIX = "/cerebro ";
 
@@ -37,6 +39,8 @@ namespace Cerebro
             { "Protection", new DiscordColor("6BEE5E") },
             { "Villain", new DiscordColor("BA00D6") }
         };
+
+        public static DiscordColor DEFAULT_COLOR = new DiscordColor("4F80C2");
 
         // Emojis
 

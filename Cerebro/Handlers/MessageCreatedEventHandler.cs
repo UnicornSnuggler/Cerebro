@@ -13,7 +13,7 @@ namespace Cerebro.Handlers
         {
             var message = e.Message.Content.ToLower().Trim();
 
-            if (message.Equals(Constants.COMMAND_PREFIX.Trim()) || message.Equals(Constants.BOT_MENTION.Trim()))
+            if (message.Equals(Constants.COMMAND_PREFIX.Trim()) || message.Equals(Constants.LIVE_BOT_MENTION.Trim()) || message.Equals(Constants.BETA_BOT_MENTION.Trim()))
             {
                 var extension = client.GetCommandsNext();
 
@@ -36,7 +36,7 @@ namespace Cerebro.Handlers
             {
                 var embed = new DiscordEmbedBuilder()
                 {
-                    Color = DiscordColor.Azure,
+                    Color = Constants.DEFAULT_COLOR,
                     Description = "Oops!  At this time, queries cannot be made from DMs due to functional restrictions, but this feature will be added soon!"
                 };
 

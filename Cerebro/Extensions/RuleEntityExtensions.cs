@@ -14,7 +14,7 @@ namespace Cerebro.Extensions
 
             string imagePath = StringHelper.BuildImagePath(Constants.RULES_IMAGE_PREFIX, rule.RowKey);
 
-            embed.WithColor(Constants.COLORS.GetValueOrDefault("Basic", new DiscordColor("2337CF")));
+            embed.WithColor(Constants.COLORS.GetValueOrDefault("Basic", Constants.DEFAULT_COLOR));
             embed.WithTitle(StringHelper.FormatSymbols(rule.Title));
             embed.WithUrl(imagePath);
 
