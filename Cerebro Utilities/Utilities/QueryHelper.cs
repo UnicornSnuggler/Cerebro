@@ -1,7 +1,6 @@
-﻿using Lucene.Net.Analysis.Standard;
-using Lucene.Net.QueryParsers.Classic;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace Cerebro_Utilities.Utilities
@@ -15,27 +14,27 @@ namespace Cerebro_Utilities.Utilities
             Fuzzy
         };
 
-        public static Dictionary<FlagNames, string> QueryFlags = new Dictionary<FlagNames, string>()
-        {
-            { FlagNames.Bare, "" },
-            { FlagNames.Wildcard, "*" },
-            { FlagNames.Fuzzy, "~" },
-        };
+        private const string _forbidden = @"[-.!{}()]";
 
-        public static string LuceneQuery(string input)
+        public static string BuildWildcardQuery(string input)
         {
-            const string FIELD = "field";
+            input = EscapeQuery(input, " ");
 
-            try
+            List<string> tokens = input.Split(" ", StringSplitOptions.RemoveEmptyEntries).ToList();
+
+            return string.Join(" AND ", tokens.Select(x => $"/.*{x}.*/"));
+        }
+
+        public static string EscapeQuery(string input, string replacement = null)
+        {
+            MatchCollection matches = Regex.Matches(input, _forbidden, RegexOptions.IgnoreCase);
+
+            foreach (Match match in matches)
             {
-                return new QueryParser(Lucene.Net.Util.LuceneVersion.LUCENE_48, FIELD, new StandardAnalyzer(Lucene.Net.Util.LuceneVersion.LUCENE_48))
-                    .Parse(Regex.Replace(input, @"[\!\{\}]", " "))
-                    .ToString(FIELD);
+                input = input.Replace(match.Value, replacement ?? $"\\{match.Value}");
             }
-            catch (Exception e)
-            {
-                throw e;
-            }
+
+            return input.Replace("*", "");
         }
     }
 }

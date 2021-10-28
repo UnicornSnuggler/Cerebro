@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Cerebro_Utilities.Dao
 {
@@ -127,7 +128,9 @@ namespace Cerebro_Utilities.Dao
 
         public List<CardEntity> RetrieveByName(string name)
         {
-            return RetrieveByName(name, FlagNames.Bare);
+            FlagNames flag = name.Contains("*") ? FlagNames.Wildcard : FlagNames.Bare;
+
+            return RetrieveByName(name, flag);
         }
 
         private List<CardEntity> RetrieveByName(string name, FlagNames flag)
@@ -140,13 +143,24 @@ namespace Cerebro_Utilities.Dao
                 SearchFields = { "Name", "Subname" },
                 SearchMode = SearchMode.All
             };
-            
-            string query = $"{LuceneQuery(name)}{QueryFlags[flag]}";
+
+            string query;
+
+            if (flag == FlagNames.Wildcard)
+            {
+                query = BuildWildcardQuery(name);
+            }
+            else if (flag == FlagNames.Fuzzy)
+            {
+                query = $"{EscapeQuery(name)}~";
+            }
+            else
+            {
+                query = EscapeQuery(name);
+            }
 
             Response<SearchResults<CardEntity>> response = _searchClient.Search<CardEntity>(query, options);
             List<CardEntity> cards = response.Value?.GetResults()
-                .ToList()
-                .FindAll(x => x.Score > 2.5)
                 .Select(x => x.Document)
                 .ToList();
 

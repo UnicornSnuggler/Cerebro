@@ -46,7 +46,7 @@ namespace Cerebro.Handlers
             {
                 var message = e.Message.Content;
 
-                Regex cardRegex = new Regex(@"\{\{[^\{\}]+\}\}", RegexOptions.Compiled);
+                Regex cardRegex = new Regex(@"\{\{.+\}\}", RegexOptions.Compiled);
 
                 MatchCollection cardMatches = cardRegex.Matches(message);
 
@@ -66,7 +66,7 @@ namespace Cerebro.Handlers
                     }
                 }
 
-                Regex ruleRegex = new Regex(@"\(\([^\(\)]+\)\)", RegexOptions.Compiled);
+                Regex ruleRegex = new Regex(@"\(\(.+\)\)", RegexOptions.Compiled);
 
                 MatchCollection ruleMatches = ruleRegex.Matches(message);
 

@@ -76,9 +76,22 @@ namespace Cerebro_Utilities.Dao
                 SearchMode = SearchMode.All
             };
 
-            string query = $"{LuceneQuery(term)}{QueryFlags[flag]}";
+            string query;
 
-            Response<SearchResults<RuleEntity>> response = _searchClient.Search<RuleEntity>($"{query}", options);
+            if (flag == FlagNames.Wildcard)
+            {
+                query = BuildWildcardQuery(term);
+            }
+            else if (flag == FlagNames.Fuzzy)
+            {
+                query = $"{EscapeQuery(term)}~";
+            }
+            else
+            {
+                query = EscapeQuery(term);
+            }
+
+            Response<SearchResults<RuleEntity>> response = _searchClient.Search<RuleEntity>(query, options);
             List<RuleEntity> rules = response.Value?.GetResults()
                 .Select(x => x.Document)
                 .ToList();
