@@ -62,7 +62,9 @@ namespace Cerebro_Utilities.Dao
 
         public List<RuleEntity> RetrieveByTerm(string term)
         {
-            return RetrieveByTerm(term, FlagNames.Bare);
+            FlagNames flag = term.Contains("*") ? FlagNames.Wildcard : FlagNames.Bare;
+
+            return RetrieveByTerm(term, flag);
         }
 
         private List<RuleEntity> RetrieveByTerm(string term, FlagNames flag)
