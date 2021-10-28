@@ -12,14 +12,21 @@ namespace Cerebro.Extensions
         {
             var embed = new DiscordEmbedBuilder();
 
-            string description = StringHelper.FormatText(rule.Reference);
             string imagePath = StringHelper.BuildImagePath(Constants.RULES_IMAGE_PREFIX, rule.RowKey);
 
             embed.WithColor(Constants.COLORS.GetValueOrDefault("Basic", new DiscordColor("2337CF")));
             embed.WithTitle(StringHelper.FormatSymbols(rule.Title));
             embed.WithUrl(imagePath);
-            embed.WithDescription(description);
-            embed.WithThumbnail(imagePath);
+
+            if (rule.Reference != null)
+            {
+                embed.WithDescription(StringHelper.FormatText(rule.Reference));
+                embed.WithThumbnail(imagePath);
+            }
+            else
+            {
+                embed.WithImageUrl(imagePath);
+            }
 
             if (rule.Footer != null)
             {
