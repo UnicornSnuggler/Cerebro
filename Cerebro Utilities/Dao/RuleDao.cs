@@ -100,6 +100,8 @@ namespace Cerebro_Utilities.Dao
             {
                 List<RuleEntity> matches = rules.FindAll(x => x.Title.ToLower() == term || x.RowKey.ToLower() == term);
 
+                rules.Sort((x, y) => x.Title.CompareTo(y.Title));
+
                 if (matches.Count == 0)
                 {
                     matches = rules.FindAll(x => x.Terms.ToLower().Contains(term));
