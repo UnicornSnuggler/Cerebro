@@ -170,7 +170,7 @@ class CardDao {
                 query = BuildWildcardQuery(terms);
                 break;
             case FlagNames.FUZZY:
-                query = `${EscapeQuery(terms)}~`;
+                query = EscapeQuery(terms).split(' ').map(x => `${x}~`).join(' ');
                 break;
             default:
                 query = EscapeQuery(terms);
