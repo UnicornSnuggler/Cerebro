@@ -13,7 +13,8 @@ exports.COLORS =
 
 exports.ID_LENGTH = 5;
 
-exports.APOLOGY = 'Please wait while result details are being retrieved. Art rendering will likely result in longer load times.';
+exports.LOAD_APOLOGY = 'Please wait while result details are being retrieved. Art rendering will likely result in longer load times.';
+exports.INTERACT_APOLOGY = 'Sorry, but you can\'t interact with another user\'s query result...';
 
 exports.AFFIRMATIVE_EMOJI = ':white_check_mark:';
 exports.ARROW_LEFT_EMOJI = ':arrow_left:';

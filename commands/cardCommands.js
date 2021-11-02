@@ -5,7 +5,7 @@ const MessageHelper = require('../utilities/messageHelper');
 const CardHelper = require('../utilities/cardHelper');
 const { BuildImagePath } = require('../utilities/stringHelper');
 const { MessageActionRow, MessageButton, MessageSelectMenu } = require('discord.js');
-const { SYMBOLS, APOLOGY } = require('../constants');
+const { SYMBOLS, LOAD_APOLOGY, INTERACT_APOLOGY } = require('../constants');
 
 const SelectBox = async function(interaction, cards) {
     var selector = new MessageSelectMenu()
@@ -46,20 +46,25 @@ const SelectBox = async function(interaction, cards) {
         const collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: 10000 });
 
         collector.on('collect', async i => {
-            var card = cards.find(x => x.Id === i.values[0]);
+            if (i.user.id === interaction.member.id) {
+                var card = cards.find(x => x.Id === i.values[0]);
 
-            collector.stop('selection');
+                collector.stop('selection');
 
-            i.deferUpdate()
-            .then(() => {
-                QueueCardResult(interaction, card, message);
-            });
+                i.deferUpdate()
+                .then(() => {
+                    QueueCardResult(interaction, card, message);
+                });
+            }
+            else {
+                i.reply({embeds: [MessageHelper.CreateEmbed(INTERACT_APOLOGY)], ephemeral: true})
+            }
         });
 
         collector.on('end', (i, reason) => {
             var content = 'The timeout was reached...';
 
-            if (reason === 'selection') content = APOLOGY;
+            if (reason === 'selection') content = LOAD_APOLOGY;
             
             MessageHelper.RemoveComponents(message, content);
         });
@@ -164,77 +169,82 @@ const Imbibe = function(interaction, card, currentArtStyle, currentFace, current
         const collector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: 15000 });
 
         collector.on('collect', i => {
-            if (i.customId != 'clearComponents') collector.stop('navigation');
+            if (i.user.id === interaction.member.id) {
+                if (i.customId != 'clearComponents') collector.stop('navigation');
 
-            i.deferUpdate()
-            .then(async () => {
-                var nextArtStyle = currentArtStyle;
-                var nextCard = card;
-                var nextFace = currentFace;
-                var nextStage = currentStage;
-                var nextCollection = collection;
-                var nextRulesToggle = rulesToggle;
-                var nextArtToggle = artToggle;
+                i.deferUpdate()
+                .then(async () => {
+                    var nextArtStyle = currentArtStyle;
+                    var nextCard = card;
+                    var nextFace = currentFace;
+                    var nextStage = currentStage;
+                    var nextCollection = collection;
+                    var nextRulesToggle = rulesToggle;
+                    var nextArtToggle = artToggle;
 
-                switch (i.customId) {
-                    case 'cycleArt':
-                        nextArtStyle = currentArtStyle + 1 >= card.ArtStyles.length ? 0 : currentArtStyle + 1;
+                    switch (i.customId) {
+                        case 'cycleArt':
+                            nextArtStyle = currentArtStyle + 1 >= card.ArtStyles.length ? 0 : currentArtStyle + 1;
 
-                        break;
-                    case 'cycleFace':
-                        nextArtStyle = 0;
-                        nextFace = currentFace + 1 >= nextCollection.faces.length ? 0 : currentFace + 1;
-                        nextCard = nextCollection.cards.find(x => x.Id === nextCollection.faces[nextFace]);
-                        nextRulesToggle = false;
-                        
-                        if (nextCollection.stages) {
-                            nextStage = nextCollection.stages.findIndex(x => x.cardId === nextCard.Id);
-                        }
+                            break;
+                        case 'cycleFace':
+                            nextArtStyle = 0;
+                            nextFace = currentFace + 1 >= nextCollection.faces.length ? 0 : currentFace + 1;
+                            nextCard = nextCollection.cards.find(x => x.Id === nextCollection.faces[nextFace]);
+                            nextRulesToggle = false;
+                            
+                            if (nextCollection.stages) {
+                                nextStage = nextCollection.stages.findIndex(x => x.cardId === nextCard.Id);
+                            }
 
-                        break;
-                    case 'previousStage':
-                        nextArtStyle = 0;
-                        nextStage = currentStage - 1 >= 0 ? currentStage - 1 : nextCollection.stages.length - 1;
-                        nextCard = nextCollection.cards.find(x => x.Id === nextCollection.stages[nextStage].cardId);
-                        nextRulesToggle = false;
-                        
-                        if (nextCollection.stages[nextStage].faces) {
-                            nextCollection.faces = nextCollection.stages[nextStage].faces;
-                            nextFace = nextCollection.faces.findIndex(x => x === nextCard.Id);
-                        }
-                        
-                        break;
-                    case 'nextStage':
-                        nextArtStyle = 0;
-                        nextStage = currentStage + 1 >= nextCollection.stages.length ? 0 : currentStage + 1;
-                        nextCard = nextCollection.cards.find(x => x.Id === nextCollection.stages[nextStage].cardId);
-                        nextRulesToggle = false;
-                        
-                        if (nextCollection.stages[nextStage].faces) {
-                            nextCollection.faces = nextCollection.stages[nextStage].faces;
-                            nextFace = nextCollection.faces.findIndex(x => x === nextCard.Id);
-                        }
-                        
-                        break;
-                    case 'toggleRules':
-                        nextRulesToggle = !rulesToggle;
-                        nextArtToggle = false;
+                            break;
+                        case 'previousStage':
+                            nextArtStyle = 0;
+                            nextStage = currentStage - 1 >= 0 ? currentStage - 1 : nextCollection.stages.length - 1;
+                            nextCard = nextCollection.cards.find(x => x.Id === nextCollection.stages[nextStage].cardId);
+                            nextRulesToggle = false;
+                            
+                            if (nextCollection.stages[nextStage].faces) {
+                                nextCollection.faces = nextCollection.stages[nextStage].faces;
+                                nextFace = nextCollection.faces.findIndex(x => x === nextCard.Id);
+                            }
+                            
+                            break;
+                        case 'nextStage':
+                            nextArtStyle = 0;
+                            nextStage = currentStage + 1 >= nextCollection.stages.length ? 0 : currentStage + 1;
+                            nextCard = nextCollection.cards.find(x => x.Id === nextCollection.stages[nextStage].cardId);
+                            nextRulesToggle = false;
+                            
+                            if (nextCollection.stages[nextStage].faces) {
+                                nextCollection.faces = nextCollection.stages[nextStage].faces;
+                                nextFace = nextCollection.faces.findIndex(x => x === nextCard.Id);
+                            }
+                            
+                            break;
+                        case 'toggleRules':
+                            nextRulesToggle = !rulesToggle;
+                            nextArtToggle = false;
 
-                        break;
-                    case 'toggleArt':
-                        nextRulesToggle = false;
-                        nextArtToggle = !nextArtToggle;
+                            break;
+                        case 'toggleArt':
+                            nextRulesToggle = false;
+                            nextArtToggle = !nextArtToggle;
 
-                        break;
-                    case 'clearComponents':
-                        collector.stop('cancellation');
-                        return;
-                    default:
-                        break;
-                }
+                            break;
+                        case 'clearComponents':
+                            collector.stop('cancellation');
+                            return;
+                        default:
+                            break;
+                    }
 
-                Imbibe(interaction, nextCard, nextArtStyle, nextFace, nextStage, nextCollection, nextRulesToggle, nextArtToggle, message);
-            });
+                    Imbibe(interaction, nextCard, nextArtStyle, nextFace, nextStage, nextCollection, nextRulesToggle, nextArtToggle, message);
+                });
+            }
+            else {
+                i.reply({embeds: [MessageHelper.CreateEmbed(INTERACT_APOLOGY)], ephemeral: true})
+            }
         });
 
         collector.on('end', (i, reason) => {
@@ -242,7 +252,7 @@ const Imbibe = function(interaction, card, currentArtStyle, currentFace, current
             var removeFiles = true;
 
             if (reason === 'navigation') {
-                content = APOLOGY;
+                content = LOAD_APOLOGY;
             }
             else {
                 removeFiles = !artToggle;

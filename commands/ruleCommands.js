@@ -3,7 +3,7 @@ const { RuleDao } = require('../dao/ruleDao');
 const MessageHelper = require('../utilities/messageHelper');
 const { BuildEmbed } = require('../utilities/ruleHelper');
 const { MessageActionRow, MessageSelectMenu } = require('discord.js');
-const { SYMBOLS, APOLOGY } = require('../constants');
+const { SYMBOLS, INTERACT_APOLOGY, LOAD_APOLOGY } = require('../constants');
 
 const SelectBox = async function(interaction, rules) {
     var selector = new MessageSelectMenu()
@@ -50,27 +50,32 @@ const SelectBox = async function(interaction, rules) {
         const collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: 15000 });
 
         collector.on('collect', async i => {
-            var rule = rules.find(x => x.Id === i.values[0]);
-
-            collector.stop('selection');
-
-            i.deferUpdate()
-            .then(() => {
-                var embed = BuildEmbed(rule);
-
-                var messageOptions = {
-                    components: [],
-                    embeds: [embed]
-                };
-
-                message.edit(messageOptions);
-            });
+            if (i.user.id === interaction.member.id) {
+                var rule = rules.find(x => x.Id === i.values[0]);
+    
+                collector.stop('selection');
+    
+                i.deferUpdate()
+                .then(() => {
+                    var embed = BuildEmbed(rule);
+    
+                    var messageOptions = {
+                        components: [],
+                        embeds: [embed]
+                    };
+    
+                    message.edit(messageOptions);
+                });
+            }
+            else {
+                i.reply({embeds: [MessageHelper.CreateEmbed(INTERACT_APOLOGY)], ephemeral: true})
+            }
         });
 
         collector.on('end', (i, reason) => {
             var content = 'The timeout was reached...';
 
-            if (reason === 'selection') content = APOLOGY;
+            if (reason === 'selection') content = LOAD_APOLOGY;
             
             MessageHelper.RemoveComponents(message, content);
         });
