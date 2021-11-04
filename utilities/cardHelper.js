@@ -111,7 +111,7 @@ var BuildStats = exports.BuildStats = function(card) {
 
     var hasEconomy = card.Cost != null || card.Resource != null || card.Boost != null;
     var hasAbilities = card.Recover != null || card.Scheme != null || card.Thwart != null || card.Attack != null || card.Defense != null;
-    var hasFeatures = card.Hand != null || card.Health != null || card.Acceleration != null || card.Threat != null;
+    var hasFeatures = card.Hand != null || card.Health != null || card.Acceleration != null || card.StartingThreat != null;
 
     if (hasEconomy)
     {
@@ -159,11 +159,11 @@ var BuildStats = exports.BuildStats = function(card) {
 
         if (card.Health) features.push(`Health: ${card.Health}`);
 
-        if (card.Threat) features.push(`Starting Threat: ${card.Threat}`);
+        if (card.StartingThreat) features.push(`Starting Threat: ${card.StartingThreat}`);
 
         if (card.Acceleration) features.push(`Acceleration: ${card.Acceleration}`);
 
-        if (card.Target) features.push(`Target Threat: ${card.Target}`);
+        if (card.TargetThreat) features.push(`Target Threat: ${card.TargetThreat}`);
 
         components.push(features.join('\n'));
     }

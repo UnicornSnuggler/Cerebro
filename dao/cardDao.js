@@ -26,8 +26,8 @@ class CardDao {
         var results = [];
 
         var documents = await this.store.openSession().query({ indexName: CardEntity.INDEX })
-            .whereRegex('Id', GetBaseId(card))
-            .orderBy('Id').all();
+            .whereRegex('id()', GetBaseId(card))
+            .orderBy('id()').all();
 
         for (var document of documents) {
             results.push(new CardEntity(document));
@@ -43,7 +43,7 @@ class CardDao {
 
         var documents = await this.store.openSession().query({ indexName: CardEntity.INDEX })
             .whereRegex('GroupId', card.GroupId)
-            .orderBy('GroupId').all();
+            .orderBy('id()').all();
 
         for (var document of documents) {
             results.push(new CardEntity(document));
@@ -121,21 +121,21 @@ class CardDao {
         var query = terms.replace(/[^a-zA-Z0-9]/gmi, '');
 
         var documents = await session.query({ indexName: CardEntity.INDEX })
-            .whereRegex('Id', query).orElse()
+            .whereRegex('id()', query).orElse()
             .whereRegex('Name', query).orElse()
             .whereRegex('Subname', query).orElse()
             .whereRegex('StrippedName', query).orElse()
             .whereRegex('StrippedSubname', query)
-            .orderBy('Id').all();
+            .orderBy('id()').all();
 
         if (documents.length === 0) {
             documents = await session.query({ indexName: CardEntity.INDEX })
-                .whereEquals('Id', query).fuzzy(0.70).orElse()
+                .whereEquals('id()', query).fuzzy(0.70).orElse()
                 .whereEquals('Name', query).fuzzy(0.70).orElse()
                 .whereEquals('Subname', query).fuzzy(0.70).orElse()
                 .whereEquals('StrippedName', query).fuzzy(0.70).orElse()
                 .whereEquals('StrippedSubname', query).fuzzy(0.70)
-                .orderBy('Id').all();
+                .orderBy('id()').all();
         }
 
         if (documents.length > 0) {

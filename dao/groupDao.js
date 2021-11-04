@@ -23,7 +23,7 @@ class GroupDao {
             console.log(` - Found ${documents.length} groups from index '${index}'...`);
         }
 
-        console.log(`Loaded ${this.GROUPS.length} total groups from the database!`);
+        console.log(`Loaded ${this.GROUPS.length} total groups from the database!\n`);
     }
 }
 

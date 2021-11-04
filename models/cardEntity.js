@@ -25,13 +25,12 @@ class CardEntity extends BaseEntity {
         this.Resource = document.Resource;
         this.Rules = document.Rules;
         this.Scheme = document.Scheme;
-        this.SetName = document.PartitionKey;
         this.Slash = document.Slash;
         this.Special = document.Special;
         this.Stage = document.Stage;
         this.Subname = document.Subname;
-        this.Threat = document.Threat;
-        this.Target = document.Threshold;
+        this.StartingThreat = document.StartingThreat;
+        this.TargetThreat = document.TargetThreat;
         this.Thwart = document.Thwart;
         this.Traits = document.Traits;
         this.Type = document.Type;

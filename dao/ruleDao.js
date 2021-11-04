@@ -16,7 +16,7 @@ class RuleDao {
         var documents = await this.store.openSession().query({ indexName: RuleEntity.INDEX })
             .whereEquals('Type', 'Keyword').orElse()
             .whereEquals('Type', 'Scheme Icon')
-            .orderBy('Id').all();
+            .orderBy('id()').all();
 
         for (var document of documents) {
             this.KEYWORDS_AND_ICONS.push(new RuleEntity(document));
@@ -31,19 +31,19 @@ class RuleDao {
         var query = terms.replace(/[^a-zA-Z0-9]/gmi, '').toLowerCase();
 
         var documents = await session.query({ indexName: RuleEntity.INDEX })
-            .whereRegex('Id', query).orElse()
+            .whereRegex('id()', query).orElse()
             .whereRegex('Title', query).orElse()
             .whereRegex('StrippedTitle', query).orElse()
             .whereRegex('Terms', query)
-            .orderBy('Id').all();
+            .orderBy('id()').all();
 
         if (documents.length === 0) {
             documents = await session.query({ indexName: RuleEntity.INDEX })
-                .whereEquals('Id', query).fuzzy(0.70).orElse()
+                .whereEquals('id()', query).fuzzy(0.70).orElse()
                 .whereEquals('Title', query).fuzzy(0.70).orElse()
                 .whereEquals('StrippedTitle', query).fuzzy(0.70).orElse()
                 .whereEquals('Terms', query).fuzzy(0.70)
-                .orderBy('Id').all();
+                .orderBy('id()').all();
         }
 
         var results = [];
