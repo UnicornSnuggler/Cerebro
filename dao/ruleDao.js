@@ -13,13 +13,13 @@ class RuleDao {
 
         this.KEYWORDS_AND_ICONS = [];
 
-        var results = await this.store.openSession().query({ indexName: RuleEntity.INDEX })
+        var documents = await this.store.openSession().query({ indexName: RuleEntity.INDEX })
             .whereEquals('Type', 'Keyword').orElse()
             .whereEquals('Type', 'Scheme Icon')
             .orderBy('Id').all();
 
-        for (var result of results) {
-            this.KEYWORDS_AND_ICONS.push(new RuleEntity(result));
+        for (var document of documents) {
+            this.KEYWORDS_AND_ICONS.push(new RuleEntity(document));
         }
 
         console.log(`Loaded ${this.KEYWORDS_AND_ICONS.length} keywords and scheme icons from the database!\n`);
@@ -30,20 +30,26 @@ class RuleDao {
 
         var query = terms.replace(/[^a-zA-Z0-9]/gmi, '').toLowerCase();
 
-        var results = await session.query({ indexName: RuleEntity.INDEX })
+        var documents = await session.query({ indexName: RuleEntity.INDEX })
             .whereRegex('Id', query).orElse()
             .whereRegex('Title', query).orElse()
             .whereRegex('StrippedTitle', query).orElse()
             .whereRegex('Terms', query)
             .orderBy('Id').all();
 
-        if (results.length === 0) {
-            results = await session.query({ indexName: RuleEntity.INDEX })
+        if (documents.length === 0) {
+            documents = await session.query({ indexName: RuleEntity.INDEX })
                 .whereEquals('Id', query).fuzzy(0.70).orElse()
                 .whereEquals('Title', query).fuzzy(0.70).orElse()
                 .whereEquals('StrippedTitle', query).fuzzy(0.70).orElse()
                 .whereEquals('Terms', query).fuzzy(0.70)
                 .orderBy('Id').all();
+        }
+
+        var results = [];
+
+        for (var document of documents) {
+            results.push(new RuleEntity(document));
         }
 
         return results.length > 0 ? results : null;

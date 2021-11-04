@@ -14,13 +14,13 @@ class SetDao {
         this.SETS = [];
 
         for (var index of SetEntity.INDEXES) {
-            var results = await this.store.openSession().query({ indexName: index }).all();
+            var documents = await this.store.openSession().query({ indexName: index }).all();
     
-            for (var result of results) {
-                this.SETS.push(new SetEntity(result));
+            for (var document of documents) {
+                this.SETS.push(new SetEntity(document));
             }
 
-            console.log(` - Found ${results.length} sets from index '${index}'...`);
+            console.log(` - Found ${documents.length} sets from index '${index}'...`);
         }
 
         console.log(`Loaded ${this.SETS.length} total sets from the database!\n`);

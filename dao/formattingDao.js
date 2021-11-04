@@ -14,13 +14,13 @@ class FormattingDao {
         this.FORMATTINGS = [];
 
         for (var index of FormattingEntity.INDEXES) {
-            var results = await this.store.openSession().query({ indexName: index }).all();
+            var documents = await this.store.openSession().query({ indexName: index }).all();
     
-            for (var result of results) {
-                this.FORMATTINGS.push(new FormattingEntity(result));
+            for (var document of documents) {
+                this.FORMATTINGS.push(new FormattingEntity(document));
             }
 
-            console.log(` - Found ${results.length} formattings from index '${index}'...`);
+            console.log(` - Found ${documents.length} formattings from index '${index}'...`);
         }
 
         console.log(`Loaded ${this.FORMATTINGS.length} total formattings from the database!\n`);

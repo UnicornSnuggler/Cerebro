@@ -23,11 +23,11 @@ exports.FormatText = function(text, exclusion = null) {
                 var matchedText = null;
 
                 if (formatting.Regex) {
-                    var match = text.match(formatting.Regex);
+                    var match = text.match(formatting.Match);
 
                     matchedText = match ? match[0] : null;
                 }
-                else if (text.includes(formatting.Text)) matchedText = formatting.Text;
+                else if (text.includes(formatting.Match)) matchedText = formatting.Match;
 
                 if (matchedText) {
                     var replacedText = null;

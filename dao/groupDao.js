@@ -14,13 +14,13 @@ class GroupDao {
         this.GROUPS = [];
 
         for (var index of GroupEntity.INDEXES) {
-            var results = await this.store.openSession().query({ indexName: index }).all();
+            var documents = await this.store.openSession().query({ indexName: index }).all();
     
-            for (var result of results) {
-                this.GROUPS.push(new GroupEntity(result));
+            for (var document of documents) {
+                this.GROUPS.push(new GroupEntity(document));
             }
 
-            console.log(` - Found ${results.length} groups from index '${index}'...`);
+            console.log(` - Found ${documents.length} groups from index '${index}'...`);
         }
 
         console.log(`Loaded ${this.GROUPS.length} total groups from the database!`);

@@ -10,7 +10,7 @@ exports.BuildEmbed = function(card, alternateArt = null) {
     var description = [];
     var subheader = [BuildHeader(card)];
 
-    if (card.Traits) subheader.push(Formatters.italic(Formatters.bold(card.Traits)));
+    if (card.Traits) subheader.push(Formatters.italic(Formatters.bold(card.Traits.join(', '))));
 
     description.push(SpoilerIfIncomplete(subheader.join('\n'), card.Incomplete));
 
