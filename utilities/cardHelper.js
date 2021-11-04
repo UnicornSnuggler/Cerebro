@@ -163,7 +163,7 @@ var BuildStats = exports.BuildStats = function(card) {
 
         if (card.Acceleration) features.push(`Acceleration: ${card.Acceleration}`);
 
-        if (card.Threshold) features.push(`Target Threat: ${card.Threshold}`);
+        if (card.Target) features.push(`Target Threat: ${card.Target}`);
 
         components.push(features.join('\n'));
     }

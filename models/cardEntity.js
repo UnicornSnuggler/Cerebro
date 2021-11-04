@@ -31,7 +31,7 @@ class CardEntity extends BaseEntity {
         this.Stage = document.Stage;
         this.Subname = document.Subname;
         this.Threat = document.Threat;
-        this.Threshold = document.Threshold;
+        this.Target = document.Threshold;
         this.Thwart = document.Thwart;
         this.Traits = document.Traits;
         this.Type = document.Type;

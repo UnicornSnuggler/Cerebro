@@ -120,7 +120,7 @@ class CardDao {
 
         var query = terms.replace(/[^a-zA-Z0-9]/gmi, '');
 
-        var results = await session.query({ indexName: CardEntity.INDEX })
+        var documents = await session.query({ indexName: CardEntity.INDEX })
             .whereRegex('Id', query).orElse()
             .whereRegex('Name', query).orElse()
             .whereRegex('Subname', query).orElse()
@@ -128,8 +128,8 @@ class CardDao {
             .whereRegex('StrippedSubname', query)
             .orderBy('Id').all();
 
-        if (results.length === 0) {
-            results = await session.query({ indexName: CardEntity.INDEX })
+        if (documents.length === 0) {
+            documents = await session.query({ indexName: CardEntity.INDEX })
                 .whereEquals('Id', query).fuzzy(0.70).orElse()
                 .whereEquals('Name', query).fuzzy(0.70).orElse()
                 .whereEquals('Subname', query).fuzzy(0.70).orElse()
@@ -138,7 +138,13 @@ class CardDao {
                 .orderBy('Id').all();
         }
 
-        if (results.length > 0) {
+        if (documents.length > 0) {
+            var results = [];
+
+            for (var document of documents) {
+                results.push(new CardEntity(document));
+            }
+
             var matches = results.filter(function(card) {
                 return card.Name.toLowerCase() === terms || (card.Subname != null && card.Subname.toLowerCase() === terms) || card.Id.toLowerCase() === terms;
             });
