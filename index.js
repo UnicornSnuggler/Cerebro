@@ -1,6 +1,5 @@
 const configResult = require('dotenv').config()
 const { Client, Collection, Intents } = require('discord.js');
-const { SearchIndexClient, AzureKeyCredential } = require('@azure/search-documents');
 const { FormattingDao } = require('./dao/formattingDao');
 const { GroupDao } = require('./dao/groupDao');
 const { PackDao } = require('./dao/packDao');
@@ -10,7 +9,6 @@ const MessageHelper = require('./utilities/messageHelper');
 const fs = require('fs');
 
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS] });
-exports.indexClient = new SearchIndexClient(process.env.searchUri, new AzureKeyCredential(process.env.apiKey));
 
 client.commands = new Collection();
 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
