@@ -21,8 +21,8 @@ const SelectBox = async function(interaction, cards) {
 
     prompt += '\n\nPlease select from the following...';
     
-    cards.forEach(card => {
-        var group = card.Classification === 'Encounter' && card.Group ? GroupDao.GROUPS.find(x => x.Guid === card.Group) : null;
+    for (var card of cards) {
+        var group = card.Classification === 'Encounter' && card.GroupId ? GroupDao.GROUPS.find(x => x.Id === card.GroupId) : null;
         var description = (card.Classification != 'Encounter' && card.Type != 'Hero' && card.Type != 'Alter-Ego' ? `${card.Classification} ` : '')
             + card.Type + (group ? ` (${group.Name.replace(` ${group.Type}`, '')})` : '');
         var emoji = null;
@@ -34,16 +34,15 @@ const SelectBox = async function(interaction, cards) {
             description: description,
             emoji: emoji,
             value: card.Id
-        }])
-    });
+        }]);
+    }
 
-    var components = new MessageActionRow()
-        .addComponents(selector);
+    var components = new MessageActionRow().addComponents(selector);
 
-    promise = MessageHelper.SendContentAsEmbed(interaction, prompt, [components]);
+    var promise = MessageHelper.SendContentAsEmbed(interaction, prompt, [components]);
     
     promise.then((message) => {
-        const collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: 10000 });
+        var collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: 10000 });
 
         collector.on('collect', async i => {
             if (i.user.id === interaction.member.id) {
@@ -74,57 +73,49 @@ const SelectBox = async function(interaction, cards) {
 const Imbibe = function(interaction, card, currentArtStyle, currentFace, currentStage, collection, rulesToggle, artToggle, message = null) {
     var navigationRow = new MessageActionRow();
 
-    if (card.ArtStyles.length > 1) {
+    var artStyles = CardHelper.FindUniqueArts(card);
+
+    if (artStyles.length > 1)
         navigationRow.addComponents(new MessageButton()
             .setCustomId('cycleArt')
             .setLabel('Change Art')
-            .setStyle('PRIMARY')
-        );
-    }
+            .setStyle('PRIMARY'));
 
-    if (collection.faces.length > 0) {
+    if (collection.faces.length > 0)
         navigationRow.addComponents(new MessageButton()
             .setCustomId('cycleFace')
             .setLabel('Flip Card')
-            .setStyle('PRIMARY')
-        );
-    }
+            .setStyle('PRIMARY'));
 
     if (collection.stages.length > 0) {
         navigationRow.addComponents(new MessageButton()
             .setCustomId('previousStage')
             .setLabel('Previous Stage')
-            .setStyle('PRIMARY')
-        );
+            .setStyle('PRIMARY'));
         
         navigationRow.addComponents(new MessageButton()
             .setCustomId('nextStage')
             .setLabel('Next Stage')
-            .setStyle('PRIMARY')
-        );
+            .setStyle('PRIMARY'));
     }
 
     var toggleRow = new MessageActionRow();
 
-    if (CardHelper.EvaluateRules(card)) {
+    if (CardHelper.EvaluateRules(card))
         toggleRow.addComponents(new MessageButton()
             .setCustomId('toggleRules')
             .setLabel('Toggle Rules')
-            .setStyle('SECONDARY')
-        );
-    }
+            .setStyle('SECONDARY'));
 
     toggleRow.addComponents(new MessageButton()
         .setCustomId('toggleArt')
         .setLabel('Toggle Art')
-        .setStyle('SUCCESS')
-    );
+        .setStyle('SUCCESS'));
 
     toggleRow.addComponents(new MessageButton()
         .setCustomId('clearComponents')
         .setLabel('Clear Buttons')
-        .setStyle('DANGER')
-    );
+        .setStyle('DANGER'));
 
     var promise;
 
@@ -132,22 +123,18 @@ const Imbibe = function(interaction, card, currentArtStyle, currentFace, current
     var embeds = [];
     var files = [];
     
-    [navigationRow, toggleRow].forEach(row => {
+    for (var row of [navigationRow, toggleRow]) {
         if (row.components.length > 0) components.push(row);
-    });
+    }
 
     if (!artToggle) {
-        if (!rulesToggle) {
-            embeds.push(CardHelper.BuildEmbed(card, card.ArtStyles[currentArtStyle]));
-        }
-        else {
-            embeds.push(CardHelper.BuildRulesEmbed(card, card.ArtStyles[currentArtStyle]));
-        }
+        if (!rulesToggle) embeds.push(CardHelper.BuildEmbed(card, artStyles[currentArtStyle]));
+        else embeds.push(CardHelper.BuildRulesEmbed(card, artStyles[currentArtStyle]));
     }
     else {
         files.push({
-            attachment: BuildImagePath(process.env.cardImagePrefix, card.ArtStyles[currentArtStyle]),
-            name: `${card.Incomplete ? 'SPOILER_' : ''}${card.ArtStyles[currentArtStyle]}.png`,
+            attachment: BuildImagePath(process.env.cardImagePrefix, artStyles[currentArtStyle]),
+            name: `${card.Incomplete ? 'SPOILER_' : ''}${artStyles[currentArtStyle]}.png`,
             spoiler: card.Incomplete
         });
     }
@@ -158,12 +145,8 @@ const Imbibe = function(interaction, card, currentArtStyle, currentFace, current
         files: files
     };
 
-    if (message) {
-        promise = message.edit(messageOptions);
-    }
-    else {
-        promise = MessageHelper.SendMessageWithOptions(interaction, messageOptions);
-    }
+    if (message) promise = message.edit(messageOptions);
+    else promise = MessageHelper.SendMessageWithOptions(interaction, messageOptions);
         
     promise.then((message) => {
         const collector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: 15000 });
@@ -184,7 +167,7 @@ const Imbibe = function(interaction, card, currentArtStyle, currentFace, current
 
                     switch (i.customId) {
                         case 'cycleArt':
-                            nextArtStyle = currentArtStyle + 1 >= card.ArtStyles.length ? 0 : currentArtStyle + 1;
+                            nextArtStyle = currentArtStyle + 1 >= artStyles.length ? 0 : currentArtStyle + 1;
 
                             break;
                         case 'cycleFace':
@@ -193,9 +176,7 @@ const Imbibe = function(interaction, card, currentArtStyle, currentFace, current
                             nextCard = nextCollection.cards.find(x => x.Id === nextCollection.faces[nextFace]);
                             nextRulesToggle = false;
                             
-                            if (nextCollection.stages) {
-                                nextStage = nextCollection.stages.findIndex(x => x.cardId === nextCard.Id);
-                            }
+                            if (nextCollection.stages) nextStage = nextCollection.stages.findIndex(x => x.cardId === nextCard.Id);
 
                             break;
                         case 'previousStage':
@@ -242,36 +223,31 @@ const Imbibe = function(interaction, card, currentArtStyle, currentFace, current
                     Imbibe(interaction, nextCard, nextArtStyle, nextFace, nextStage, nextCollection, nextRulesToggle, nextArtToggle, message);
                 });
             }
-            else {
-                i.reply({embeds: [MessageHelper.CreateEmbed(INTERACT_APOLOGY)], ephemeral: true})
-            }
+            else i.reply({embeds: [MessageHelper.CreateEmbed(INTERACT_APOLOGY)], ephemeral: true});
         });
 
         collector.on('end', (i, reason) => {
             var content = null;
             var removeFiles = true;
 
-            if (reason === 'navigation') {
-                content = LOAD_APOLOGY;
-            }
-            else {
-                removeFiles = !artToggle;
-            }
+            if (reason === 'navigation') content = LOAD_APOLOGY;
+            else removeFiles = !artToggle;
             
             MessageHelper.RemoveComponents(message, content, removeFiles);
         });
     });
-};
+}
 
 const QueueCardResult = async function(interaction, card, message = null) {
     var collection = await CardDao.FindFacesAndStages(card);
 
     var expandedCard = collection.cards.find(x => x.Id === card.Id);
+    var currentArtStyle = CardHelper.FindUniqueArts(card).indexOf(card.Id);
     var currentFace = collection.faces.length > 0 ? collection.faces.findIndex(x => x === expandedCard.Id) : -1;
     var currentStage = collection.stages.length > 0 ? collection.stages.findIndex(x => x.cardId === expandedCard.Id) : -1;
 
-    Imbibe(interaction, expandedCard, 0, currentFace, currentStage, collection, false, false, message);
-};
+    Imbibe(interaction, expandedCard, currentArtStyle, currentFace, currentStage, collection, false, false, message);
+}
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -294,28 +270,16 @@ module.exports = {
     
                 var results = await CardDao.RetrieveByName(terms);
                 
-                if (!results || results.length === 0) {
-                    MessageHelper.SendContentAsEmbed(interaction, 'No results were found for the given query...');
-                }
-                else if (results.length === 1) {
-                    var card = results[0];
-
-                    QueueCardResult(interaction, card);
-                }
-                else if (results.length > 1) {
-                    SelectBox(interaction, results);
-                }
+                if (!results || results.length === 0) MessageHelper.SendContentAsEmbed(interaction, 'No results were found for the given query...');
+                else if (results.length === 1) QueueCardResult(interaction, results[0]);
+                else if (results.length > 1) SelectBox(interaction, results);
             }
-            else if (interaction.options._subcommand === 'textbox') {
-                MessageHelper.SendContentAsEmbed(interaction, 'Not yet implemented... Sit tight!');
-            }
-            else {
-                MessageHelper.SendContentAsEmbed(interaction, 'Something weird happened...');
-            }
+            else if (interaction.options._subcommand === 'textbox') MessageHelper.SendContentAsEmbed(interaction, 'Not yet implemented... Sit tight!');
+            else MessageHelper.SendContentAsEmbed(interaction, 'Something weird happened...');
         }
         catch (e) {
             console.log(e);
             MessageHelper.SendContentAsEmbed(interaction, 'Something went wrong... Check the logs to find out more.');
         }
     }
-};
+}

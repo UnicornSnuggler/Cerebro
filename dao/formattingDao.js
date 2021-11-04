@@ -1,32 +1,30 @@
-const azure = require('azure-storage');
 const { FormattingEntity } = require('../models/formattingEntity');
+const { CreateDocumentStore } = require('../utilities/documentStoreHelper');
 
 class FormattingDao {
     constructor() { }
 
-    static tableService = azure.createTableService(process.env.connectionString);
+    static store = CreateDocumentStore(FormattingEntity.DATABASE).initialize();
+
     static FORMATTINGS = [];
 
-    static RetrieveAllFormattings() {
+    static async RetrieveAllFormattings() {
+        console.log(`Starting to load formattings from the database...`);
+        
         this.FORMATTINGS = [];
-    
-        this.tableService.queryEntities(FormattingEntity.TABLE_NAME, new azure.TableQuery(), null, this.AddFormattingsCallback);
-    }
 
-    static AddFormattingsCallback = (error, result, response) => {
-        if (!error) {
-            result.entries.forEach(tableEntity => {
-                this.FORMATTINGS.push(new FormattingEntity(tableEntity));
-            });
+        for (var index of FormattingEntity.INDEXES) {
+            var results = await this.store.openSession().query({ indexName: index }).all();
     
-            if (this.FORMATTINGS.length > 0) {
-                console.log(`Loaded ${this.FORMATTINGS.length} formattings from the database!`);
+            for (var result of results) {
+                this.FORMATTINGS.push(new FormattingEntity(result));
             }
-            else {
-                console.log(`Unable to load formattings from the database...`);
-            }
+
+            console.log(` - Found ${results.length} formattings from index '${index}'...`);
         }
-    }
-};
 
-module.exports = { FormattingDao };
+        console.log(`Loaded ${this.FORMATTINGS.length} total formattings from the database!\n`);
+    }
+}
+
+module.exports = { FormattingDao }

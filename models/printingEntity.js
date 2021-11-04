@@ -1,18 +1,12 @@
-class PrintingEntity
-{
-    static INDEX_NAME = 'cerebroprintings-index';
-
-    constructor (tableEntity) {
-        this.AlternateArt = tableEntity.AlternateArt;
-        this.ArtificialId = tableEntity.ArtificialId;
-        this.CardId = tableEntity.RowKey;
-        this.Pack = null;
-        this.PackId = tableEntity.PackId ? tableEntity.PackId : null;
-        this.PackNumber = tableEntity.PackNumber ? tableEntity.PackNumber : null;
-        this.Set = null;
-        this.SetName = tableEntity.PartitionKey;
-        this.SetNumber = tableEntity.SetNumber;
+class PrintingEntity {
+    constructor (document) {
+        this.ArtificialId = document.ArtificialId;
+        this.PackId = document.PackId;
+        this.PackNumber = document.PackNumber;
+        this.SetId = document.SetId;
+        this.SetNumber = document.SetNumber;
+        this.UniqueArt = document.UniqueArt;
     }
-};
+}
 
-module.exports = { PrintingEntity };
+module.exports = { PrintingEntity }

@@ -54,4 +54,4 @@ module.exports = {
             MessageHelper.SendContentAsEmbed(interaction, 'Something went wrong... Check the logs to find out more.');
         }
     }
-};
+}

@@ -19,7 +19,7 @@ const SelectBox = async function(interaction, rules) {
 
     prompt += '\n\nPlease select from the following...';
     
-    rules.forEach(rule => {
+    for (var rule of rules) {
         var emoji = null;
         var emojiMatch = rule.Title.match(/ \((\{[a-z]\})\)/i);
 
@@ -38,11 +38,10 @@ const SelectBox = async function(interaction, rules) {
             emoji: emoji,
             label: title,
             value: rule.Id
-        }])
-    });
+        }]);
+    }
 
-    var components = new MessageActionRow()
-        .addComponents(selector);
+    var components = new MessageActionRow().addComponents(selector);
 
     promise = MessageHelper.SendContentAsEmbed(interaction, prompt, [components]);
     
@@ -56,20 +55,18 @@ const SelectBox = async function(interaction, rules) {
                 collector.stop('selection');
     
                 i.deferUpdate()
-                .then(() => {
-                    var embed = BuildEmbed(rule);
-    
-                    var messageOptions = {
-                        components: [],
-                        embeds: [embed]
-                    };
-    
-                    message.edit(messageOptions);
-                });
+                    .then(() => {
+                        var embed = BuildEmbed(rule);
+        
+                        var messageOptions = {
+                            components: [],
+                            embeds: [embed]
+                        };
+        
+                        message.edit(messageOptions);
+                    });
             }
-            else {
-                i.reply({embeds: [MessageHelper.CreateEmbed(INTERACT_APOLOGY)], ephemeral: true})
-            }
+            else i.reply({embeds: [MessageHelper.CreateEmbed(INTERACT_APOLOGY)], ephemeral: true})
         });
 
         collector.on('end', (i, reason) => {
@@ -80,7 +77,7 @@ const SelectBox = async function(interaction, rules) {
             MessageHelper.RemoveComponents(message, content);
         });
     });
-};
+}
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -98,29 +95,15 @@ module.exports = {
     
                 var results = await RuleDao.RetrieveByTerm(terms);
 
-                if (!results || results.length === 0) {
-                    MessageHelper.SendContentAsEmbed(interaction, 'No results were found for the given query...');
-                }
-                else if (results.length === 1) {
-                    var rule = results[0];
-
-                    var messageOptions = {
-                        embeds: [BuildEmbed(rule)]
-                    };
-
-                    MessageHelper.SendMessageWithOptions(interaction, messageOptions);
-                }
-                else if (results.length > 1) {
-                    SelectBox(interaction, results);
-                }
+                if (!results || results.length === 0) MessageHelper.SendContentAsEmbed(interaction, 'No results were found for the given query...');
+                else if (results.length === 1) MessageHelper.SendMessageWithOptions(interaction, { embeds: [BuildEmbed(results[0])] });
+                else if (results.length > 1) SelectBox(interaction, results);
             }
-            else {
-                MessageHelper.SendContentAsEmbed(interaction, 'Something weird happened...');
-            }
+            else MessageHelper.SendContentAsEmbed(interaction, 'Something weird happened...');
         }
         catch (e) {
             console.log(e);
             MessageHelper.SendContentAsEmbed(interaction, 'Something went wrong... Check the logs to find out more.');
         }
     }
-};
+}

@@ -1,32 +1,30 @@
-const azure = require('azure-storage');
 const { GroupEntity } = require('../models/groupEntity');
+const { CreateDocumentStore } = require('../utilities/documentStoreHelper');
 
 class GroupDao {
     constructor() { }
 
-    static tableService = azure.createTableService(process.env.connectionString);
+    static store = CreateDocumentStore(GroupEntity.DATABASE).initialize();
+
     static GROUPS = [];
 
-    static RetrieveAllGroups() {
+    static async RetrieveAllGroups() {
+        console.log(`Starting to load groups from the database...`);
+        
         this.GROUPS = [];
-    
-        this.tableService.queryEntities(GroupEntity.TABLE_NAME, new azure.TableQuery(), null, this.AddGroupsCallback);
-    }
 
-    static AddGroupsCallback = (error, result, response) => {
-        if (!error) {
-            result.entries.forEach(tableEntity => {
-                this.GROUPS.push(new GroupEntity(tableEntity));
-            });
+        for (var index of GroupEntity.INDEXES) {
+            var results = await this.store.openSession().query({ indexName: index }).all();
     
-            if (this.GROUPS.length > 0) {
-                console.log(`Loaded ${this.GROUPS.length} groups from the database!`);
+            for (var result of results) {
+                this.GROUPS.push(new GroupEntity(result));
             }
-            else {
-                console.log(`Unable to load groups from the database...`);
-            }
+
+            console.log(` - Found ${results.length} groups from index '${index}'...`);
         }
-    }
-};
 
-module.exports = { GroupDao };
+        console.log(`Loaded ${this.GROUPS.length} total groups from the database!`);
+    }
+}
+
+module.exports = { GroupDao }

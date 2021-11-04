@@ -9,7 +9,7 @@ var CreateEmbed = exports.CreateEmbed = function(content, color = Constants.COLO
     if (title != null) embed.setTitle(title);
 
     return embed;
-};
+}
 
 exports.RemoveComponents = function(message, content, removeFiles = true) {
     var messageOptions = {
@@ -24,7 +24,7 @@ exports.RemoveComponents = function(message, content, removeFiles = true) {
     if (content) messageOptions.embeds = [CreateEmbed(content)];
 
     message.edit(messageOptions);
-};
+}
 
 exports.SendContentAsEmbed = function(context, content, components = null, ephemeral = false) {
     var embed = CreateEmbed(content);
@@ -38,7 +38,7 @@ exports.SendContentAsEmbed = function(context, content, components = null, ephem
         ephemeral: ephemeral,
         fetchReply: true
     });
-};
+}
 
 exports.SendMessageWithOptions = function(context, options, ephemeral = false) {
     options.allowedMentions = {
@@ -48,4 +48,4 @@ exports.SendMessageWithOptions = function(context, options, ephemeral = false) {
     options.fetchReply = true;
 
     return context.reply(options);
-};
+}

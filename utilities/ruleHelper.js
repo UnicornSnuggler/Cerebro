@@ -2,8 +2,7 @@ const { MessageEmbed } = require('discord.js');
 const { BuildImagePath, FormatSymbols, FormatText } = require('./stringHelper');
 const { COLORS } = require('../constants');
 
-exports.BuildEmbed = function(rule)
-{
+exports.BuildEmbed = function(rule) {
     var embed = new MessageEmbed();
 
     var imagePath = BuildImagePath(process.env.ruleImagePrefix, rule.Id);
@@ -12,25 +11,18 @@ exports.BuildEmbed = function(rule)
     embed.setTitle(FormatSymbols(rule.Title));
     embed.setURL(imagePath);
 
-    if (rule.Reference != null)
+    if (rule.Reference)
     {
         embed.setDescription(FormatText(rule.Reference));
         embed.setThumbnail(imagePath);
     }
-    else
-    {
-        embed.setImage(imagePath);
-    }
+    else embed.setImage(imagePath);
 
-    if (rule.Footer != null)
-    {
-        embed.setFooter(rule.Footer);
-    }
+    if (rule.Footer) embed.setFooter(rule.Footer);
 
     return embed;
-};
+}
 
-exports.Summary = function(rule)
-{
+exports.Summary = function(rule) {
     return FormatSymbols(rule.Title);
-};
+}

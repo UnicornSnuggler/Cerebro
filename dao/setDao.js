@@ -1,32 +1,30 @@
-const azure = require('azure-storage');
 const { SetEntity } = require('../models/setEntity');
+const { CreateDocumentStore } = require('../utilities/documentStoreHelper');
 
 class SetDao {
     constructor() { }
 
-    static tableService = azure.createTableService(process.env.connectionString);
+    static store = CreateDocumentStore(SetEntity.DATABASE).initialize();
+
     static SETS = [];
 
-    static RetrieveAllSets() {
+    static async RetrieveAllSets() {
+        console.log(`Starting to load sets from the database...`);
+        
         this.SETS = [];
-    
-        this.tableService.queryEntities(SetEntity.TABLE_NAME, new azure.TableQuery(), null, this.AddSetsCallback);
-    }
 
-    static AddSetsCallback = (error, result, response) => {
-        if (!error) {
-            result.entries.forEach(tableEntity => {
-                this.SETS.push(new SetEntity(tableEntity));
-            });
+        for (var index of SetEntity.INDEXES) {
+            var results = await this.store.openSession().query({ indexName: index }).all();
     
-            if (this.SETS.length > 0) {
-                console.log(`Loaded ${this.SETS.length} sets from the database!`);
+            for (var result of results) {
+                this.SETS.push(new SetEntity(result));
             }
-            else {
-                console.log(`Unable to load sets from the database...`);
-            }
+
+            console.log(` - Found ${results.length} sets from index '${index}'...`);
         }
-    }
-};
 
-module.exports = { SetDao };
+        console.log(`Loaded ${this.SETS.length} total sets from the database!\n`);
+    }
+}
+
+module.exports = { SetDao }

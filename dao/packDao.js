@@ -1,32 +1,30 @@
-const azure = require('azure-storage');
 const { PackEntity } = require('../models/packEntity');
+const { CreateDocumentStore } = require('../utilities/documentStoreHelper');
 
 class PackDao {
     constructor() { }
 
-    static tableService = azure.createTableService(process.env.connectionString);
+    static store = CreateDocumentStore(PackEntity.DATABASE).initialize();
+
     static PACKS = [];
 
-    static RetrieveAllPacks() {
+    static async RetrieveAllPacks() {
+        console.log(`Starting to load packs from the database...`);
+        
         this.PACKS = [];
-    
-        this.tableService.queryEntities(PackEntity.TABLE_NAME, new azure.TableQuery(), null, this.AddPacksCallback);
-    }
 
-    static AddPacksCallback = (error, result, response) => {
-        if (!error) {
-            result.entries.forEach(tableEntity => {
-                this.PACKS.push(new PackEntity(tableEntity));
-            });
+        for (var index of PackEntity.INDEXES) {
+            var results = await this.store.openSession().query({ indexName: index }).all();
     
-            if (this.PACKS.length > 0) {
-                console.log(`Loaded ${this.PACKS.length} packs from the database!`);
+            for (var result of results) {
+                this.PACKS.push(new PackEntity(result));
             }
-            else {
-                console.log(`Unable to load packs from the database...`);
-            }
+
+            console.log(` - Found ${results.length} packs from index '${index}'...`);
         }
-    }
-};
 
-module.exports = { PackDao };
+        console.log(`Loaded ${this.PACKS.length} total packs from the database!\n`);
+    }
+}
+
+module.exports = { PackDao }
