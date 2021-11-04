@@ -1,7 +1,6 @@
 const { BaseEntity } = require('./baseEntity');
 
-class FormattingEntity extends BaseEntity
-{
+class FormattingEntity extends BaseEntity {
     static DATABASE = 'cerebroformattings';
     static INDEXES = ['generalformattings'];
 
@@ -14,6 +13,6 @@ class FormattingEntity extends BaseEntity
         this.Regex = document.Regex;
         this.Replacement = document.Replacement;
     }
-};
+}
 
-module.exports = { FormattingEntity };
+module.exports = { FormattingEntity }

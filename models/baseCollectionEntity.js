@@ -1,7 +1,6 @@
 const { BaseEntity } = require('./baseEntity');
 
-class BaseCollectionEntity extends BaseEntity
-{
+class BaseCollectionEntity extends BaseEntity {
     static DATABASE = 'cerebrocollections';
 
     constructor (document) {
@@ -13,4 +12,4 @@ class BaseCollectionEntity extends BaseEntity
     }
 }
 
-module.exports = { BaseCollectionEntity };
+module.exports = { BaseCollectionEntity }

@@ -3,3 +3,4 @@ config.json
 package-lock.json
 *.env
 database-migration.js
+.vs

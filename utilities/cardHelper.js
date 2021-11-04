@@ -4,26 +4,19 @@ const { RuleDao } = require('../dao/ruleDao');
 const { Summary } = require('./printingHelper');
 const { COLORS, ID_LENGTH, SYMBOLS } = require('../constants');
 
-exports.BuildEmbed = function(card, alternateArt = null)
-{
+exports.BuildEmbed = function(card, alternateArt = null) {
     var embed = new MessageEmbed();
 
     var description = [];
-    var subheaderArray = [BuildHeader(card)];
+    var subheader = [BuildHeader(card)];
 
-    if (card.Traits != null)
-    {
-        subheaderArray.push(Formatters.italic(Formatters.bold(card.Traits)));
-    }
+    if (card.Traits) subheader.push(Formatters.italic(Formatters.bold(card.Traits)));
 
-    var subheader = subheaderArray.join('\n');
-
-    description.push(SpoilerIfIncomplete(subheader, card.Incomplete));
+    description.push(SpoilerIfIncomplete(subheader.join('\n'), card.Incomplete));
 
     var stats = BuildStats(card);
 
-    if (stats.length > 0)
-    {
+    if (stats.length > 0) {
         var stats = FormatSymbols(stats);
 
         description.push(SpoilerIfIncomplete(stats, card.Incomplete));
@@ -31,117 +24,89 @@ exports.BuildEmbed = function(card, alternateArt = null)
 
     var body = [];
 
-    if (card.Rules != null)
-    {
+    if (card.Rules) {
         var formattedRules = FormatText(card.Rules, card.Name);
 
         body.push(QuoteText(SpoilerIfIncomplete(formattedRules, card.Incomplete)));
     }
 
-    if (card.Special != null)
-    {
+    if (card.Special) {
         var formattedSpecial = FormatText(card.Special, card.Name);
 
         body.push(QuoteText(SpoilerIfIncomplete(formattedSpecial, card.Incomplete)));
     }
 
-    if (card.Flavor != null)
-    {
+    if (card.Flavor) {
         var escapedFlavor = Util.escapeMarkdown(card.Flavor);
 
         body.push(SpoilerIfIncomplete(ItalicizeText(escapedFlavor), card.Incomplete));
     }
 
-    if (body.length > 0)
-    {
-        description.push(body.join('\n\n'));
-    }
+    if (body.length > 0) description.push(body.join('\n\n'));
 
     embed.setColor(COLORS[(card.Type == 'Villain' || card.Type == 'Main Scheme' ? 'Villain' : card.Classification)]);
-    embed.setTitle(SpoilerIfIncomplete((card.Unique ? SYMBOLS['{u}'] : '') + card.Name + (card.Subname != null ? ` — ${card.Subname}` : '' ), card.Incomplete));
+    embed.setTitle(SpoilerIfIncomplete((card.Unique ? SYMBOLS['{u}'] : '') + card.Name + (card.Subname ? ` — ${card.Subname}` : '' ), card.Incomplete));
     embed.setURL(BuildImagePath(process.env.cardImagePrefix, alternateArt ?? card.Id));
     embed.setDescription(description.join('\n\n'));
     embed.setFooter(BuildFooter(card));
     
-    if (!card.Incomplete)
-    {
-        embed.setThumbnail(BuildImagePath(process.env.cardImagePrefix, alternateArt ?? card.Id));
-    }
+    if (!card.Incomplete) embed.setThumbnail(BuildImagePath(process.env.cardImagePrefix, alternateArt ?? card.Id));
 
     return embed;
-};
+}
 
-var BuildFooter = exports.BuildFooter = function(card)
-{
+var BuildFooter = exports.BuildFooter = function(card) {
     var firstPrinting = card.Printings.find(x => x.ArtificialId == card.Id);
     var reprints = card.Printings.filter(x => x.ArtificialId != card.Id);
 
     var footer = [];
+
     footer.push(Summary(firstPrinting));
 
-    if (reprints.length > 0 && reprints.length <= 3)
-    {
-        reprints.forEach(printing => {
-            footer.push(Summary(printing));
-        });
+    if (reprints.length > 0 && reprints.length <= 3) {
+        for (var printing of reprints) footer.push(Summary(printing));
     }
-    else if (reprints.length > 3)
-    {
-        for (var i = 0; i < 2; i++)
-        {
-            footer.push(Summary(reprints[i]));
-        }
+    else if (reprints.length > 3) {
+        for (var i = 0; i < 2; i++) footer.push(Summary(reprints[i]));
 
         footer.push(`...and ${reprints.length - 2} more reprints.`);
     }
 
     return footer.join('\n');
-};
+}
 
-var BuildHeader = exports.BuildHeader = function(card)
-{
+var BuildHeader = exports.BuildHeader = function(card) {
     var header = '';
 
-    if (card.Classification != 'Encounter' && card.Type != 'Hero' && card.Type != 'Alter-Ego')
-    {
-        header += `${Formatters.bold(card.Classification)} `;
-    }
+    if (card.Classification != 'Encounter' && card.Type != 'Hero' && card.Type != 'Alter-Ego') header += `${Formatters.bold(card.Classification)} `;
 
     header += Formatters.bold(card.Type);
 
-    if (card.Stage != null)
-    {
-        header += ` — ${Formatters.italic(`Stage ${card.Stage}`)}`;
-    }
+    if (card.Stage) header += ` — ${Formatters.italic(`Stage ${card.Stage}`)}`;
 
     return header;
-};
+}
 
-exports.BuildRulesEmbed = function(card, alternateArt = null)
-{
+exports.BuildRulesEmbed = function(card, alternateArt = null) {
     var embed = new MessageEmbed();
 
     var ruleEntries = EvaluateRules(card);
 
-    ruleEntries.forEach(ruleEntry => {
+    for (var ruleEntry of ruleEntries) {
         embed.addField(FormatSymbols(ruleEntry.title), FormatSymbols(ruleEntry.description));
-    });
+    }
 
     embed.setColor(COLORS[(card.Type == 'Villain' || card.Type == 'Main Scheme' ? 'Villain' : card.Classification)]);
     embed.setTitle(SpoilerIfIncomplete((card.Unique ? SYMBOLS['{u}'] : '') + card.Name + (card.Subname != null ? ` — ${card.Subname}` : '' ), card.Incomplete));
     embed.setURL(BuildImagePath(process.env.cardImagePrefix, alternateArt ?? card.Id));
     embed.setFooter(BuildFooter(card));
     
-    if (!card.Incomplete)
-    {
-        embed.setThumbnail(BuildImagePath(process.env.cardImagePrefix, alternateArt ?? card.Id));
-    }
+    if (!card.Incomplete) embed.setThumbnail(BuildImagePath(process.env.cardImagePrefix, alternateArt ?? card.Id));
 
     return embed;
 }
 
-var BuildStats = exports.BuildStats = function(card)
-{
+var BuildStats = exports.BuildStats = function(card) {
     var components = [];
 
     var hasEconomy = card.Cost != null || card.Resource != null || card.Boost != null;
@@ -152,20 +117,11 @@ var BuildStats = exports.BuildStats = function(card)
     {
         var economy = [];
 
-        if (card.Cost != null)
-        {
-            economy.push(`Cost: ${card.Cost}`);
-        }
+        if (card.Cost) economy.push(`Cost: ${card.Cost}`);
 
-        if (card.Resource != null)
-        {
-            economy.push(`Resource: ${card.Resource}`);
-        }
+        if (card.Resource) economy.push(`Resource: ${card.Resource}`);
 
-        if (card.Boost != null)
-        {
-            economy.push(`Boost: ${card.Boost}`);
-        }
+        if (card.Boost) economy.push(`Boost: ${card.Boost}`);
 
         components.push(economy.join('\n'));
     }
@@ -174,32 +130,23 @@ var BuildStats = exports.BuildStats = function(card)
     {
         var abilities = [];
 
-        if (card.Recover != null)
-        {
-            abilities.push(`REC: ${card.Recover}`);
-        }
+        if (card.Recover) abilities.push(`REC: ${card.Recover}`);
 
-        if (card.Scheme != null)
+        if (card.Scheme)
         {
             var suffix = card.Slash ? '/THW' : '';
             abilities.push(`SCH${suffix}: ${card.Scheme}`);
         }
 
-        if (card.Thwart != null)
+        if (card.Thwart)
         {
             var prefix = card.Slash ? 'SCH/' : '';
             abilities.push(`${prefix}THW: ${card.Thwart}`);
         }
 
-        if (card.Attack != null)
-        {
-            abilities.push(`ATK: ${card.Attack}`);
-        }
+        if (card.Attack) abilities.push(`ATK: ${card.Attack}`);
 
-        if (card.Defense != null)
-        {
-            abilities.push(`DEF: ${card.Defense}`);
-        }
+        if (card.Defense) abilities.push(`DEF: ${card.Defense}`);
 
         components.push(abilities.join('\n'));
     }
@@ -208,91 +155,65 @@ var BuildStats = exports.BuildStats = function(card)
     {
         var features = [];
 
-        if (card.Hand != null)
-        {
-            features.push(`Hand Size: ${card.Hand}`);
-        }
+        if (card.Hand) features.push(`Hand Size: ${card.Hand}`);
 
-        if (card.Health != null)
-        {
-            features.push(`Health: ${card.Health}`);
-        }
+        if (card.Health) features.push(`Health: ${card.Health}`);
 
-        if (card.Threat != null)
-        {
-            features.push(`Starting Threat: ${card.Threat}`);
-        }
+        if (card.Threat) features.push(`Starting Threat: ${card.Threat}`);
 
-        if (card.Acceleration != null)
-        {
-            features.push(`Acceleration: ${card.Acceleration}`);
-        }
+        if (card.Acceleration) features.push(`Acceleration: ${card.Acceleration}`);
 
-        if (card.Threshold != null)
-        {
-            features.push(`Target Threat: ${card.Threshold}`);
-        }
+        if (card.Threshold) features.push(`Target Threat: ${card.Threshold}`);
 
         components.push(features.join('\n'));
     }
 
     return components.join('\n\n');
-};
+}
 
 const EvaluateRules = exports.EvaluateRules = function(card) {
-    if (card.Rules || card.Special)
-    {
-        var rules = [];
+    if (!card.Rules && !card.Special) return null;
 
-        RuleDao.KEYWORDS_AND_ICONS.forEach(rule => {
-            var matches = [];
+    var rules = [];
 
-            var pattern = new RegExp(rule.Regex, 'i');
+    for (var rule of RuleDao.KEYWORDS_AND_ICONS) {
+        var matches = [];
 
-            for (var text of [card.Rules, card.Special]) {
-                var match = pattern.exec(text);
+        var pattern = new RegExp(rule.Regex, 'i');
 
-                if (match) matches.push(match);
-            }
+        for (var text of [card.Rules, card.Special]) {
+            var match = pattern.exec(text);
 
-            matches.forEach(match => {
-                var ruleEntry = {
-                    title: rule.Title,
-                    description: rule.Description
-                };
+            if (match) matches.push(match);
+        }
 
-                ["quantity", "start", "type"].forEach(replacement => {
-                    ruleEntry.description = ruleEntry.description.replace(`{${replacement}}`, match.groups ? match.groups[replacement] : '');
-                });
+        for (var match of matches) {
+            var ruleEntry = {
+                title: rule.Title,
+                description: rule.Description
+            };
 
-                if (!rules.find(x => x.title === ruleEntry.title && x.description === ruleEntry.description)) rules.push(ruleEntry);
-            });
-        });
+            for (var replacement of ["quantity", "start", "type"]) ruleEntry.description = ruleEntry.description.replace(`{${replacement}}`, match.groups ? match.groups[replacement] : '');
 
-        return rules.length > 0 ? [...new Set(rules)] : null;
+            if (!rules.some(x => x.title === ruleEntry.title && x.description === ruleEntry.description)) rules.push(ruleEntry);
+        }
     }
-    else
-    {
-        return null;
-    }
-};
 
-exports.FindUniqueArts = function(card)
-{
+    return rules.length > 0 ? [...new Set(rules)] : null;
+}
+
+exports.FindUniqueArts = function(card) {
     return card.Printings.filter(x => x.UniqueArt).map(x => x.ArtificialId);
 }
 
-const GetBaseId = exports.GetBaseId = function(card)
-{
+const GetBaseId = exports.GetBaseId = function(card) {
     return card.Id.substring(0, ID_LENGTH);
 }
 
-exports.ShareFaces = function(thisCard, thatCard)
-{
+exports.ShareFaces = function(thisCard, thatCard) {
     return thisCard.Id !== thatCard.Id && GetBaseId(thisCard) === GetBaseId(thatCard);
 }
 
-exports.ShareGroups = function(thisCard, thatCard)
-{
-    return thisCard.GroupId !== null && thatCard.GroupId !== null && thisCard.GroupId == thatCard.GroupId;
+exports.ShareGroups = function(thisCard, thatCard) {
+    return thisCard.GroupId && thatCard.GroupId && thisCard.GroupId == thatCard.GroupId;
 }

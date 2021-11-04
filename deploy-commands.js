@@ -17,13 +17,11 @@ const rest = new REST({ version: '9' }).setToken(process.env.discordToken);
     try {
         console.log('Started refreshing global application commands...');
 
-        await rest.put(
-            Routes.applicationCommands(process.env.clientId),
-            { body: commands },
-        );
+        await rest.put(Routes.applicationCommands(process.env.clientId), { body: commands });
 
         console.log('Successfully reloaded global application commands!');
-    } catch (error) {
+    }
+    catch (error) {
         console.error(error);
     }
 })();

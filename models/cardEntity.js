@@ -1,7 +1,6 @@
 const { BaseEntity } = require('./baseEntity');
 
-class CardEntity extends BaseEntity
-{
+class CardEntity extends BaseEntity {
     static DATABASE = 'cerebrocards';
     static INDEX = 'officialcards';
 
@@ -38,6 +37,6 @@ class CardEntity extends BaseEntity
         this.Type = document.Type;
         this.Unique = document.Unique;
     }
-};
+}
 
-module.exports = { CardEntity };
+module.exports = { CardEntity }

@@ -1,5 +1,4 @@
-exports.COLORS = 
-{
+exports.COLORS = {
     Default: '4F80C2',
     Aggression: 'FF3D3D',
     Basic: 'DFDFDF',

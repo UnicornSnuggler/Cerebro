@@ -1,5 +1,4 @@
-class PrintingEntity
-{
+class PrintingEntity {
     constructor (document) {
         this.ArtificialId = document.ArtificialId;
         this.PackId = document.PackId;
@@ -8,6 +7,6 @@ class PrintingEntity
         this.SetNumber = document.SetNumber;
         this.UniqueArt = document.UniqueArt;
     }
-};
+}
 
-module.exports = { PrintingEntity };
+module.exports = { PrintingEntity }

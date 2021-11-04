@@ -1,14 +1,10 @@
-const { DocumentStore } = require('ravendb');
 const { GroupEntity } = require('../models/groupEntity');
+const { CreateDocumentStore } = require('../utilities/documentStoreHelper');
 
 class GroupDao {
     constructor() { }
 
-    static store = new DocumentStore([process.env.ravenUri], GroupEntity.DATABASE, {
-        certificate: Buffer.from(process.env.ravenPem, 'base64'),
-        type: 'pem',
-        password: ''
-    }).initialize();
+    static store = CreateDocumentStore(GroupEntity.DATABASE).initialize();
 
     static GROUPS = [];
 
@@ -20,15 +16,15 @@ class GroupDao {
         for (var index of GroupEntity.INDEXES) {
             var results = await this.store.openSession().query({ indexName: index }).all();
     
-            results.forEach(result => {
+            for (var result of results) {
                 this.GROUPS.push(new GroupEntity(result));
-            });
+            }
 
             console.log(` - Found ${results.length} groups from index '${index}'...`);
         }
 
-        console.log(`Loaded ${this.GROUPS.length} total groups from the database!\n`);
+        console.log(`Loaded ${this.GROUPS.length} total groups from the database!`);
     }
-};
+}
 
-module.exports = { GroupDao };
+module.exports = { GroupDao }

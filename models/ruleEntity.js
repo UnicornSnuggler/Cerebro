@@ -1,7 +1,6 @@
 const { BaseEntity } = require('./baseEntity');
 
-class RuleEntity extends BaseEntity
-{
+class RuleEntity extends BaseEntity {
     static DATABASE = 'cerebrorules';
     static INDEX = 'officialrules';
 
@@ -18,6 +17,6 @@ class RuleEntity extends BaseEntity
         this.Title = document.Title;
         this.Type = document.Type;
     }
-};
+}
 
-module.exports = { RuleEntity };
+module.exports = { RuleEntity }

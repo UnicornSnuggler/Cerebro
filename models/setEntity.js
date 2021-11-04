@@ -1,7 +1,6 @@
 const { BaseCollectionEntity } = require('./baseCollectionEntity');
 
-class SetEntity extends BaseCollectionEntity
-{
+class SetEntity extends BaseCollectionEntity {
     static INDEXES = ['officialsets'];
 
     constructor (document) {
@@ -10,6 +9,6 @@ class SetEntity extends BaseCollectionEntity
         this.Incomplete = document.Incomplete;
         this.Number = document.Number;
     }
-};
+}
 
-module.exports = { SetEntity };
+module.exports = { SetEntity }

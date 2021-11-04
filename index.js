@@ -1,7 +1,6 @@
 const configResult = require('dotenv').config()
 const { Client, Collection, Intents } = require('discord.js');
 const { SearchIndexClient, AzureKeyCredential } = require('@azure/search-documents');
-const { CardDao } = require('./dao/cardDao');
 const { FormattingDao } = require('./dao/formattingDao');
 const { GroupDao } = require('./dao/groupDao');
 const { PackDao } = require('./dao/packDao');
@@ -34,62 +33,56 @@ client.on('ready', async () => {
 client.on('messageCreate', message => {
     if (message.author.bot) return;
 
-    var pattern = /\{\{.+?\}\}/gi;
+    var matches = message.content.match(/\{\{.+?\}\}/gi);
 
-    var matches = message.content.match(pattern);
-
-    if (matches != null) {
+    if (matches) {
         const command = client.commands.get('card');
         
         message.options = {};
         message.options._subcommand = 'name';
         
-        matches.forEach(match => {
-            message.options._hoistedOptions = [
-                {
-                    name: 'terms',
-                    type: 'STRING',
-                    value: match.replace(/[{}]/gmi, '')
-                }
-            ];
+        for (var match of matches) {
+            message.options._hoistedOptions = [{
+                name: 'terms',
+                type: 'STRING',
+                value: match.replace(/[{}]/gmi, '')
+            }];
 
             try {
                 command.execute(message);
-            } catch (error) {
+            }
+            catch (error) {
                 console.error(error);
                 
                 MessageHelper.SendContentAsEmbed(message, 'There was an error while executing this command!', true);
             }
-        });
+        }
     }
 
-    var pattern = /\(\(.+?\)\)/gi;
+    var matches = message.content.match(/\(\(.+?\)\)/gi);
 
-    var matches = message.content.match(pattern);
-
-    if (matches != null) {
+    if (matches) {
         const command = client.commands.get('rule');
         
         message.options = {};
         message.options._subcommand = 'title';
         
-        matches.forEach(match => {
-            message.options._hoistedOptions = [
-                {
-                    name: 'terms',
-                    type: 'STRING',
-                    value: match.replace(/[()]/gmi, '')
-                }
-            ];
+        for (var match of matches) {
+            message.options._hoistedOptions = [{
+                name: 'terms',
+                type: 'STRING',
+                value: match.replace(/[()]/gmi, '')
+            }];
 
             try {
                 command.execute(message);
-            } catch (error) {
+            }
+            catch (error) {
                 console.error(error);
                 
                 MessageHelper.SendContentAsEmbed(message, 'There was an error while executing this command!', true);
             }
-        });
+        }
     }
 });
 
@@ -102,7 +95,8 @@ client.on('interactionCreate', interaction => {
 
     try {
         command.execute(interaction);
-    } catch (error) {
+    }
+    catch (error) {
         console.error(error);
 
         MessageHelper.SendContentAsEmbed(interaction, 'There was an error while executing this command!', true);

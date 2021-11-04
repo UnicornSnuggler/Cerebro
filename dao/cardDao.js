@@ -1,30 +1,24 @@
 const { ID_LENGTH } = require('../constants');
 const { CardEntity } = require('../models/cardEntity');
 const { GetBaseId, ShareFaces, ShareGroups } = require('../utilities/cardHelper');
-const { DocumentStore } = require('ravendb');
+const { CreateDocumentStore } = require('../utilities/documentStoreHelper');
 
-const TrimDuplicates = function(cards)
-{
+const TrimDuplicates = function(cards) {
     var results = [];
 
-    cards.forEach(card => {
-        if (results.find(x => ShareFaces(card, x) || ShareGroups(card, x)) == null)
-        {
+    for (var card of cards) {
+        if (!results.some(x => ShareFaces(card, x) || ShareGroups(card, x))) {
             results.push(card);
-        }  
-    });
+        }
+    }
 
     return results;
-};
+}
 
 class CardDao {
-    constructor() { }
+    constructor() {}
 
-    static store = new DocumentStore([process.env.ravenUri], CardEntity.DATABASE, {
-        certificate: Buffer.from(process.env.ravenPem, 'base64'),
-        type: 'pem',
-        password: ''
-    }).initialize();
+    static store = CreateDocumentStore(CardEntity.DATABASE).initialize();
 
     static async FindFaces(card) {
         if (card.Id.length === ID_LENGTH) return null;
@@ -40,7 +34,7 @@ class CardDao {
         }
 
         return results.length > 1 ? results : null;
-    };
+    }
 
     static async FindStages(card) {
         if (!card.GroupId) return null;
@@ -56,7 +50,7 @@ class CardDao {
         }
 
         return results.length > 1 ? results : null;
-    };
+    }
 
     static async FindFacesAndStages(card) {
         var collection = {
@@ -68,7 +62,7 @@ class CardDao {
         if (card.Type === 'Villain' || card.Type === 'Main Scheme') {
             var stages = await this.FindStages(card);
             
-            if (stages != null) {
+            if (stages) {
                 for (var stage of stages) {
                     collection.cards.push(stage);
 
@@ -77,29 +71,25 @@ class CardDao {
                         faces: null
                     };
 
-                    if (stage.Id.length > ID_LENGTH) {
-                        var faces = stages.filter(x => x.Id.includes(GetBaseId(stage))).map(x => x.Id);
-
-                        stageEntry.faces = faces;
-                    }
+                    if (stage.Id.length > ID_LENGTH) stageEntry.faces = stages.filter(x => x.Id.includes(GetBaseId(stage))).map(x => x.Id);
 
                     collection.stages.push(stageEntry);
-                };
+                }
                 
                 var currentStage = collection.stages.find(x => x.cardId === card.Id);
-                if (currentStage.faces != null) collection.faces = currentStage.faces;
+
+                if (currentStage.faces) collection.faces = currentStage.faces;
 
                 return collection;
             }
             else {
                 var faces = await this.FindFaces(card);
 
-                if (faces != null) {
+                if (faces) {
                     for (var face of faces) {
                         collection.cards.push(face);
-    
                         collection.faces.push(face.Id);
-                    };
+                    }
 
                     return collection;
                 }
@@ -108,12 +98,11 @@ class CardDao {
         else {
             var faces = await this.FindFaces(card);
 
-            if (faces != null) {
+            if (faces) {
                 for (var face of faces) {
                     collection.cards.push(face);
-
                     collection.faces.push(face.Id);
-                };
+                }
 
                 return collection;
             }
@@ -131,8 +120,6 @@ class CardDao {
 
         var query = terms.replace(/[^a-zA-Z0-9]/gmi, '');
 
-        console.log(`Attempting to retrieve cards with query '${query}'...`);
-
         var results = await session.query({ indexName: CardEntity.INDEX })
             .whereRegex('Id', query).orElse()
             .whereRegex('Name', query).orElse()
@@ -142,8 +129,6 @@ class CardDao {
             .orderBy('Id').all();
 
         if (results.length === 0) {
-            console.log(`No exact matches found... Attempting fuzzy matches...`);
-
             results = await session.query({ indexName: CardEntity.INDEX })
                 .whereEquals('Id', query).fuzzy(0.70).orElse()
                 .whereEquals('Name', query).fuzzy(0.70).orElse()
@@ -160,7 +145,7 @@ class CardDao {
 
             return TrimDuplicates(matches.length > 0 ? matches : results);
         }
-    };
-};
+    }
+}
 
-module.exports = { CardDao };
+module.exports = { CardDao }

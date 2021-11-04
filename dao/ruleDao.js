@@ -1,19 +1,14 @@
 const { RuleEntity } = require('../models/ruleEntity');
-const { DocumentStore } = require('ravendb');
+const { CreateDocumentStore } = require('../utilities/documentStoreHelper');
 
 class RuleDao {
     constructor() { }
 
-    static store = new DocumentStore([process.env.ravenUri], RuleEntity.DATABASE, {
-        certificate: Buffer.from(process.env.ravenPem, 'base64'),
-        type: 'pem',
-        password: ''
-    }).initialize();
+    static store = CreateDocumentStore(RuleEntity.DATABASE).initialize();
     
     static KEYWORDS_AND_ICONS = [];
 
-    static async RetrieveKeywordsAndSchemeIcons()
-    {
+    static async RetrieveKeywordsAndSchemeIcons() {
         console.log(`Starting to load keywords and scheme icons from the database...`);
 
         this.KEYWORDS_AND_ICONS = [];
@@ -23,19 +18,17 @@ class RuleDao {
             .whereEquals('Type', 'Scheme Icon')
             .orderBy('Id').all();
 
-        results.forEach(result => {
+        for (var result of results) {
             this.KEYWORDS_AND_ICONS.push(new RuleEntity(result));
-        });
+        }
 
         console.log(`Loaded ${this.KEYWORDS_AND_ICONS.length} keywords and scheme icons from the database!\n`);
-    };
+    }
 
     static async RetrieveByTerm(terms) {
         const session = this.store.openSession();
 
         var query = terms.replace(/[^a-zA-Z0-9]/gmi, '').toLowerCase();
-
-        console.log(`Attempting to retrieve rules with query '${query}'...`);
 
         var results = await session.query({ indexName: RuleEntity.INDEX })
             .whereRegex('Id', query).orElse()
@@ -45,8 +38,6 @@ class RuleDao {
             .orderBy('Id').all();
 
         if (results.length === 0) {
-            console.log(`No exact matches found... Attempting fuzzy matches...`);
-
             results = await session.query({ indexName: RuleEntity.INDEX })
                 .whereEquals('Id', query).fuzzy(0.70).orElse()
                 .whereEquals('Title', query).fuzzy(0.70).orElse()
@@ -55,8 +46,8 @@ class RuleDao {
                 .orderBy('Id').all();
         }
 
-        return results.length === 0 ? null : results;
-    };
-};
+        return results.length > 0 ? results : null;
+    }
+}
 
-module.exports = { RuleDao };
+module.exports = { RuleDao }
