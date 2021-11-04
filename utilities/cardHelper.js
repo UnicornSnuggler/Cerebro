@@ -73,8 +73,8 @@ exports.BuildEmbed = function(card, alternateArt = null)
 
 var BuildFooter = exports.BuildFooter = function(card)
 {
-    var firstPrinting = card.Printings.find(x => x.CardId == card.Id);
-    var reprints = card.Printings.filter(x => x.CardId != card.Id);
+    var firstPrinting = card.Printings.find(x => x.ArtificialId == card.Id);
+    var reprints = card.Printings.filter(x => x.ArtificialId != card.Id);
 
     var footer = [];
     footer.push(Summary(firstPrinting));
@@ -277,6 +277,11 @@ const EvaluateRules = exports.EvaluateRules = function(card) {
     }
 };
 
+exports.FindUniqueArts = function(card)
+{
+    return card.Printings.filter(x => x.UniqueArt).map(x => x.ArtificialId);
+}
+
 const GetBaseId = exports.GetBaseId = function(card)
 {
     return card.Id.substring(0, ID_LENGTH);
@@ -289,5 +294,5 @@ exports.ShareFaces = function(thisCard, thatCard)
 
 exports.ShareGroups = function(thisCard, thatCard)
 {
-    return thisCard.Group !== null && thatCard.Group !== null && thisCard.Group == thatCard.Group;
+    return thisCard.GroupId !== null && thatCard.GroupId !== null && thisCard.GroupId == thatCard.GroupId;
 }

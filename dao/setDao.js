@@ -1,31 +1,33 @@
-const azure = require('azure-storage');
+const { DocumentStore } = require('ravendb');
 const { SetEntity } = require('../models/setEntity');
 
 class SetDao {
     constructor() { }
 
-    static tableService = azure.createTableService(process.env.connectionString);
+    static store = new DocumentStore([process.env.ravenUri], SetEntity.DATABASE, {
+        certificate: Buffer.from(process.env.ravenPem, 'base64'),
+        type: 'pem',
+        password: ''
+    }).initialize();
+
     static SETS = [];
 
-    static RetrieveAllSets() {
+    static async RetrieveAllSets() {
+        console.log(`Starting to load sets from the database...`);
+        
         this.SETS = [];
-    
-        this.tableService.queryEntities(SetEntity.TABLE_NAME, new azure.TableQuery(), null, this.AddSetsCallback);
-    }
 
-    static AddSetsCallback = (error, result, response) => {
-        if (!error) {
-            result.entries.forEach(tableEntity => {
-                this.SETS.push(new SetEntity(tableEntity));
-            });
+        for (var index of SetEntity.INDEXES) {
+            var results = await this.store.openSession().query({ indexName: index }).all();
     
-            if (this.SETS.length > 0) {
-                console.log(`Loaded ${this.SETS.length} sets from the database!`);
-            }
-            else {
-                console.log(`Unable to load sets from the database...`);
-            }
+            results.forEach(result => {
+                this.SETS.push(new SetEntity(result));
+            });
+
+            console.log(` - Found ${results.length} sets from index '${index}'...`);
         }
+
+        console.log(`Loaded ${this.SETS.length} total sets from the database!\n`);
     }
 };
 

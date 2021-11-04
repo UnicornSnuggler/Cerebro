@@ -1,16 +1,22 @@
+const { PackDao } = require('../dao/packDao');
+const { SetDao } = require('../dao/setDao');
+
 exports.Summary = function(printing)
 {
-    if (printing.Set.Incomplete)
+    var pack = printing.PackId ? PackDao.PACKS.find(x => x.Id === printing.PackId) : null;
+    var set = SetDao.SETS.find(x => x.Id === printing.SetId);
+
+    if (set.Incomplete)
     {
         return "[Redacted]";
     }
     else
     {
-        var summary = `${printing.SetName} #${printing.SetNumber}`;
+        var summary = `${set.Name} #${printing.SetNumber}`;
 
-        if (printing.Pack != null)
+        if (pack != null)
         {
-            summary += `, ${printing.Pack.Name}`;
+            summary += `, ${pack.Name}`;
 
             if (printing.PackNumber != null)
             {

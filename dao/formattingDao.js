@@ -1,31 +1,33 @@
-const azure = require('azure-storage');
+const { DocumentStore } = require('ravendb');
 const { FormattingEntity } = require('../models/formattingEntity');
 
 class FormattingDao {
     constructor() { }
 
-    static tableService = azure.createTableService(process.env.connectionString);
+    static store = new DocumentStore([process.env.ravenUri], FormattingEntity.DATABASE, {
+        certificate: Buffer.from(process.env.ravenPem, 'base64'),
+        type: 'pem',
+        password: ''
+    }).initialize();
+
     static FORMATTINGS = [];
 
-    static RetrieveAllFormattings() {
+    static async RetrieveAllFormattings() {
+        console.log(`Starting to load formattings from the database...`);
+        
         this.FORMATTINGS = [];
-    
-        this.tableService.queryEntities(FormattingEntity.TABLE_NAME, new azure.TableQuery(), null, this.AddFormattingsCallback);
-    }
 
-    static AddFormattingsCallback = (error, result, response) => {
-        if (!error) {
-            result.entries.forEach(tableEntity => {
-                this.FORMATTINGS.push(new FormattingEntity(tableEntity));
-            });
+        for (var index of FormattingEntity.INDEXES) {
+            var results = await this.store.openSession().query({ indexName: index }).all();
     
-            if (this.FORMATTINGS.length > 0) {
-                console.log(`Loaded ${this.FORMATTINGS.length} formattings from the database!`);
-            }
-            else {
-                console.log(`Unable to load formattings from the database...`);
-            }
+            results.forEach(result => {
+                this.FORMATTINGS.push(new FormattingEntity(result));
+            });
+
+            console.log(` - Found ${results.length} formattings from index '${index}'...`);
         }
+
+        console.log(`Loaded ${this.FORMATTINGS.length} total formattings from the database!\n`);
     }
 };
 

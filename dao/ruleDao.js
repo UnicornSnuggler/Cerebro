@@ -1,84 +1,61 @@
-const { SearchIndexClient, AzureKeyCredential } = require('@azure/search-documents');
 const { RuleEntity } = require('../models/ruleEntity');
-const { BuildWildcardQuery, EscapeQuery, FlagNames } = require('../utilities/queryHelper');
+const { DocumentStore } = require('ravendb');
 
 class RuleDao {
     constructor() { }
+
+    static store = new DocumentStore([process.env.ravenUri], RuleEntity.DATABASE, {
+        certificate: Buffer.from(process.env.ravenPem, 'base64'),
+        type: 'pem',
+        password: ''
+    }).initialize();
     
-    static searchClient = new SearchIndexClient(process.env.searchUri, new AzureKeyCredential(process.env.apiKey)).getSearchClient(RuleEntity.INDEX_NAME);
     static KEYWORDS_AND_ICONS = [];
 
     static async RetrieveKeywordsAndSchemeIcons()
     {
+        console.log(`Starting to load keywords and scheme icons from the database...`);
+
         this.KEYWORDS_AND_ICONS = [];
 
-        var searchOptions = {
-            filter: `PartitionKey eq 'Keyword' or PartitionKey eq 'Scheme Icon'`
-        };
-        
-        var searchResults = await this.searchClient.search('*', searchOptions);
+        var results = await this.store.openSession().query({ indexName: RuleEntity.INDEX })
+            .whereEquals('Type', 'Keyword').orElse()
+            .whereEquals('Type', 'Scheme Icon')
+            .orderBy('Id').all();
 
-        for await (const result of searchResults.results) {
-            this.KEYWORDS_AND_ICONS.push(new RuleEntity(result.document));
-        }
-    
-        if (this.KEYWORDS_AND_ICONS.length > 0) {
-            console.log(`Loaded ${this.KEYWORDS_AND_ICONS.length} keywords and scheme icons from the database!`);
-        }
-        else {
-            console.log(`Unable to load keywords and scheme icons from the database...`);
-        }
-    }
-    
-    static async RetrieveByTerm(terms, flag = FlagNames.BARE) {
-        terms = terms.toLowerCase();
+        results.forEach(result => {
+            this.KEYWORDS_AND_ICONS.push(new RuleEntity(result));
+        });
 
-        var searchOptions = {
-            queryType: 'full',
-            searchFields: ['Terms, Title'],
-            searchMode: 'all'
-        };
+        console.log(`Loaded ${this.KEYWORDS_AND_ICONS.length} keywords and scheme icons from the database!\n`);
+    };
 
-        var query;
+    static async RetrieveByTerm(terms) {
+        const session = this.store.openSession();
 
-        switch(flag) {
-            case FlagNames.WILDCARD:
-                query = BuildWildcardQuery(terms);
-                break;
-            case FlagNames.FUZZY:
-                query = `${EscapeQuery(terms)}~`;
-                break;
-            default:
-                query = EscapeQuery(terms);
-        }
-        
-        var searchResults = await this.searchClient.search(query, searchOptions);
-        
-        var results = [];
+        var query = terms.replace(/[^a-zA-Z0-9]/gmi, '').toLowerCase();
 
-        var results = [];
+        console.log(`Attempting to retrieve rules with query '${query}'...`);
 
-        for await (const result of searchResults.results) {
-            results.push(new RuleEntity(result.document));
+        var results = await session.query({ indexName: RuleEntity.INDEX })
+            .whereRegex('Id', query).orElse()
+            .whereRegex('Title', query).orElse()
+            .whereRegex('StrippedTitle', query).orElse()
+            .whereRegex('Terms', query)
+            .orderBy('Id').all();
+
+        if (results.length === 0) {
+            console.log(`No exact matches found... Attempting fuzzy matches...`);
+
+            results = await session.query({ indexName: RuleEntity.INDEX })
+                .whereEquals('Id', query).fuzzy(0.70).orElse()
+                .whereEquals('Title', query).fuzzy(0.70).orElse()
+                .whereEquals('StrippedTitle', query).fuzzy(0.70).orElse()
+                .whereEquals('Terms', query).fuzzy(0.70)
+                .orderBy('Id').all();
         }
 
-        if (results.length > 0) {
-            var matches = results.filter(function(rule) {
-                return rule.Title.toLowerCase() === terms || rule.Id.toLowerCase() === terms;
-            });
-
-            return matches.length > 0 ? matches : results;
-        }
-        else {
-            if (flag === FlagNames.FUZZY) {
-                return null;
-            }
-            else {
-                var nextFlag = flag === FlagNames.BARE ? FlagNames.WILDCARD : FlagNames.FUZZY;
-
-                return this.RetrieveByTerm(terms, nextFlag);
-            }
-        }
+        return results.length === 0 ? null : results;
     };
 };
 

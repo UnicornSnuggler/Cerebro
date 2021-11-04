@@ -1,12 +1,14 @@
-class SetEntity
-{
-    static TABLE_NAME = 'CerebroSets';
+const { BaseCollectionEntity } = require('./baseCollectionEntity');
 
-    constructor (tableEntity) {
-        this.Incomplete = tableEntity.Incomplete._;
-        this.Name = tableEntity.RowKey._;
-        this.Number = tableEntity.Number._;
-        this.Type = tableEntity.PartitionKey._;
+class SetEntity extends BaseCollectionEntity
+{
+    static INDEXES = ['officialsets'];
+
+    constructor (document) {
+        super(document);
+
+        this.Incomplete = document.Incomplete;
+        this.Number = document.Number;
     }
 };
 

@@ -1,16 +1,12 @@
-class PackEntity
+const { BaseCollectionEntity } = require('./baseCollectionEntity');
+
+class PackEntity extends BaseCollectionEntity
 {
-    static TABLE_NAME = 'CerebroPacks';
+    static INDEXES = ['officialpacks'];
 
-    constructor (tableEntity) {
-        this.Id = tableEntity.RowKey._;
-        this.Name = tableEntity.Name._;
-        this.Type = tableEntity.PartitionKey._;
+    constructor (document) {
+        super(document);
     }
-
-    ToString() {
-        return `${this.Name} ${this.PartitionKey}`;
-    };
 };
 
 module.exports = { PackEntity };

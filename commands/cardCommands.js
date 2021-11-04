@@ -22,7 +22,7 @@ const SelectBox = async function(interaction, cards) {
     prompt += '\n\nPlease select from the following...';
     
     cards.forEach(card => {
-        var group = card.Classification === 'Encounter' && card.Group ? GroupDao.GROUPS.find(x => x.Guid === card.Group) : null;
+        var group = card.Classification === 'Encounter' && card.GroupId ? GroupDao.GROUPS.find(x => x.Id === card.GroupId) : null;
         var description = (card.Classification != 'Encounter' && card.Type != 'Hero' && card.Type != 'Alter-Ego' ? `${card.Classification} ` : '')
             + card.Type + (group ? ` (${group.Name.replace(` ${group.Type}`, '')})` : '');
         var emoji = null;
@@ -74,7 +74,9 @@ const SelectBox = async function(interaction, cards) {
 const Imbibe = function(interaction, card, currentArtStyle, currentFace, currentStage, collection, rulesToggle, artToggle, message = null) {
     var navigationRow = new MessageActionRow();
 
-    if (card.ArtStyles.length > 1) {
+    var artStyles = CardHelper.FindUniqueArts(card);
+
+    if (artStyles.length > 1) {
         navigationRow.addComponents(new MessageButton()
             .setCustomId('cycleArt')
             .setLabel('Change Art')
@@ -138,16 +140,16 @@ const Imbibe = function(interaction, card, currentArtStyle, currentFace, current
 
     if (!artToggle) {
         if (!rulesToggle) {
-            embeds.push(CardHelper.BuildEmbed(card, card.ArtStyles[currentArtStyle]));
+            embeds.push(CardHelper.BuildEmbed(card, artStyles[currentArtStyle]));
         }
         else {
-            embeds.push(CardHelper.BuildRulesEmbed(card, card.ArtStyles[currentArtStyle]));
+            embeds.push(CardHelper.BuildRulesEmbed(card, artStyles[currentArtStyle]));
         }
     }
     else {
         files.push({
-            attachment: BuildImagePath(process.env.cardImagePrefix, card.ArtStyles[currentArtStyle]),
-            name: `${card.Incomplete ? 'SPOILER_' : ''}${card.ArtStyles[currentArtStyle]}.png`,
+            attachment: BuildImagePath(process.env.cardImagePrefix, artStyles[currentArtStyle]),
+            name: `${card.Incomplete ? 'SPOILER_' : ''}${artStyles[currentArtStyle]}.png`,
             spoiler: card.Incomplete
         });
     }
@@ -184,7 +186,7 @@ const Imbibe = function(interaction, card, currentArtStyle, currentFace, current
 
                     switch (i.customId) {
                         case 'cycleArt':
-                            nextArtStyle = currentArtStyle + 1 >= card.ArtStyles.length ? 0 : currentArtStyle + 1;
+                            nextArtStyle = currentArtStyle + 1 >= artStyles.length ? 0 : currentArtStyle + 1;
 
                             break;
                         case 'cycleFace':
@@ -267,10 +269,11 @@ const QueueCardResult = async function(interaction, card, message = null) {
     var collection = await CardDao.FindFacesAndStages(card);
 
     var expandedCard = collection.cards.find(x => x.Id === card.Id);
+    var currentArtStyle = CardHelper.FindUniqueArts(card).indexOf(card.Id);
     var currentFace = collection.faces.length > 0 ? collection.faces.findIndex(x => x === expandedCard.Id) : -1;
     var currentStage = collection.stages.length > 0 ? collection.stages.findIndex(x => x.cardId === expandedCard.Id) : -1;
 
-    Imbibe(interaction, expandedCard, 0, currentFace, currentStage, collection, false, false, message);
+    Imbibe(interaction, expandedCard, currentArtStyle, currentFace, currentStage, collection, false, false, message);
 };
 
 module.exports = {

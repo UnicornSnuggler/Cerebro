@@ -1,16 +1,22 @@
-class RuleEntity
-{
-    static INDEX_NAME = 'cerebrorules-index';
+const { BaseEntity } = require('./baseEntity');
 
-    constructor (tableEntity) {
-        this.Description = tableEntity.Description ?? null;
-        this.Footer = tableEntity.Footer ?? null;
-        this.Id = tableEntity.RowKey;
-        this.Reference = tableEntity.Reference ?? null;
-        this.Regex = tableEntity.Regex ?? null;
-        this.Terms = tableEntity.Terms;
-        this.Title = tableEntity.Title;
-        this.Type = tableEntity.PartitionKey;
+class RuleEntity extends BaseEntity
+{
+    static DATABASE = 'cerebrorules';
+    static INDEX = 'officialrules';
+
+    constructor (document) {
+        super(document);
+
+        this.Description = document.Description;
+        this.Footer = document.Footer;
+        this.Incomplete = document.Incomplete;
+        this.Official = document.Official;
+        this.Reference = document.Reference;
+        this.Regex = document.Regex;
+        this.Terms = document.Terms;
+        this.Title = document.Title;
+        this.Type = document.Type;
     }
 };
 

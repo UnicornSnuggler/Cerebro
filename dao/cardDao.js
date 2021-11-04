@@ -1,9 +1,7 @@
-const { SearchIndexClient, AzureKeyCredential } = require('@azure/search-documents');
 const { ID_LENGTH } = require('../constants');
-const { PrintingDao } = require('./printingDao');
 const { CardEntity } = require('../models/cardEntity');
 const { GetBaseId, ShareFaces, ShareGroups } = require('../utilities/cardHelper');
-const { BuildWildcardQuery, EscapeQuery, FlagNames } = require('../utilities/queryHelper');
+const { DocumentStore } = require('ravendb');
 
 const TrimDuplicates = function(cards)
 {
@@ -21,46 +19,40 @@ const TrimDuplicates = function(cards)
 
 class CardDao {
     constructor() { }
-    
-    static searchClient = new SearchIndexClient(process.env.searchUri, new AzureKeyCredential(process.env.apiKey)).getSearchClient(CardEntity.INDEX_NAME);
+
+    static store = new DocumentStore([process.env.ravenUri], CardEntity.DATABASE, {
+        certificate: Buffer.from(process.env.ravenPem, 'base64'),
+        type: 'pem',
+        password: ''
+    }).initialize();
 
     static async FindFaces(card) {
         if (card.Id.length === ID_LENGTH) return null;
 
-        var searchOptions = {
-            queryType: 'full',
-            searchFields: ['RowKey'],
-            searchMode: 'all'
-        };
-        
-        var searchResults = await this.searchClient.search(`${GetBaseId(card)}*`, searchOptions);
-
         var results = [];
 
-        for await (const result of searchResults.results) {
-            var card = new CardEntity(result.document);
+        var documents = await this.store.openSession().query({ indexName: CardEntity.INDEX })
+            .whereRegex('Id', GetBaseId(card))
+            .orderBy('Id').all();
 
-            results.push(card);
+        for (var document of documents) {
+            results.push(new CardEntity(document));
         }
 
         return results.length > 1 ? results : null;
     };
 
     static async FindStages(card) {
-        if (!card.Group) return null;
-
-        var searchOptions = {
-            filter: `Group eq '${card.Group}'`
-        };
-        
-        var searchResults = await this.searchClient.search('*', searchOptions);
+        if (!card.GroupId) return null;
 
         var results = [];
 
-        for await (const result of searchResults.results) {
-            var card = new CardEntity(result.document);
+        var documents = await this.store.openSession().query({ indexName: CardEntity.INDEX })
+            .whereRegex('GroupId', card.GroupId)
+            .orderBy('GroupId').all();
 
-            results.push(card);
+        for (var document of documents) {
+            results.push(new CardEntity(document));
         }
 
         return results.length > 1 ? results : null;
@@ -78,7 +70,7 @@ class CardDao {
             
             if (stages != null) {
                 for (var stage of stages) {
-                    collection.cards.push(await this.GetPrintings(stage));
+                    collection.cards.push(stage);
 
                     var stageEntry = {
                         cardId: stage.Id,
@@ -104,7 +96,7 @@ class CardDao {
 
                 if (faces != null) {
                     for (var face of faces) {
-                        collection.cards.push(await this.GetPrintings(face));
+                        collection.cards.push(face);
     
                         collection.faces.push(face.Id);
                     };
@@ -118,7 +110,7 @@ class CardDao {
 
             if (faces != null) {
                 for (var face of faces) {
-                    collection.cards.push(await this.GetPrintings(face));
+                    collection.cards.push(face);
 
                     collection.faces.push(face.Id);
                 };
@@ -127,61 +119,38 @@ class CardDao {
             }
         }
 
-        collection.cards.push(await this.GetPrintings(card));
+        collection.cards.push(card);
         
         return collection;
     }
 
-    static async GetPrintings(card) {
-        card.Printings = await PrintingDao.RetrieveByCard(card);
+    static async RetrieveByName(terms) {        
+        const session = this.store.openSession();
 
-        var arts = [card.Id];
-
-        card.Printings.forEach(printing =>
-        {
-            if (printing.AlternateArt)
-            {
-                arts.push(printing.CardId);
-            }
-        });
-
-        card.ArtStyles = arts;
-
-        return card;
-    };
-
-    static async RetrieveByName(terms, flag = null) {
         terms = terms.toLowerCase();
 
-        if (flag === null) {
-            flag = terms.includes('*') ? FlagNames.WILDCARD : FlagNames.BARE;
-        }
+        var query = terms.replace(/[^a-zA-Z0-9]/gmi, '');
 
-        var searchOptions = {
-            queryType: 'full',
-            searchFields: ['Name, Subname, RowKey'],
-            searchMode: 'all'
-        };
+        console.log(`Attempting to retrieve cards with query '${query}'...`);
 
-        var query;
+        var results = await session.query({ indexName: CardEntity.INDEX })
+            .whereRegex('Id', query).orElse()
+            .whereRegex('Name', query).orElse()
+            .whereRegex('Subname', query).orElse()
+            .whereRegex('StrippedName', query).orElse()
+            .whereRegex('StrippedSubname', query)
+            .orderBy('Id').all();
 
-        switch(flag) {
-            case FlagNames.WILDCARD:
-                query = BuildWildcardQuery(terms);
-                break;
-            case FlagNames.FUZZY:
-                query = EscapeQuery(terms).split(' ').map(x => `${x}~`).join(' ');
-                break;
-            default:
-                query = EscapeQuery(terms);
-        }
-        
-        var searchResults = await this.searchClient.search(query, searchOptions);
+        if (results.length === 0) {
+            console.log(`No exact matches found... Attempting fuzzy matches...`);
 
-        var results = [];
-
-        for await (const result of searchResults.results) {
-            results.push(new CardEntity(result.document));
+            results = await session.query({ indexName: CardEntity.INDEX })
+                .whereEquals('Id', query).fuzzy(0.70).orElse()
+                .whereEquals('Name', query).fuzzy(0.70).orElse()
+                .whereEquals('Subname', query).fuzzy(0.70).orElse()
+                .whereEquals('StrippedName', query).fuzzy(0.70).orElse()
+                .whereEquals('StrippedSubname', query).fuzzy(0.70)
+                .orderBy('Id').all();
         }
 
         if (results.length > 0) {
@@ -190,16 +159,6 @@ class CardDao {
             });
 
             return TrimDuplicates(matches.length > 0 ? matches : results);
-        }
-        else {
-            if (flag === FlagNames.FUZZY) {
-                return null;
-            }
-            else {
-                var nextFlag = flag === FlagNames.BARE ? FlagNames.WILDCARD : FlagNames.FUZZY;
-
-                return this.RetrieveByName(terms, nextFlag);
-            }
         }
     };
 };

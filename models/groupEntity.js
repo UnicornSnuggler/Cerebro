@@ -1,11 +1,11 @@
-class GroupEntity
-{
-    static TABLE_NAME = 'CerebroGroups';
+const { BaseCollectionEntity } = require('./baseCollectionEntity');
 
-    constructor (tableEntity) {
-        this.Guid = tableEntity.RowKey._;
-        this.Name = tableEntity.Name._;
-        this.Type = tableEntity.PartitionKey._;
+class GroupEntity extends BaseCollectionEntity
+{
+    static INDEXES = ['officialgroups'];
+
+    constructor (document) {
+        super(document);
     }
 };
 

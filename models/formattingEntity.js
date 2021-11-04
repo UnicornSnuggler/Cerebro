@@ -1,14 +1,18 @@
-class FormattingEntity
-{
-    static TABLE_NAME = 'CerebroFormattings';
+const { BaseEntity } = require('./baseEntity');
 
-    constructor (tableEntity) {
-        this.Guid = tableEntity.RowKey._;
-        this.Operation = tableEntity.PartitionKey._;
-        this.Priority = tableEntity.Priority._;
-        this.Regex = tableEntity.Regex ? tableEntity.Regex._ : null;
-        this.Replacement = tableEntity.Replacement ? tableEntity.Replacement._ : null;
-        this.Text = tableEntity.Text ? tableEntity.Text._ : null;
+class FormattingEntity extends BaseEntity
+{
+    static DATABASE = 'cerebroformattings';
+    static INDEXES = ['generalformattings'];
+
+    constructor (document) {
+        super(document);
+
+        this.Match = document.Match;
+        this.Operation = document.Operation;
+        this.Priority = document.Priority;
+        this.Regex = document.Regex;
+        this.Replacement = document.Replacement;
     }
 };
 

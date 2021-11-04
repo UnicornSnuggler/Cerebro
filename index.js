@@ -1,6 +1,7 @@
 const configResult = require('dotenv').config()
 const { Client, Collection, Intents } = require('discord.js');
 const { SearchIndexClient, AzureKeyCredential } = require('@azure/search-documents');
+const { CardDao } = require('./dao/cardDao');
 const { FormattingDao } = require('./dao/formattingDao');
 const { GroupDao } = require('./dao/groupDao');
 const { PackDao } = require('./dao/packDao');
@@ -20,12 +21,12 @@ for (const file of commandFiles) {
     client.commands.set(command.data.name, command);
 }
 
-client.on('ready', () => {
-    FormattingDao.RetrieveAllFormattings();
-    GroupDao.RetrieveAllGroups();
-    PackDao.RetrieveAllPacks();
-    RuleDao.RetrieveKeywordsAndSchemeIcons();
-    SetDao.RetrieveAllSets();
+client.on('ready', async () => {
+    await FormattingDao.RetrieveAllFormattings();
+    await GroupDao.RetrieveAllGroups();
+    await PackDao.RetrieveAllPacks();
+    await RuleDao.RetrieveKeywordsAndSchemeIcons();
+    await SetDao.RetrieveAllSets();
 
     console.log(`Logged in as ${client.user.tag}!`);
 });
