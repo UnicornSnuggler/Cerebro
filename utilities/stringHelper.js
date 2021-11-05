@@ -3,7 +3,7 @@ const { SYMBOLS } = require('../constants');
 const { FormattingDao } = require('../dao/formattingDao');
 
 exports.BuildImagePath = function(root, text) {
-    return `${root}${text}.png`;
+    return `${root}official/${text}.png`;
 }
 
 var FormatSymbols = exports.FormatSymbols = function(text) {
