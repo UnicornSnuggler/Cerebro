@@ -6,7 +6,7 @@ const { FormatSymbols, FormatText, SpoilerIfIncomplete, QuoteText, ItalicizeText
 const { COLORS, ID_LENGTH, SYMBOLS, AFFIRMATIVE_EMOJI, NEGATIVE_EMOJI } = require('../constants');
 
 const BuildCardImagePath = exports.BuildCardImagePath = function(card, artStyle) {
-    return `${process.env.cardImagePrefix}${card.Official ? 'official/' : `unofficial/`}${artStyle}.png`;
+    return `${process.env.cardImagePrefix}${card.Official ? 'official/' : `unofficial/`}${artStyle}.jpg`;
 }
 
 exports.BuildEmbed = function(card, alternateArt = null) {
