@@ -135,7 +135,7 @@ class CardDao {
             .whereRegex('Subname', query).orElse()
             .whereRegex('StrippedName', query).orElse()
             .whereRegex('StrippedSubname', query)
-            .orderBy('id()').all();
+            .all();
 
         if (documents.length === 0) {
             documents = await session.query({ indexName: index })
@@ -144,7 +144,7 @@ class CardDao {
                 .whereEquals('Subname', query).fuzzy(0.70).orElse()
                 .whereEquals('StrippedName', query).fuzzy(0.70).orElse()
                 .whereEquals('StrippedSubname', query).fuzzy(0.70)
-                .orderBy('id()').all();
+                .all();
         }
 
         if (documents.length > 0) {
