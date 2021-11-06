@@ -2,9 +2,10 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageActionRow, MessageButton, MessageSelectMenu } = require('discord.js');
 const { CardDao } = require('../dao/cardDao');
 const { GroupDao } = require('../dao/groupDao');
-const { BuildEmbed, BuildCardImagePath, BuildRulesEmbed, EvaluateRules, FindUniqueArts } = require('../utilities/cardHelper');
+const { BuildEmbed, BuildCardImagePath, BuildRulesEmbed, EvaluateRules, FindUniqueArts, GetPrintingByArtificialId } = require('../utilities/cardHelper');
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed, SendMessageWithOptions } = require('../utilities/messageHelper');
 const { SYMBOLS, LOAD_APOLOGY, INTERACT_APOLOGY } = require('../constants');
+const { SetDao } = require('../dao/setDao');
 
 const SelectBox = async function(interaction, cards) {
     let selector = new MessageSelectMenu()
@@ -118,6 +119,8 @@ const Imbibe = function(interaction, card, currentArtStyle, currentFace, current
 
     let promise;
 
+    let artificialId = artStyles[currentArtStyle];
+
     let components = [];
     let embeds = [];
     let files = [];
@@ -127,13 +130,16 @@ const Imbibe = function(interaction, card, currentArtStyle, currentFace, current
     }
 
     if (!artToggle) {
-        if (!rulesToggle) embeds.push(BuildEmbed(card, artStyles[currentArtStyle]));
-        else embeds.push(BuildRulesEmbed(card, artStyles[currentArtStyle]));
+        if (!rulesToggle) embeds.push(BuildEmbed(card, artificialId));
+        else embeds.push(BuildRulesEmbed(card, artificialId));
     }
     else {
+        let printing = GetPrintingByArtificialId(card, artificialId);
+        let set = SetDao.SETS.find(x => x.Id === printing.SetId);
+
         files.push({
-            attachment: BuildCardImagePath(card, artStyles[currentArtStyle]),
-            name: `${card.Incomplete ? 'SPOILER_' : ''}${artStyles[currentArtStyle]}.png`,
+            attachment: BuildCardImagePath(card, artificialId),
+            name: `${(card.Incomplete || set.Incomplete) ? 'SPOILER_' : ''}${artificialId}.png`,
             spoiler: card.Incomplete
         });
     }
