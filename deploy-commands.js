@@ -15,11 +15,13 @@ const rest = new REST({ version: '9' }).setToken(process.env.discordToken);
 
 (async () => {
     try {
-        console.log('Started refreshing global application commands...');
+        console.log('Started reloading application guild commands...');
 
-        await rest.put(Routes.applicationCommands(process.env.clientId), { body: commands });
+        for (var guildId of process.env.guildIds.split(', ')) {
+            await rest.put(Routes.applicationGuildCommands(process.env.clientId, guildId), { body: commands });
+        }
 
-        console.log('Successfully reloaded global application commands!');
+        console.log('Successfully reloaded application guild commands!');
     }
     catch (error) {
         console.error(error);

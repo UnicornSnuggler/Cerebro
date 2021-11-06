@@ -267,22 +267,28 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('card')
         .setDescription('Query cards.')
-        .addSubcommand(subcommand =>
+        .addSubcommandGroup(subcommand =>
             subcommand
-                .setName('name')
-                .setDescription('Query a card by its title and subtitle.')
-                .addBooleanOption(option => option.setName('official').setDescription('Is the card being queried official?').setRequired(true))
-                .addStringOption(option => option.setName('terms').setDescription('The terms being queried.').setRequired(true)))
-        .addSubcommand(subcommand =>
+                .setName('official')
+                .setDescription('Query an official card.')
+                .addSubcommand(subsubcommand => 
+                    subsubcommand
+                        .setName('name')
+                        .setDescription('Query a card by its title and subtitle.')
+                        .addStringOption(option => option.setName('terms').setDescription('The terms being queried.').setRequired(true))))
+        .addSubcommandGroup(subcommand =>
             subcommand
-                .setName('textbox')
-                .setDescription('Query a card by the text in its textbox.')
-                .addBooleanOption(option => option.setName('official').setDescription('Is the card being queried official?').setRequired(true))
-                .addStringOption(option => option.setName('terms').setDescription('The terms being queried.').setRequired(true))),
+                .setName('unofficial')
+                .setDescription('Query an unofficial card.')
+                .addSubcommand(subsubcommand => 
+                    subsubcommand
+                        .setName('name')
+                        .setDescription('Query a card by its title and subtitle.')
+                        .addStringOption(option => option.setName('terms').setDescription('The terms being queried.').setRequired(true)))),
     async execute(interaction) {
         try {
             if (interaction.options.getSubcommand() === 'name') {
-                let official = interaction.options.getBoolean('official');
+                let official = interaction.options.getSubcommandGroup() === 'official';
                 let terms = interaction.options.getString('terms');
     
                 let results = await CardDao.RetrieveByName(terms, official);
