@@ -57,16 +57,18 @@ exports.BuildEmbed = function(card, alternateArt = null) {
     embed.setTitle(SpoilerIfIncomplete((card.Unique ? SYMBOLS['{u}'] : '') + card.Name + (card.Subname ? ` — ${card.Subname}` : '' ), card.Incomplete));
     embed.setURL(image);
     embed.setDescription(description.join('\n\n'));
-    embed.setFooter(BuildFooter(card));    
+    embed.setFooter(BuildFooter(card));
+
+    let printing = GetPrintingByArtificialId(card, alternateArt ?? card.Id);
+    let set = SetDao.SETS.find(x => x.Id === printing.SetId);
     
-    if (!card.Incomplete) embed.setThumbnail(image);
+    if (!card.Incomplete && !set.Incomplete) embed.setThumbnail(image);
 
     return embed;
 }
 
 let BuildCredits = exports.BuildCredits = function(card) {
-    let firstPrinting = card.Printings.find(x => x.ArtificialId == card.Id);
-    let set = SetDao.SETS.find(x => x.Id === firstPrinting.SetId);
+    let set = SetDao.SETS.find(x => x.Id === GetPrintingByArtificialId(card, card.Id).SetId);
 
     let credits = [];
 
@@ -78,12 +80,11 @@ let BuildCredits = exports.BuildCredits = function(card) {
 }
 
 let BuildFooter = exports.BuildFooter = function(card) {
-    let firstPrinting = card.Printings.find(x => x.ArtificialId == card.Id);
     let reprints = card.Printings.filter(x => x.ArtificialId != card.Id);
 
     let footer = [];
 
-    footer.push(Summary(firstPrinting));
+    footer.push(Summary(GetPrintingByArtificialId(card, card.Id)));
 
     if (reprints.length > 0 && reprints.length <= 3) {
         for (let printing of reprints) footer.push(Summary(printing));
@@ -122,8 +123,11 @@ exports.BuildRulesEmbed = function(card, alternateArt = null) {
     embed.setTitle(SpoilerIfIncomplete((card.Unique ? SYMBOLS['{u}'] : '') + card.Name + (card.Subname != null ? ` — ${card.Subname}` : '' ), card.Incomplete));
     embed.setURL(image);
     embed.setFooter(BuildFooter(card));
+
+    let printing = GetPrintingByArtificialId(card, alternateArt ?? card.Id);
+    let set = SetDao.SETS.find(x => x.Id === printing.SetId);
     
-    if (!card.Incomplete) embed.setThumbnail(image);
+    if (!card.Incomplete && !set.Incomplete) embed.setThumbnail(image);
 
     return embed;
 }
@@ -232,6 +236,10 @@ const GetBaseId = exports.GetBaseId = function(card) {
     let threshold = card.Official ? ID_LENGTH : ID_LENGTH + card.AuthorId.length + 1;
 
     return card.Id.substring(0, threshold);
+}
+
+const GetPrintingByArtificialId = exports.GetPrintingByArtificialId = function(card, artificialId) {
+    return card.Printings.find(x => x.ArtificialId == artificialId);
 }
 
 exports.ShareFaces = function(thisCard, thatCard) {
