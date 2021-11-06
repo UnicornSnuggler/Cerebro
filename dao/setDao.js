@@ -1,10 +1,10 @@
 const { SetEntity } = require('../models/setEntity');
-const { CreateDocumentStore } = require('../utilities/documentStoreHelper');
+const { CreateDocumentStore, DeriveDatabase } = require('../utilities/documentStoreHelper');
 
 class SetDao {
     constructor() { }
 
-    static store = CreateDocumentStore(SetEntity.DATABASE).initialize();
+    static store = CreateDocumentStore(DeriveDatabase(SetEntity.DATABASE_SUFFIX)).initialize();
 
     static SETS = [];
 
@@ -13,16 +13,14 @@ class SetDao {
         
         this.SETS = [];
 
-        for (var index of SetEntity.INDEXES) {
-            var documents = await this.store.openSession().query({ indexName: index }).all();
-    
-            for (var document of documents) {
-                this.SETS.push(new SetEntity(document));
-            }
+        let documents = await this.store.openSession().query({ indexName: `all${SetEntity.COLLECTION}` }).all();
 
-            console.log(` - Found ${documents.length} sets from index '${index}'...`);
+        for (let document of documents) {
+            this.SETS.push(new SetEntity(document));
         }
 
+        console.log(` - Found ${this.SETS.filter(x => x.Official).length} official sets in the database...`);
+        console.log(` - Found ${this.SETS.filter(x => !x.Official).length} unofficial sets in the database...`);
         console.log(`Loaded ${this.SETS.length} total sets from the database!\n`);
     }
 }

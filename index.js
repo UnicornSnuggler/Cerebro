@@ -1,11 +1,12 @@
-const configResult = require('dotenv').config()
+require('dotenv').config()
 const { Client, Collection, Intents } = require('discord.js');
 const { FormattingDao } = require('./dao/formattingDao');
 const { GroupDao } = require('./dao/groupDao');
 const { PackDao } = require('./dao/packDao');
 const { RuleDao } = require('./dao/ruleDao');
 const { SetDao } = require('./dao/setDao');
-const MessageHelper = require('./utilities/messageHelper');
+const { ArtificialInteraction } = require('./models/artificialInteraction');
+const { SendContentAsEmbed } = require('./utilities/messageHelper');
 const fs = require('fs');
 
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS] });
@@ -31,20 +32,13 @@ client.on('ready', async () => {
 client.on('messageCreate', message => {
     if (message.author.bot) return;
 
-    var matches = message.content.match(/\{\{.+?\}\}/gi);
+    let matches = message.content.match(/\{\{.+?\}\}/gi);
 
     if (matches) {
         const command = client.commands.get('card');
         
-        message.options = {};
-        message.options._subcommand = 'name';
-        
-        for (var match of matches) {
-            message.options._hoistedOptions = [{
-                name: 'terms',
-                type: 'STRING',
-                value: match.replace(/[{}]/gmi, '')
-            }];
+        for (let match of matches) {
+            message.options = new ArtificialInteraction('name', true, match.replace(/[{}]/gmi, ''));
 
             try {
                 command.execute(message);
@@ -52,25 +46,18 @@ client.on('messageCreate', message => {
             catch (error) {
                 console.error(error);
                 
-                MessageHelper.SendContentAsEmbed(message, 'There was an error while executing this command!', true);
+                SendContentAsEmbed(message, 'There was an error while executing this command!', true);
             }
         }
     }
 
-    var matches = message.content.match(/\(\(.+?\)\)/gi);
+    matches = message.content.match(/<<.+?>>/gi);
 
     if (matches) {
-        const command = client.commands.get('rule');
+        const command = client.commands.get('card');
         
-        message.options = {};
-        message.options._subcommand = 'title';
-        
-        for (var match of matches) {
-            message.options._hoistedOptions = [{
-                name: 'terms',
-                type: 'STRING',
-                value: match.replace(/[()]/gmi, '')
-            }];
+        for (let match of matches) {
+            message.options = new ArtificialInteraction('name', false, match.replace(/[<>]/gmi, ''));
 
             try {
                 command.execute(message);
@@ -78,7 +65,26 @@ client.on('messageCreate', message => {
             catch (error) {
                 console.error(error);
                 
-                MessageHelper.SendContentAsEmbed(message, 'There was an error while executing this command!', true);
+                SendContentAsEmbed(message, 'There was an error while executing this command!', true);
+            }
+        }
+    }
+
+    matches = message.content.match(/\(\(.+?\)\)/gi);
+
+    if (matches) {
+        const command = client.commands.get('rule');
+        
+        for (let match of matches) {
+            message.options = new ArtificialInteraction('title', true, match.replace(/[()]/gmi, ''));
+
+            try {
+                command.execute(message);
+            }
+            catch (error) {
+                console.error(error);
+                
+                SendContentAsEmbed(message, 'There was an error while executing this command!', true);
             }
         }
     }
@@ -97,7 +103,7 @@ client.on('interactionCreate', interaction => {
     catch (error) {
         console.error(error);
 
-        MessageHelper.SendContentAsEmbed(interaction, 'There was an error while executing this command!', true);
+        SendContentAsEmbed(interaction, 'There was an error while executing this command!', true);
     }
 });
 

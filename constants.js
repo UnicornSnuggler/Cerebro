@@ -12,25 +12,14 @@ exports.COLORS = {
 
 exports.ID_LENGTH = 5;
 
+exports.OFFICIAL = 'official';
+exports.UNOFFICIAL = 'unofficial';
+
 exports.LOAD_APOLOGY = 'Please wait while result details are being retrieved. Art rendering will likely result in longer load times.';
 exports.INTERACT_APOLOGY = 'Sorry, but you can\'t interact with another user\'s query result...';
 
-exports.AFFIRMATIVE_EMOJI = ':white_check_mark:';
-exports.ARROW_LEFT_EMOJI = ':arrow_left:';
-exports.ARROW_RIGHT_EMOJI = ':arrow_right:';
-exports.ART_EMOJI = ':art:';
-exports.NEGATIVE_EMOJI = ':negative_squared_cross_mark:';
-exports.PAGE_EMOJI = ':page_facing_up:';
-exports.REPEAT_EMOJI = ':repeat:';
-exports.ONE_EMOJI = ':one:';
-exports.TWO_EMOJI = ':two:';
-exports.THREE_EMOJI = ':three:';
-exports.FOUR_EMOJI = ':four:';
-exports.FIVE_EMOJI = ':five:';
-exports.SIX_EMOJI = ':six:';
-exports.SEVEN_EMOJI = ':seven:';
-exports.EIGHT_EMOJI = ':eight:';
-exports.NINE_EMOJI = ':nine:';
+exports.AFFIRMATIVE_EMOJI = '<:released:906312522804654200>';
+exports.NEGATIVE_EMOJI = '<:unreleased:906312522859155487>';
 
 exports.SYMBOLS = {
     '{a}': '<:mc_acceleration:896032683266809876>',

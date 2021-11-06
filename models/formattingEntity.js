@@ -1,8 +1,8 @@
 const { BaseEntity } = require('./baseEntity');
 
 class FormattingEntity extends BaseEntity {
-    static DATABASE = 'cerebroformattings';
-    static INDEXES = ['generalformattings'];
+    static DATABASE_SUFFIX = 'formattings';
+    static COLLECTION = 'generalformattings';
 
     constructor (document) {
         super(document);

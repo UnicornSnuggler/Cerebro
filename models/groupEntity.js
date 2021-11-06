@@ -1,7 +1,7 @@
 const { BaseCollectionEntity } = require('./baseCollectionEntity');
 
 class GroupEntity extends BaseCollectionEntity {
-    static INDEXES = ['officialgroups'];
+    static COLLECTION = 'groups';
 
     constructor (document) {
         super(document);

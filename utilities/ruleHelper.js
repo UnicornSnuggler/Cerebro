@@ -1,11 +1,15 @@
 const { MessageEmbed } = require('discord.js');
-const { BuildImagePath, FormatSymbols, FormatText } = require('./stringHelper');
+const { FormatSymbols, FormatText } = require('./stringHelper');
 const { COLORS } = require('../constants');
 
-exports.BuildEmbed = function(rule) {
-    var embed = new MessageEmbed();
+const BuildRuleImagePath = exports.BuildRuleImagePath = function(rule) {
+    return `${process.env.ruleImagePrefix}${rule.Official ? 'official/' : `unofficial/`}${rule.Id}.png`;
+}
 
-    var imagePath = BuildImagePath(process.env.ruleImagePrefix, rule.Id);
+exports.BuildEmbed = function(rule) {
+    let embed = new MessageEmbed();
+
+    let imagePath = BuildRuleImagePath(rule);
 
     embed.setColor(COLORS["Basic"]);
     embed.setTitle(FormatSymbols(rule.Title));

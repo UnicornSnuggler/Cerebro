@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const MessageHelper = require('../utilities/messageHelper');
 const { MessageEmbed } = require('discord.js');
-const Constants = require('../constants');
+const { SendContentAsEmbed } = require('../utilities/messageHelper');
+const { COLORS } = require('../constants');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -11,7 +11,7 @@ module.exports = {
         try {
             const embed = new MessageEmbed()
                 .setTitle('Help')
-                .setColor(Constants.COLORS.Default);
+                .setColor(COLORS.Default);
 
             embed.addField('Overview', 'Cerebro is a bot designed to facilitate the process of looking up and discussing cards and rules pertaining to the Marvel Champions living card game.');
     
@@ -51,7 +51,7 @@ module.exports = {
         }
         catch (e) {
             console.log(e);
-            MessageHelper.SendContentAsEmbed(interaction, 'Something went wrong... Check the logs to find out more.');
+            SendContentAsEmbed(interaction, 'Something went wrong... Check the logs to find out more.');
         }
     }
 }

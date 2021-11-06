@@ -1,18 +1,17 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
+const { MessageActionRow, MessageButton, MessageSelectMenu } = require('discord.js');
 const { CardDao } = require('../dao/cardDao');
 const { GroupDao } = require('../dao/groupDao');
-const MessageHelper = require('../utilities/messageHelper');
-const CardHelper = require('../utilities/cardHelper');
-const { BuildImagePath } = require('../utilities/stringHelper');
-const { MessageActionRow, MessageButton, MessageSelectMenu } = require('discord.js');
+const { BuildEmbed, BuildCardImagePath, BuildRulesEmbed, EvaluateRules, FindUniqueArts } = require('../utilities/cardHelper');
+const { CreateEmbed, RemoveComponents, SendContentAsEmbed, SendMessageWithOptions } = require('../utilities/messageHelper');
 const { SYMBOLS, LOAD_APOLOGY, INTERACT_APOLOGY } = require('../constants');
 
 const SelectBox = async function(interaction, cards) {
-    var selector = new MessageSelectMenu()
+    let selector = new MessageSelectMenu()
         .setCustomId('selector')
         .setPlaceholder('No card selected...');
 
-    var prompt = `${cards.length} results were found for the given query!`;
+    let prompt = `${cards.length} results were found for the given query!`;
 
     if (cards.length > 25) {
         cards = cards.slice(0, 25);
@@ -21,11 +20,11 @@ const SelectBox = async function(interaction, cards) {
 
     prompt += '\n\nPlease select from the following...';
     
-    for (var card of cards) {
-        var group = card.Classification === 'Encounter' && card.GroupId ? GroupDao.GROUPS.find(x => x.Id === card.GroupId) : null;
-        var description = (card.Classification != 'Encounter' && card.Type != 'Hero' && card.Type != 'Alter-Ego' ? `${card.Classification} ` : '')
+    for (let card of cards) {
+        let group = card.Classification === 'Encounter' && card.GroupId ? GroupDao.GROUPS.find(x => x.Id === card.GroupId) : null;
+        let description = (card.Classification != 'Encounter' && card.Type != 'Hero' && card.Type != 'Alter-Ego' ? `${card.Classification} ` : '')
             + card.Type + (group ? ` (${group.Name.replace(` ${group.Type}`, '')})` : '');
-        var emoji = null;
+        let emoji = null;
 
         if (card.Resource) emoji = SYMBOLS[card.Resource];
 
@@ -37,16 +36,16 @@ const SelectBox = async function(interaction, cards) {
         }]);
     }
 
-    var components = new MessageActionRow().addComponents(selector);
+    let components = new MessageActionRow().addComponents(selector);
 
-    var promise = MessageHelper.SendContentAsEmbed(interaction, prompt, [components]);
+    let promise = SendContentAsEmbed(interaction, prompt, [components]);
     
     promise.then((message) => {
-        var collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: 10000 });
+        let collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: 10000 });
 
         collector.on('collect', async i => {
             if (i.user.id === interaction.member.id) {
-                var card = cards.find(x => x.Id === i.values[0]);
+                let card = cards.find(x => x.Id === i.values[0]);
 
                 collector.stop('selection');
 
@@ -56,24 +55,24 @@ const SelectBox = async function(interaction, cards) {
                 });
             }
             else {
-                i.reply({embeds: [MessageHelper.CreateEmbed(INTERACT_APOLOGY)], ephemeral: true})
+                i.reply({embeds: [CreateEmbed(INTERACT_APOLOGY)], ephemeral: true})
             }
         });
 
         collector.on('end', (i, reason) => {
-            var content = 'The timeout was reached...';
+            let content = 'The timeout was reached...';
 
             if (reason === 'selection') content = LOAD_APOLOGY;
             
-            MessageHelper.RemoveComponents(message, content);
+            RemoveComponents(message, content);
         });
     });
 }
 
 const Imbibe = function(interaction, card, currentArtStyle, currentFace, currentStage, collection, rulesToggle, artToggle, message = null) {
-    var navigationRow = new MessageActionRow();
+    let navigationRow = new MessageActionRow();
 
-    var artStyles = CardHelper.FindUniqueArts(card);
+    let artStyles = FindUniqueArts(card);
 
     if (artStyles.length > 1)
         navigationRow.addComponents(new MessageButton()
@@ -99,9 +98,9 @@ const Imbibe = function(interaction, card, currentArtStyle, currentFace, current
             .setStyle('PRIMARY'));
     }
 
-    var toggleRow = new MessageActionRow();
+    let toggleRow = new MessageActionRow();
 
-    if (CardHelper.EvaluateRules(card))
+    if (EvaluateRules(card))
         toggleRow.addComponents(new MessageButton()
             .setCustomId('toggleRules')
             .setLabel('Toggle Rules')
@@ -117,36 +116,36 @@ const Imbibe = function(interaction, card, currentArtStyle, currentFace, current
         .setLabel('Clear Buttons')
         .setStyle('DANGER'));
 
-    var promise;
+    let promise;
 
-    var components = [];
-    var embeds = [];
-    var files = [];
+    let components = [];
+    let embeds = [];
+    let files = [];
     
-    for (var row of [navigationRow, toggleRow]) {
+    for (let row of [navigationRow, toggleRow]) {
         if (row.components.length > 0) components.push(row);
     }
 
     if (!artToggle) {
-        if (!rulesToggle) embeds.push(CardHelper.BuildEmbed(card, artStyles[currentArtStyle]));
-        else embeds.push(CardHelper.BuildRulesEmbed(card, artStyles[currentArtStyle]));
+        if (!rulesToggle) embeds.push(BuildEmbed(card, artStyles[currentArtStyle]));
+        else embeds.push(BuildRulesEmbed(card, artStyles[currentArtStyle]));
     }
     else {
         files.push({
-            attachment: BuildImagePath(process.env.cardImagePrefix, artStyles[currentArtStyle]),
+            attachment: BuildCardImagePath(card, artStyles[currentArtStyle]),
             name: `${card.Incomplete ? 'SPOILER_' : ''}${artStyles[currentArtStyle]}.png`,
             spoiler: card.Incomplete
         });
     }
 
-    var messageOptions = {
+    let messageOptions = {
         components: components,
         embeds: embeds,
         files: files
     };
 
     if (message) promise = message.edit(messageOptions);
-    else promise = MessageHelper.SendMessageWithOptions(interaction, messageOptions);
+    else promise = SendMessageWithOptions(interaction, messageOptions);
         
     promise.then((message) => {
         const collector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: 15000 });
@@ -157,13 +156,13 @@ const Imbibe = function(interaction, card, currentArtStyle, currentFace, current
 
                 i.deferUpdate()
                 .then(async () => {
-                    var nextArtStyle = currentArtStyle;
-                    var nextCard = card;
-                    var nextFace = currentFace;
-                    var nextStage = currentStage;
-                    var nextCollection = collection;
-                    var nextRulesToggle = rulesToggle;
-                    var nextArtToggle = artToggle;
+                    let nextArtStyle = currentArtStyle;
+                    let nextCard = card;
+                    let nextFace = currentFace;
+                    let nextStage = currentStage;
+                    let nextCollection = collection;
+                    let nextRulesToggle = rulesToggle;
+                    let nextArtToggle = artToggle;
 
                     switch (i.customId) {
                         case 'cycleArt':
@@ -223,28 +222,28 @@ const Imbibe = function(interaction, card, currentArtStyle, currentFace, current
                     Imbibe(interaction, nextCard, nextArtStyle, nextFace, nextStage, nextCollection, nextRulesToggle, nextArtToggle, message);
                 });
             }
-            else i.reply({embeds: [MessageHelper.CreateEmbed(INTERACT_APOLOGY)], ephemeral: true});
+            else i.reply({embeds: [CreateEmbed(INTERACT_APOLOGY)], ephemeral: true});
         });
 
         collector.on('end', (i, reason) => {
-            var content = null;
-            var removeFiles = true;
+            let content = null;
+            let removeFiles = true;
 
             if (reason === 'navigation') content = LOAD_APOLOGY;
             else removeFiles = !artToggle;
             
-            MessageHelper.RemoveComponents(message, content, removeFiles);
+            RemoveComponents(message, content, removeFiles);
         });
     });
 }
 
 const QueueCardResult = async function(interaction, card, message = null) {
-    var collection = await CardDao.FindFacesAndStages(card);
+    let collection = await CardDao.FindFacesAndStages(card);
 
-    var expandedCard = collection.cards.find(x => x.Id === card.Id);
-    var currentArtStyle = CardHelper.FindUniqueArts(card).indexOf(card.Id);
-    var currentFace = collection.faces.length > 0 ? collection.faces.findIndex(x => x === expandedCard.Id) : -1;
-    var currentStage = collection.stages.length > 0 ? collection.stages.findIndex(x => x.cardId === expandedCard.Id) : -1;
+    let expandedCard = collection.cards.find(x => x.Id === card.Id);
+    let currentArtStyle = FindUniqueArts(card).indexOf(card.Id);
+    let currentFace = collection.faces.length > 0 ? collection.faces.findIndex(x => x === expandedCard.Id) : -1;
+    let currentStage = collection.stages.length > 0 ? collection.stages.findIndex(x => x.cardId === expandedCard.Id) : -1;
 
     Imbibe(interaction, expandedCard, currentArtStyle, currentFace, currentStage, collection, false, false, message);
 }
@@ -257,29 +256,32 @@ module.exports = {
             subcommand
                 .setName('name')
                 .setDescription('Query a card by its title and subtitle.')
+                .addBooleanOption(option => option.setName('official').setDescription('Is the card being queried official?').setRequired(true))
                 .addStringOption(option => option.setName('terms').setDescription('The terms being queried.').setRequired(true)))
         .addSubcommand(subcommand =>
             subcommand
                 .setName('textbox')
                 .setDescription('Query a card by the text in its textbox.')
+                .addBooleanOption(option => option.setName('official').setDescription('Is the card being queried official?').setRequired(true))
                 .addStringOption(option => option.setName('terms').setDescription('The terms being queried.').setRequired(true))),
     async execute(interaction) {
         try {
-            if (interaction.options._subcommand === 'name') {
-                terms = interaction.options._hoistedOptions.find(x => { return x.name === 'terms'; }).value;
+            if (interaction.options.getSubcommand() === 'name') {
+                let official = interaction.options.getBoolean('official');
+                let terms = interaction.options.getString('terms');
     
-                var results = await CardDao.RetrieveByName(terms);
+                let results = await CardDao.RetrieveByName(terms, official);
                 
-                if (!results || results.length === 0) MessageHelper.SendContentAsEmbed(interaction, 'No results were found for the given query...');
+                if (!results || results.length === 0) SendContentAsEmbed(interaction, 'No results were found for the given query...');
                 else if (results.length === 1) QueueCardResult(interaction, results[0]);
                 else if (results.length > 1) SelectBox(interaction, results);
             }
-            else if (interaction.options._subcommand === 'textbox') MessageHelper.SendContentAsEmbed(interaction, 'Not yet implemented... Sit tight!');
-            else MessageHelper.SendContentAsEmbed(interaction, 'Something weird happened...');
+            else if (interaction.options.getSubcommand() === 'textbox') SendContentAsEmbed(interaction, 'Not yet implemented... Sit tight!');
+            else SendContentAsEmbed(interaction, 'Something weird happened...');
         }
         catch (e) {
             console.log(e);
-            MessageHelper.SendContentAsEmbed(interaction, 'Something went wrong... Check the logs to find out more.');
+            SendContentAsEmbed(interaction, 'Something went wrong... Check the logs to find out more.');
         }
     }
 }
