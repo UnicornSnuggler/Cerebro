@@ -6,6 +6,7 @@ const { BuildEmbed, BuildCardImagePath, BuildRulesEmbed, EvaluateRules, FindUniq
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed, SendMessageWithOptions } = require('../utilities/messageHelper');
 const { SYMBOLS, LOAD_APOLOGY, INTERACT_APOLOGY } = require('../constants');
 const { SetDao } = require('../dao/setDao');
+const { PackDao } = require('../dao/packDao');
 
 const SelectBox = async function(interaction, cards) {
     let selector = new MessageSelectMenu()
@@ -22,9 +23,17 @@ const SelectBox = async function(interaction, cards) {
     prompt += '\n\nPlease select from the following...';
     
     for (let card of cards) {
-        let group = card.Classification === 'Encounter' && card.GroupId ? GroupDao.GROUPS.find(x => x.Id === card.GroupId) : null;
-        let description = (card.Classification != 'Encounter' && card.Type != 'Hero' && card.Type != 'Alter-Ego' ? `${card.Classification} ` : '')
-            + card.Type + (group ? ` (${group.Name.replace(` ${group.Type}`, '')})` : '');
+        let description = card.Type;
+        let packId = GetPrintingByArtificialId(card, card.Id).PackId ?? null;
+        
+        if (packId) {
+            let pack = PackDao.PACKS.find(x => x.Id === packId);
+
+            if (card.Classification === 'Hero' && !['Alter-Ego', 'Hero'].includes(card.Type)) description = `${pack.Name} ${description}`;
+            else if (card.Classification === 'Encounter') description = `${description} (${pack.Name})`;
+        }
+        else description = `${card.Classification} ${description}`;
+        
         let emoji = null;
 
         if (card.Resource) emoji = SYMBOLS[card.Resource];
