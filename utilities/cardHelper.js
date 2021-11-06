@@ -219,7 +219,7 @@ const EvaluateRules = exports.EvaluateRules = function(card) {
                 description: rule.Description
             };
 
-            for (let replacement of ["quantity", "start", "type"]) ruleEntry.description = ruleEntry.description.replace(`{${replacement}}`, match.groups ? match.groups[replacement] : '');
+            for (let replacement of ["quantity", "start", "type"]) ruleEntry.description = ruleEntry.description.replaceAll(`{${replacement}}`, match.groups ? match.groups[replacement] : '');
 
             if (!rules.some(x => x.title === ruleEntry.title && x.description === ruleEntry.description)) rules.push(ruleEntry);
         }
