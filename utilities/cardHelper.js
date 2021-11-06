@@ -1,73 +1,95 @@
 const { Formatters, MessageEmbed, Util } = require('discord.js');
-const { BuildImagePath, FormatSymbols, FormatText, SpoilerIfIncomplete, QuoteText, ItalicizeText } = require('./stringHelper');
 const { RuleDao } = require('../dao/ruleDao');
+const { SetDao } = require('../dao/setDao');
 const { Summary } = require('./printingHelper');
-const { COLORS, ID_LENGTH, SYMBOLS } = require('../constants');
+const { FormatSymbols, FormatText, SpoilerIfIncomplete, QuoteText, ItalicizeText } = require('./stringHelper');
+const { COLORS, ID_LENGTH, SYMBOLS, AFFIRMATIVE_EMOJI, NEGATIVE_EMOJI } = require('../constants');
+
+const BuildCardImagePath = exports.BuildCardImagePath = function(card, artStyle) {
+    return `${process.env.cardImagePrefix}${card.Official ? 'official/' : `unofficial/`}${artStyle}.png`;
+}
 
 exports.BuildEmbed = function(card, alternateArt = null) {
-    var embed = new MessageEmbed();
+    let embed = new MessageEmbed();
 
-    var description = [];
-    var subheader = [BuildHeader(card)];
+    let description = [];
+    let subheader = [BuildHeader(card)];
 
-    if (card.Traits) subheader.push(Formatters.italic(Formatters.bold(card.Traits.join(', '))));
+    if (card.Traits) subheader.push(ItalicizeText(Formatters.bold(card.Traits.join(', '))));
 
     description.push(SpoilerIfIncomplete(subheader.join('\n'), card.Incomplete));
 
-    var stats = BuildStats(card);
+    let stats = BuildStats(card);
 
     if (stats.length > 0) {
-        var stats = FormatSymbols(stats);
+        stats = FormatSymbols(stats);
 
         description.push(SpoilerIfIncomplete(stats, card.Incomplete));
     }
 
-    var body = [];
+    let body = [];
 
     if (card.Rules) {
-        var formattedRules = FormatText(card.Rules, card.Name);
+        let formattedRules = FormatText(card.Rules, card.Name);
 
         body.push(QuoteText(SpoilerIfIncomplete(formattedRules, card.Incomplete)));
     }
 
     if (card.Special) {
-        var formattedSpecial = FormatText(card.Special, card.Name);
+        let formattedSpecial = FormatText(card.Special, card.Name);
 
         body.push(QuoteText(SpoilerIfIncomplete(formattedSpecial, card.Incomplete)));
     }
 
     if (card.Flavor) {
-        var escapedFlavor = Util.escapeMarkdown(card.Flavor);
+        let escapedFlavor = Util.escapeMarkdown(card.Flavor);
 
         body.push(SpoilerIfIncomplete(ItalicizeText(escapedFlavor), card.Incomplete));
     }
 
+    if (!card.Official) body.push(BuildCredits(card));
+
     if (body.length > 0) description.push(body.join('\n\n'));
+
+    let image = BuildCardImagePath(card, alternateArt ?? card.Id);
 
     embed.setColor(COLORS[(card.Type == 'Villain' || card.Type == 'Main Scheme' ? 'Villain' : card.Classification)]);
     embed.setTitle(SpoilerIfIncomplete((card.Unique ? SYMBOLS['{u}'] : '') + card.Name + (card.Subname ? ` — ${card.Subname}` : '' ), card.Incomplete));
-    embed.setURL(BuildImagePath(process.env.cardImagePrefix, alternateArt ?? card.Id));
+    embed.setURL(image);
     embed.setDescription(description.join('\n\n'));
-    embed.setFooter(BuildFooter(card));
+    embed.setFooter(BuildFooter(card));    
     
-    if (!card.Incomplete) embed.setThumbnail(BuildImagePath(process.env.cardImagePrefix, alternateArt ?? card.Id));
+    if (!card.Incomplete) embed.setThumbnail(image);
 
     return embed;
 }
 
-var BuildFooter = exports.BuildFooter = function(card) {
-    var firstPrinting = card.Printings.find(x => x.ArtificialId == card.Id);
-    var reprints = card.Printings.filter(x => x.ArtificialId != card.Id);
+let BuildCredits = exports.BuildCredits = function(card) {
+    let firstPrinting = card.Printings.find(x => x.ArtificialId == card.Id);
+    let set = SetDao.SETS.find(x => x.Id === firstPrinting.SetId);
 
-    var footer = [];
+    let credits = [];
+
+    credits.push(`${Formatters.bold('Author')}: <@${card.AuthorId}>`);
+    if (set.CouncilNumber) credits.push(`${AFFIRMATIVE_EMOJI} Released in Council Set #${set.CouncilNumber}!`);
+    else credits.push(`${NEGATIVE_EMOJI} Not yet released...`);
+
+    return credits.join('\n');
+}
+
+let BuildFooter = exports.BuildFooter = function(card) {
+    let firstPrinting = card.Printings.find(x => x.ArtificialId == card.Id);
+    let reprints = card.Printings.filter(x => x.ArtificialId != card.Id);
+
+    let footer = [];
 
     footer.push(Summary(firstPrinting));
 
     if (reprints.length > 0 && reprints.length <= 3) {
-        for (var printing of reprints) footer.push(Summary(printing));
+        for (let printing of reprints) footer.push(Summary(printing));
     }
     else if (reprints.length > 3) {
-        for (var i = 0; i < 2; i++) footer.push(Summary(reprints[i]));
+        for (let i = 0; i < 2; i++) footer.push(Summary(reprints[i]));
 
         footer.push(`...and ${reprints.length - 2} more reprints.`);
     }
@@ -75,8 +97,8 @@ var BuildFooter = exports.BuildFooter = function(card) {
     return footer.join('\n');
 }
 
-var BuildHeader = exports.BuildHeader = function(card) {
-    var header = '';
+let BuildHeader = exports.BuildHeader = function(card) {
+    let header = '';
 
     if (card.Classification != 'Encounter' && card.Type != 'Hero' && card.Type != 'Alter-Ego') header += `${Formatters.bold(card.Classification)} `;
 
@@ -88,34 +110,34 @@ var BuildHeader = exports.BuildHeader = function(card) {
 }
 
 exports.BuildRulesEmbed = function(card, alternateArt = null) {
-    var embed = new MessageEmbed();
+    let embed = new MessageEmbed();
+    let image = BuildCardImagePath(card, alternateArt ?? card.Id);
+    let ruleEntries = EvaluateRules(card);
 
-    var ruleEntries = EvaluateRules(card);
-
-    for (var ruleEntry of ruleEntries) {
+    for (let ruleEntry of ruleEntries) {
         embed.addField(FormatSymbols(ruleEntry.title), FormatSymbols(ruleEntry.description));
     }
 
     embed.setColor(COLORS[(card.Type == 'Villain' || card.Type == 'Main Scheme' ? 'Villain' : card.Classification)]);
     embed.setTitle(SpoilerIfIncomplete((card.Unique ? SYMBOLS['{u}'] : '') + card.Name + (card.Subname != null ? ` — ${card.Subname}` : '' ), card.Incomplete));
-    embed.setURL(BuildImagePath(process.env.cardImagePrefix, alternateArt ?? card.Id));
+    embed.setURL(image);
     embed.setFooter(BuildFooter(card));
     
-    if (!card.Incomplete) embed.setThumbnail(BuildImagePath(process.env.cardImagePrefix, alternateArt ?? card.Id));
+    if (!card.Incomplete) embed.setThumbnail(image);
 
     return embed;
 }
 
-var BuildStats = exports.BuildStats = function(card) {
-    var components = [];
+let BuildStats = exports.BuildStats = function(card) {
+    let components = [];
 
-    var hasEconomy = card.Cost != null || card.Resource != null || card.Boost != null;
-    var hasAbilities = card.Recover != null || card.Scheme != null || card.Thwart != null || card.Attack != null || card.Defense != null;
-    var hasFeatures = card.Hand != null || card.Health != null || card.Acceleration != null || card.StartingThreat != null;
+    let hasEconomy = card.Cost != null || card.Resource != null || card.Boost != null;
+    let hasAbilities = card.Recover != null || card.Scheme != null || card.Thwart != null || card.Attack != null || card.Defense != null;
+    let hasFeatures = card.Hand != null || card.Health != null || card.Acceleration != null || card.StartingThreat != null;
 
     if (hasEconomy)
     {
-        var economy = [];
+        let economy = [];
 
         if (card.Cost) economy.push(`Cost: ${card.Cost}`);
 
@@ -128,19 +150,19 @@ var BuildStats = exports.BuildStats = function(card) {
 
     if (hasAbilities)
     {
-        var abilities = [];
+        let abilities = [];
 
         if (card.Recover) abilities.push(`REC: ${card.Recover}`);
 
         if (card.Scheme)
         {
-            var suffix = card.Slash ? '/THW' : '';
+            let suffix = card.Slash ? '/THW' : '';
             abilities.push(`SCH${suffix}: ${card.Scheme}`);
         }
 
         if (card.Thwart)
         {
-            var prefix = card.Slash ? 'SCH/' : '';
+            let prefix = card.Slash ? 'SCH/' : '';
             abilities.push(`${prefix}THW: ${card.Thwart}`);
         }
 
@@ -153,7 +175,7 @@ var BuildStats = exports.BuildStats = function(card) {
 
     if (hasFeatures)
     {
-        var features = [];
+        let features = [];
 
         if (card.Hand) features.push(`Hand Size: ${card.Hand}`);
 
@@ -174,26 +196,26 @@ var BuildStats = exports.BuildStats = function(card) {
 const EvaluateRules = exports.EvaluateRules = function(card) {
     if (!card.Rules && !card.Special) return null;
 
-    var rules = [];
+    let rules = [];
 
-    for (var rule of RuleDao.KEYWORDS_AND_ICONS) {
-        var matches = [];
+    for (let rule of RuleDao.KEYWORDS_AND_ICONS) {
+        let matches = [];
 
-        var pattern = new RegExp(rule.Regex, 'i');
+        let pattern = new RegExp(rule.Regex, 'i');
 
-        for (var text of [card.Rules, card.Special]) {
-            var match = pattern.exec(text);
+        for (let text of [card.Rules, card.Special]) {
+            let match = pattern.exec(text);
 
             if (match) matches.push(match);
         }
 
-        for (var match of matches) {
-            var ruleEntry = {
+        for (let match of matches) {
+            let ruleEntry = {
                 title: rule.Title,
                 description: rule.Description
             };
 
-            for (var replacement of ["quantity", "start", "type"]) ruleEntry.description = ruleEntry.description.replace(`{${replacement}}`, match.groups ? match.groups[replacement] : '');
+            for (let replacement of ["quantity", "start", "type"]) ruleEntry.description = ruleEntry.description.replace(`{${replacement}}`, match.groups ? match.groups[replacement] : '');
 
             if (!rules.some(x => x.title === ruleEntry.title && x.description === ruleEntry.description)) rules.push(ruleEntry);
         }
@@ -207,11 +229,13 @@ exports.FindUniqueArts = function(card) {
 }
 
 const GetBaseId = exports.GetBaseId = function(card) {
-    return card.Id.substring(0, ID_LENGTH);
+    let threshold = card.Official ? ID_LENGTH : ID_LENGTH + card.AuthorId.length + 1;
+
+    return card.Id.substring(0, threshold);
 }
 
 exports.ShareFaces = function(thisCard, thatCard) {
-    return thisCard.Id !== thatCard.Id && GetBaseId(thisCard) === GetBaseId(thatCard);
+    return thisCard.Id != thatCard.Id && GetBaseId(thisCard) === GetBaseId(thatCard);
 }
 
 exports.ShareGroups = function(thisCard, thatCard) {

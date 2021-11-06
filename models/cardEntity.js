@@ -1,14 +1,15 @@
-const { BaseEntity } = require('./baseEntity');
+const { BaseQualifiedEntity } = require('./baseQualifiedEntity');
 
-class CardEntity extends BaseEntity {
-    static DATABASE = 'cerebrocards';
-    static INDEX = 'officialcards';
+class CardEntity extends BaseQualifiedEntity {
+    static DATABASE_SUFFIX = 'cards';
+    static COLLECTION = 'cards';
 
     constructor (document) {
         super(document);
 
         this.Acceleration = document.Acceleration;
         this.Attack = document.Attack;
+        this.AuthorId = document.AuthorId;
         this.Boost = document.Boost;
         this.Classification = document.Classification;
         this.Cost = document.Cost;
@@ -19,7 +20,6 @@ class CardEntity extends BaseEntity {
         this.Health = document.Health;
         this.Incomplete = document.Incomplete;
         this.Name = document.Name;
-        this.Official = document.Official;
         this.Printings = document.Printings;
         this.Recover = document.Recover;
         this.Resource = document.Resource;

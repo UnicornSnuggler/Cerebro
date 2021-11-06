@@ -4,7 +4,7 @@ exports.FlagNames = {
     FUZZY: "fuzzy"
 }
 
-var EscapeQuery = exports.EscapeQuery = function(input, replacement = null) {
+let EscapeQuery = exports.EscapeQuery = function(input, replacement = null) {
     input = input.replace(/([-.!{}()])/gmi, replacement ?? "\\$1");
 
     return input.replaceAll("*", "");
@@ -13,7 +13,7 @@ var EscapeQuery = exports.EscapeQuery = function(input, replacement = null) {
 exports.BuildWildcardQuery = function(input) {
     input = EscapeQuery(input, " ");
 
-    var tokens = input.split(" ").filter(function(x) { return x.trim().length > 0; });
+    let tokens = input.split(" ").filter(function(x) { return x.trim().length > 0; });
 
     return tokens.map(x => `/.*${x}.*/`).join(' AND ');
 }

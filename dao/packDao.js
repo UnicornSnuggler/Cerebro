@@ -1,10 +1,10 @@
 const { PackEntity } = require('../models/packEntity');
-const { CreateDocumentStore } = require('../utilities/documentStoreHelper');
+const { CreateDocumentStore, DeriveDatabase } = require('../utilities/documentStoreHelper');
 
 class PackDao {
     constructor() { }
 
-    static store = CreateDocumentStore(PackEntity.DATABASE).initialize();
+    static store = CreateDocumentStore(DeriveDatabase(PackEntity.DATABASE_SUFFIX)).initialize();
 
     static PACKS = [];
 
@@ -13,16 +13,14 @@ class PackDao {
         
         this.PACKS = [];
 
-        for (var index of PackEntity.INDEXES) {
-            var documents = await this.store.openSession().query({ indexName: index }).all();
-    
-            for (var document of documents) {
-                this.PACKS.push(new PackEntity(document));
-            }
+        let documents = await this.store.openSession().query({ indexName: `all${PackEntity.COLLECTION}` }).all();
 
-            console.log(` - Found ${documents.length} packs from index '${index}'...`);
+        for (let document of documents) {
+            this.PACKS.push(new PackEntity(document));
         }
 
+        console.log(` - Found ${this.PACKS.filter(x => x.Official).length} official packs in the database...`);
+        console.log(` - Found ${this.PACKS.filter(x => !x.Official).length} unofficial packs in the database...`);
         console.log(`Loaded ${this.PACKS.length} total packs from the database!\n`);
     }
 }

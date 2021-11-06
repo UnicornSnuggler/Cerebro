@@ -1,7 +1,7 @@
 const { BaseCollectionEntity } = require('./baseCollectionEntity');
 
 class PackEntity extends BaseCollectionEntity {
-    static INDEXES = ['officialpacks'];
+    static COLLECTION = 'packs';
 
     constructor (document) {
         super(document);

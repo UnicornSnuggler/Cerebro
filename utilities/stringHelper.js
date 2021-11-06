@@ -1,43 +1,39 @@
 const { Formatters } = require('discord.js');
-const { SYMBOLS } = require('../constants');
 const { FormattingDao } = require('../dao/formattingDao');
+const { SYMBOLS } = require('../constants');
 
-exports.BuildImagePath = function(root, text) {
-    return `${root}official/${text}.png`;
-}
-
-var FormatSymbols = exports.FormatSymbols = function(text) {
-    for (var key in SYMBOLS) text = text.replaceAll(key, SYMBOLS[key]);
+let FormatSymbols = exports.FormatSymbols = function(text) {
+    for (let key in SYMBOLS) text = text.replaceAll(key, SYMBOLS[key]);
 
     return text;
 }
 
 exports.FormatText = function(text, exclusion = null) {
-    var replacements = {};
+    let replacements = {};
 
-    for (var priority of ['Severe', 'Exclusion', 'High', 'Medium', 'Low']) {
+    for (let priority of ['Severe', 'Exclusion', 'High', 'Medium', 'Low']) {
         if (priority != 'Exclusion') {
-            var formattings = FormattingDao.FORMATTINGS.filter(x => x.Priority == priority);
+            let formattings = FormattingDao.FORMATTINGS.filter(x => x.Priority == priority);
 
-            for (var formatting of formattings) {
-                var matchedText = null;
+            for (let formatting of formattings) {
+                let matchedText = null;
 
                 if (formatting.Regex) {
-                    var match = text.match(formatting.Match);
+                    let match = text.match(formatting.Match);
 
                     matchedText = match ? match[0] : null;
                 }
                 else if (text.includes(formatting.Match)) matchedText = formatting.Match;
 
                 if (matchedText) {
-                    var replacedText = null;
+                    let replacedText = null;
 
                     if (formatting.Operation == 'Bold') replacedText = Formatters.bold(matchedText);
                     else if (formatting.Operation == 'Emphasis') replacedText = Formatters.bold(ItalicizeText(matchedText));
                     else if (formatting.Operation == 'Italic') replacedText = ItalicizeText(matchedText);
                     else if (formatting.Operation == 'Override') replacedText = formatting.Replacement ? formatting.Replacement : matchedText;
 
-                    var index = Object.keys(replacements).length;
+                    let index = Object.keys(replacements).length;
 
                     replacements[`{${index}}`] = replacedText;
                     text = text.replaceAll(matchedText, `{${index}}`);
@@ -46,7 +42,7 @@ exports.FormatText = function(text, exclusion = null) {
         }
         else {
             if (exclusion && text.includes(exclusion)) {
-                var index = Object.keys(replacements).length;
+                let index = Object.keys(replacements).length;
 
                 replacements[`{${index}}`] = exclusion;
                 text = text.replace(exclusion, `{${index}}`);
@@ -54,7 +50,7 @@ exports.FormatText = function(text, exclusion = null) {
         }
     }
 
-    for (var key of Object.keys(replacements)) text = text.replaceAll(key, replacements[key]);
+    for (let key of Object.keys(replacements)) text = text.replaceAll(key, replacements[key]);
 
     return FormatSymbols(text);
 }

@@ -1,10 +1,10 @@
 const { FormattingEntity } = require('../models/formattingEntity');
-const { CreateDocumentStore } = require('../utilities/documentStoreHelper');
+const { CreateDocumentStore, DeriveDatabase } = require('../utilities/documentStoreHelper');
 
 class FormattingDao {
     constructor() { }
 
-    static store = CreateDocumentStore(FormattingEntity.DATABASE).initialize();
+    static store = CreateDocumentStore(DeriveDatabase(FormattingEntity.DATABASE_SUFFIX)).initialize();
 
     static FORMATTINGS = [];
 
@@ -13,16 +13,13 @@ class FormattingDao {
         
         this.FORMATTINGS = [];
 
-        for (var index of FormattingEntity.INDEXES) {
-            var documents = await this.store.openSession().query({ indexName: index }).all();
-    
-            for (var document of documents) {
-                this.FORMATTINGS.push(new FormattingEntity(document));
-            }
+        let documents = await this.store.openSession().query({ indexName: FormattingEntity.COLLECTION }).all();
 
-            console.log(` - Found ${documents.length} formattings from index '${index}'...`);
+        for (let document of documents) {
+            this.FORMATTINGS.push(new FormattingEntity(document));
         }
 
+        console.log(` - Found ${documents.length} formattings in the database...`);
         console.log(`Loaded ${this.FORMATTINGS.length} total formattings from the database!\n`);
     }
 }

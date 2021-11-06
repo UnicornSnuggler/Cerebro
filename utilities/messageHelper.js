@@ -1,7 +1,7 @@
 const { MessageEmbed } = require("discord.js");
-const Constants = require("../constants");
+const { COLORS } = require("../constants");
 
-var CreateEmbed = exports.CreateEmbed = function(content, color = Constants.COLORS.Default, title = null) {
+let CreateEmbed = exports.CreateEmbed = function(content, color = COLORS.Default, title = null) {
     const embed = new MessageEmbed()
         .setColor(color)
         .setDescription(content);
@@ -12,7 +12,7 @@ var CreateEmbed = exports.CreateEmbed = function(content, color = Constants.COLO
 }
 
 exports.RemoveComponents = function(message, content, removeFiles = true) {
-    var messageOptions = {
+    let messageOptions = {
         components: []
     };
 
@@ -27,7 +27,7 @@ exports.RemoveComponents = function(message, content, removeFiles = true) {
 }
 
 exports.SendContentAsEmbed = function(context, content, components = null, ephemeral = false) {
-    var embed = CreateEmbed(content);
+    let embed = CreateEmbed(content);
 
     return context.reply({
         allowedMentions: {

@@ -1,12 +1,12 @@
-const { ID_LENGTH } = require('../constants');
 const { CardEntity } = require('../models/cardEntity');
 const { GetBaseId, ShareFaces, ShareGroups } = require('../utilities/cardHelper');
-const { CreateDocumentStore } = require('../utilities/documentStoreHelper');
+const { CreateDocumentStore, DeriveDatabase } = require('../utilities/documentStoreHelper');
+const { OFFICIAL, UNOFFICIAL } = require('../constants');
 
 const TrimDuplicates = function(cards) {
-    var results = [];
+    let results = [];
 
-    for (var card of cards) {
+    for (let card of cards) {
         if (!results.some(x => ShareFaces(card, x) || ShareGroups(card, x))) {
             results.push(card);
         }
@@ -18,18 +18,22 @@ const TrimDuplicates = function(cards) {
 class CardDao {
     constructor() {}
 
-    static store = CreateDocumentStore(CardEntity.DATABASE).initialize();
+    static store = CreateDocumentStore(DeriveDatabase(CardEntity.DATABASE_SUFFIX)).initialize();
 
     static async FindFaces(card) {
-        if (card.Id.length === ID_LENGTH) return null;
+        let baseId = GetBaseId(card);
 
-        var results = [];
+        if (card.Id.length === baseId.length) return null;
 
-        var documents = await this.store.openSession().query({ indexName: CardEntity.INDEX })
-            .whereRegex('id()', GetBaseId(card))
+        let index = `${card.Official ? OFFICIAL : UNOFFICIAL}${CardEntity.COLLECTION}`;
+
+        let results = [];
+
+        let documents = await this.store.openSession().query({ indexName: index })
+            .whereRegex('id()', baseId)
             .orderBy('id()').all();
 
-        for (var document of documents) {
+        for (let document of documents) {
             results.push(new CardEntity(document));
         }
 
@@ -39,13 +43,15 @@ class CardDao {
     static async FindStages(card) {
         if (!card.GroupId) return null;
 
-        var results = [];
+        let index = `${card.Official ? OFFICIAL : UNOFFICIAL}${CardEntity.COLLECTION}`;
 
-        var documents = await this.store.openSession().query({ indexName: CardEntity.INDEX })
+        let results = [];
+
+        let documents = await this.store.openSession().query({ indexName: index })
             .whereRegex('GroupId', card.GroupId)
             .orderBy('id()').all();
 
-        for (var document of documents) {
+        for (let document of documents) {
             results.push(new CardEntity(document));
         }
 
@@ -53,40 +59,42 @@ class CardDao {
     }
 
     static async FindFacesAndStages(card) {
-        var collection = {
+        let collection = {
             cards: [],
             faces: [],
             stages: []
         }
 
         if (card.Type === 'Villain' || card.Type === 'Main Scheme') {
-            var stages = await this.FindStages(card);
+            let stages = await this.FindStages(card);
             
             if (stages) {
-                for (var stage of stages) {
+                for (let stage of stages) {
                     collection.cards.push(stage);
 
-                    var stageEntry = {
+                    let stageEntry = {
                         cardId: stage.Id,
                         faces: null
                     };
 
-                    if (stage.Id.length > ID_LENGTH) stageEntry.faces = stages.filter(x => x.Id.includes(GetBaseId(stage))).map(x => x.Id);
+                    let baseId = GetBaseId(stage);
+
+                    if (stage.Id.length != baseId.length) stageEntry.faces = stages.filter(x => x.Id.includes(baseId)).map(x => x.Id);
 
                     collection.stages.push(stageEntry);
                 }
                 
-                var currentStage = collection.stages.find(x => x.cardId === card.Id);
+                let currentStage = collection.stages.find(x => x.cardId === card.Id);
 
                 if (currentStage.faces) collection.faces = currentStage.faces;
 
                 return collection;
             }
             else {
-                var faces = await this.FindFaces(card);
+                let faces = await this.FindFaces(card);
 
                 if (faces) {
-                    for (var face of faces) {
+                    for (let face of faces) {
                         collection.cards.push(face);
                         collection.faces.push(face.Id);
                     }
@@ -96,10 +104,10 @@ class CardDao {
             }
         }
         else {
-            var faces = await this.FindFaces(card);
+            let faces = await this.FindFaces(card);
 
             if (faces) {
-                for (var face of faces) {
+                for (let face of faces) {
                     collection.cards.push(face);
                     collection.faces.push(face.Id);
                 }
@@ -113,14 +121,15 @@ class CardDao {
         return collection;
     }
 
-    static async RetrieveByName(terms) {        
+    static async RetrieveByName(terms, official) {        
         const session = this.store.openSession();
 
         terms = terms.toLowerCase();
 
-        var query = terms.replace(/[^a-zA-Z0-9]/gmi, '');
+        let index = `${official ? OFFICIAL : UNOFFICIAL}${CardEntity.COLLECTION}`;
+        let query = terms.normalize('NFD').replace(/[^a-z0-9]/gmi, '').toLowerCase();
 
-        var documents = await session.query({ indexName: CardEntity.INDEX })
+        let documents = await session.query({ indexName: index })
             .whereRegex('id()', query).orElse()
             .whereRegex('Name', query).orElse()
             .whereRegex('Subname', query).orElse()
@@ -129,7 +138,7 @@ class CardDao {
             .orderBy('id()').all();
 
         if (documents.length === 0) {
-            documents = await session.query({ indexName: CardEntity.INDEX })
+            documents = await session.query({ indexName: index })
                 .whereEquals('id()', query).fuzzy(0.70).orElse()
                 .whereEquals('Name', query).fuzzy(0.70).orElse()
                 .whereEquals('Subname', query).fuzzy(0.70).orElse()
@@ -139,13 +148,13 @@ class CardDao {
         }
 
         if (documents.length > 0) {
-            var results = [];
+            let results = [];
 
-            for (var document of documents) {
+            for (let document of documents) {
                 results.push(new CardEntity(document));
             }
 
-            var matches = results.filter(function(card) {
+            let matches = results.filter(function(card) {
                 return card.Name.toLowerCase() === terms || (card.Subname != null && card.Subname.toLowerCase() === terms) || card.Id.toLowerCase() === terms;
             });
 
