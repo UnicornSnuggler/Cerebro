@@ -82,17 +82,29 @@ const SelectBox = async function(interaction, rules) {
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('rule')
-        .setDescription('Query Rules Reference entries.')
-        .addSubcommand(subcommand =>
+        .setDescription('Query rules.')
+        .addSubcommandGroup(subcommand =>
             subcommand
-                .setName('title')
-                .setDescription('Query a Rules Reference entry by its title.')
-                .addBooleanOption(option => option.setName('official').setDescription('Is the entry being queried official?').setRequired(true))
-                .addStringOption(option => option.setName('terms').setDescription('The terms being queried.').setRequired(true))),
+                .setName('official')
+                .setDescription('Query an official Rules Reference entry.')
+                .addSubcommand(subsubcommand => 
+                    subsubcommand
+                        .setName('title')
+                        .setDescription('Query an official Rules Reference entry by its title.')
+                        .addStringOption(option => option.setName('terms').setDescription('The term(s) being queried.').setRequired(true))))
+        .addSubcommandGroup(subcommand =>
+            subcommand
+                .setName('unofficial')
+                .setDescription('Query an unofficial rule.')
+                .addSubcommand(subsubcommand => 
+                    subsubcommand
+                        .setName('title')
+                        .setDescription('Query an unofficial rule by its title.')
+                        .addStringOption(option => option.setName('terms').setDescription('The term(s) being queried.').setRequired(true)))),
     async execute(interaction) {
         try {
             if (interaction.options.getSubcommand() === 'title') {
-                let official = interaction.options.getBoolean('official');
+                let official = interaction.options.getSubcommandGroup() === 'official';
                 let terms = interaction.options.getString('terms');
     
                 var results = await RuleDao.RetrieveByTerm(terms, official);

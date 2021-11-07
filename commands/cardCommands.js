@@ -275,7 +275,7 @@ module.exports = {
                     subsubcommand
                         .setName('name')
                         .setDescription('Query a card by its title and subtitle.')
-                        .addStringOption(option => option.setName('terms').setDescription('The terms being queried.').setRequired(true))))
+                        .addStringOption(option => option.setName('terms').setDescription('The term(s) being queried.').setRequired(true))))
         .addSubcommandGroup(subcommand =>
             subcommand
                 .setName('unofficial')
@@ -284,7 +284,7 @@ module.exports = {
                     subsubcommand
                         .setName('name')
                         .setDescription('Query a card by its title and subtitle.')
-                        .addStringOption(option => option.setName('terms').setDescription('The terms being queried.').setRequired(true)))),
+                        .addStringOption(option => option.setName('terms').setDescription('The term(s) being queried.').setRequired(true)))),
     async execute(interaction) {
         try {
             if (interaction.options.getSubcommand() === 'name') {
