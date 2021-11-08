@@ -140,19 +140,27 @@ class CardDao {
             .search('TokenizedSubname', tokenizedQuery, 'AND').orElse()
             .search('StrippedSubname', strippedQuery, 'AND')
             .all();
-        
-        if (documents.length === 0) {
-            convertedQuery = convertedQuery.replace(/[ ]/gmi, '');
 
+        if (documents.length === 0) {
             documents = await session.query({ indexName: index })
-                .whereRegex('id()', convertedQuery).orElse()
-                .whereRegex('Name', convertedQuery).orElse()
-                .whereRegex('TokenizedName', tokenizedQuery).orElse()
-                .whereRegex('StrippedName', strippedQuery).orElse()
-                .whereRegex('Subname', convertedQuery).orElse()
-                .whereRegex('TokenizedSubname', tokenizedQuery).orElse()
-                .whereRegex('StrippedSubname', strippedQuery)
+                .whereLucene('Name', convertedQuery).orElse()
+                .whereLucene('TokenizedName', tokenizedQuery).orElse()
+                .whereLucene('StrippedName', strippedQuery).orElse()
+                .whereLucene('Subname', convertedQuery).orElse()
+                .whereLucene('TokenizedSubname', tokenizedQuery).orElse()
+                .whereLucene('StrippedSubname', strippedQuery)
                 .all();
+        
+            if (documents.length === 0) {
+                documents = await session.query({ indexName: index })
+                    .whereRegex('id()', convertedQuery).orElse()
+                    .whereRegex('Name', convertedQuery).orElse()
+                    .whereRegex('TokenizedName', tokenizedQuery).orElse()
+                    .whereRegex('StrippedName', strippedQuery).orElse()
+                    .whereRegex('Subname', convertedQuery).orElse()
+                    .whereRegex('TokenizedSubname', tokenizedQuery).orElse()
+                    .whereRegex('StrippedSubname', strippedQuery)
+                    .all();
 
                 if (documents.length === 0) {
                     documents = await session.query({ indexName: index })
@@ -164,6 +172,7 @@ class CardDao {
                         .whereEquals('StrippedSubname', strippedQuery).fuzzy(0.70)
                         .all();
                 }
+            }
         }
 
         if (documents.length > 0) {
