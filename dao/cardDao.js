@@ -192,7 +192,7 @@ class CardDao {
     static async RetrieveByCollection(collectionEntity, type) {
         const session = this.store.openSession();
 
-        let index = `${collectionEntity.Official ? OFFICIAL : UNOFFICIAL}${CardEntity.COLLECTION}-witharrays`;
+        let index = `${collectionEntity.Official ? OFFICIAL : UNOFFICIAL}${CardEntity.COLLECTION}`;
 
         let documents = await session.query({ indexName: index })
             .search(`${type}Ids`, collectionEntity.Id, 'OR')
