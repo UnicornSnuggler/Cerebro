@@ -1,5 +1,6 @@
 require('dotenv').config()
 const { Client, Collection, Intents } = require('discord.js');
+const { AuthorDao } = require('./dao/authorDao');
 const { FormattingDao } = require('./dao/formattingDao');
 const { GroupDao } = require('./dao/groupDao');
 const { PackDao } = require('./dao/packDao');
@@ -20,6 +21,7 @@ for (const file of commandFiles) {
 }
 
 client.on('ready', async () => {
+    await AuthorDao.RetrieveAllAuthors();
     await FormattingDao.RetrieveAllFormattings();
     await GroupDao.RetrieveAllGroups();
     await PackDao.RetrieveAllPacks();

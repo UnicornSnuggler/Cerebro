@@ -6,11 +6,11 @@ const { BuildEmbed } = require('../utilities/ruleHelper');
 const { SYMBOLS, INTERACT_APOLOGY, LOAD_APOLOGY } = require('../constants');
 
 const SelectBox = async function(interaction, rules) {
-    var selector = new MessageSelectMenu()
+    let selector = new MessageSelectMenu()
         .setCustomId('selector')
         .setPlaceholder('No rule selected...');
 
-    var prompt = `${rules.length} results were found for the given query!`;
+    let prompt = `${rules.length} results were found for the given query!`;
 
     if (rules.length > 25) {
         rules = rules.slice(0, 25);
@@ -19,12 +19,12 @@ const SelectBox = async function(interaction, rules) {
 
     prompt += '\n\nPlease select from the following...';
     
-    for (var rule of rules) {
-        var emoji = null;
-        var emojiMatch = rule.Title.match(/ \((\{[a-z]\})\)/i);
+    for (let rule of rules) {
+        let emoji = null;
+        let emojiMatch = rule.Title.match(/ \((\{[a-z]\})\)/i);
 
-        var title = rule.Title;
-        var description = rule.Reference ?? null;
+        let title = rule.Title;
+        let description = rule.Reference ?? null;
 
         if (emojiMatch) {
             emoji = SYMBOLS[emojiMatch[1]];
@@ -41,7 +41,7 @@ const SelectBox = async function(interaction, rules) {
         }]);
     }
 
-    var components = new MessageActionRow().addComponents(selector);
+    let components = new MessageActionRow().addComponents(selector);
 
     promise = SendContentAsEmbed(interaction, prompt, [components]);
     
@@ -50,15 +50,15 @@ const SelectBox = async function(interaction, rules) {
 
         collector.on('collect', async i => {
             if (i.user.id === interaction.member.id) {
-                var rule = rules.find(x => x.Id === i.values[0]);
+                let rule = rules.find(x => x.Id === i.values[0]);
     
                 collector.stop('selection');
     
                 i.deferUpdate()
                     .then(() => {
-                        var embed = BuildEmbed(rule);
+                        let embed = BuildEmbed(rule);
         
-                        var messageOptions = {
+                        let messageOptions = {
                             components: [],
                             embeds: [embed]
                         };
@@ -70,7 +70,7 @@ const SelectBox = async function(interaction, rules) {
         });
 
         collector.on('end', (i, reason) => {
-            var content = 'The timeout was reached...';
+            let content = 'The timeout was reached...';
 
             if (reason === 'selection') content = LOAD_APOLOGY;
             
@@ -107,7 +107,7 @@ module.exports = {
                 let official = interaction.options.getSubcommandGroup() === 'official';
                 let terms = interaction.options.getString('terms');
     
-                var results = await RuleDao.RetrieveByTerm(terms, official);
+                let results = await RuleDao.RetrieveByTerm(terms, official);
 
                 if (!results || results.length === 0) SendContentAsEmbed(interaction, 'No results were found for the given query...');
                 else if (results.length === 1) SendMessageWithOptions(interaction, { embeds: [BuildEmbed(results[0])] });

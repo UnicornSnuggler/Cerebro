@@ -1,10 +1,13 @@
 const { CardEntity } = require('../models/cardEntity');
+const { NavigationCollection } = require('../models/navigationCollection');
 const { GetBaseId, ShareFaces, ShareGroups } = require('../utilities/cardHelper');
 const { CreateDocumentStore, DeriveDatabase } = require('../utilities/documentStoreHelper');
-const { OFFICIAL, UNOFFICIAL, BY_NAME } = require('../constants');
+const { OFFICIAL, UNOFFICIAL } = require('../constants');
 
 const TrimDuplicates = function(cards) {
     let results = [];
+
+    cards.sort((a, b) => a.Id - b.Id);
 
     for (let card of cards) {
         if (!results.some(x => ShareFaces(card, x) || ShareGroups(card, x))) {
@@ -59,34 +62,30 @@ class CardDao {
     }
 
     static async FindFacesAndStages(card) {
-        let collection = {
-            cards: [],
-            faces: [],
-            stages: []
-        }
+        let collection = new NavigationCollection('Stage');
 
         if (card.Type === 'Villain' || card.Type === 'Main Scheme') {
-            let stages = await this.FindStages(card);
+            let elements = await this.FindStages(card);
             
-            if (stages) {
-                for (let stage of stages) {
-                    collection.cards.push(stage);
+            if (elements) {
+                for (let element of elements) {
+                    collection.cards.push(element);
 
-                    let stageEntry = {
-                        cardId: stage.Id,
+                    let collectionEntry = {
+                        cardId: element.Id,
                         faces: null
                     };
 
-                    let baseId = GetBaseId(stage);
+                    let baseId = GetBaseId(element);
 
-                    if (stage.Id.length != baseId.length) stageEntry.faces = stages.filter(x => x.Id.includes(baseId)).map(x => x.Id);
+                    if (element.Id.length != baseId.length) collectionEntry.faces = elements.filter(x => x.Id.includes(baseId)).map(x => x.Id);
 
-                    collection.stages.push(stageEntry);
+                    collection.elements.push(collectionEntry);
                 }
                 
-                let currentStage = collection.stages.find(x => x.cardId === card.Id);
+                let currentElement = collection.elements.find(x => x.cardId === card.Id);
 
-                if (currentStage.faces) collection.faces = currentStage.faces;
+                if (currentElement.faces) collection.faces = currentElement.faces;
 
                 return collection;
             }
@@ -121,7 +120,7 @@ class CardDao {
         return collection;
     }
 
-    static async RetrieveByName(terms, official) {        
+    static async RetrieveByName(terms, official) {
         const session = this.store.openSession();
 
         terms = terms.toLowerCase();
@@ -183,10 +182,52 @@ class CardDao {
             }
 
             let matches = results.filter(function(card) {
-                return card.Name.toLowerCase() === terms || (card.Subname != null && card.Subname.toLowerCase() === terms) || card.Id.toLowerCase() === terms;
+                return card.Name.toLowerCase() === terms || (!['Hero', 'Alter-Ego'].includes(card.Type) && card.Subname != null && card.Subname.toLowerCase() === terms) || card.Id.toLowerCase() === terms;
             });
 
             return TrimDuplicates(matches.length > 0 ? matches : results);
+        }
+    }
+
+    static async RetrieveByCollection(collectionEntity, type) {
+        const session = this.store.openSession();
+
+        let index = `${collectionEntity.Official ? OFFICIAL : UNOFFICIAL}${CardEntity.COLLECTION}`;
+
+        let documents = await session.query({ indexName: index })
+            .whereEquals(`${type}Id`, collectionEntity.Id)
+            .orderBy('id()').all();
+
+        let collection = new NavigationCollection('Card');
+
+        if (documents.length > 0) {
+            let results = [];
+
+            for (let document of documents) {
+                results.push(new CardEntity(document));
+            }
+            
+            for (let card of results) {
+                collection.cards.push(card);
+
+                let element = {
+                    cardId: card.Id,
+                    faces: null
+                };
+
+                let baseId = GetBaseId(card);
+
+                if (card.Id.length != baseId.length) element.faces = results.filter(x => x.Id.includes(baseId)).map(x => x.Id);
+
+                collection.elements.push(element);
+            }
+            
+            collection.faces = collection.elements[0].faces ?? [];
+
+            return collection;
+        }
+        else {
+            return null;
         }
     }
 }

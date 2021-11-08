@@ -1,6 +1,6 @@
-const { BaseQualifiedEntity } = require('./baseQualifiedEntity');
+const { BaseAuthoredEntity } = require('./baseAuthoredEntity');
 
-class CardEntity extends BaseQualifiedEntity {
+class CardEntity extends BaseAuthoredEntity {
     static DATABASE_SUFFIX = 'cards';
     static COLLECTION = 'cards';
 
@@ -9,7 +9,6 @@ class CardEntity extends BaseQualifiedEntity {
 
         this.Acceleration = document.Acceleration;
         this.Attack = document.Attack;
-        this.AuthorId = document.AuthorId;
         this.Boost = document.Boost;
         this.Classification = document.Classification;
         this.Cost = document.Cost;

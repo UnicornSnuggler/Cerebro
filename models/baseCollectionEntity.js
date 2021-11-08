@@ -1,6 +1,6 @@
-const { BaseQualifiedEntity } = require('./baseQualifiedEntity');
+const { BaseAuthoredEntity } = require('./baseAuthoredEntity');
 
-class BaseCollectionEntity extends BaseQualifiedEntity {
+class BaseCollectionEntity extends BaseAuthoredEntity {
     static DATABASE_SUFFIX = 'collections';
 
     constructor (document) {

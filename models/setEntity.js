@@ -6,7 +6,6 @@ class SetEntity extends BaseCollectionEntity {
     constructor (document) {
         super(document);
 
-        this.AuthorId = document.AuthorId;
         this.CouncilNumber = document.CouncilNumber;
         this.Incomplete = document.Incomplete;
         this.Number = document.Number;

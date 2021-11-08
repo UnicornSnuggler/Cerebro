@@ -1,15 +1,16 @@
-const { Formatters, MessageEmbed, Util } = require('discord.js');
+const { Formatters, MessageActionRow, MessageButton, MessageEmbed, Util } = require('discord.js');
 const { RuleDao } = require('../dao/ruleDao');
 const { SetDao } = require('../dao/setDao');
+const { CreateEmbed, RemoveComponents, SendMessageWithOptions } = require('../utilities/messageHelper');
 const { Summary } = require('./printingHelper');
 const { FormatSymbols, FormatText, SpoilerIfIncomplete, QuoteText, ItalicizeText } = require('./stringHelper');
-const { COLORS, ID_LENGTH, SYMBOLS, AFFIRMATIVE_EMOJI, NEGATIVE_EMOJI } = require('../constants');
+const { AFFIRMATIVE_EMOJI, COLORS, ID_LENGTH, INTERACT_APOLOGY, LOAD_APOLOGY, NEGATIVE_EMOJI, SYMBOLS } = require('../constants');
 
 const BuildCardImagePath = exports.BuildCardImagePath = function(card, artStyle) {
     return `${process.env.cardImagePrefix}${card.Official ? 'official/' : `unofficial/`}${artStyle}.jpg`;
 }
 
-exports.BuildEmbed = function(card, alternateArt = null) {
+const BuildEmbed = exports.BuildEmbed = function(card, alternateArt = null) {
     let embed = new MessageEmbed();
 
     let description = [];
@@ -67,7 +68,7 @@ exports.BuildEmbed = function(card, alternateArt = null) {
     return embed;
 }
 
-let BuildCredits = exports.BuildCredits = function(card) {
+const BuildCredits = exports.BuildCredits = function(card) {
     let set = SetDao.SETS.find(x => x.Id === GetPrintingByArtificialId(card, card.Id).SetId);
 
     let credits = [];
@@ -79,7 +80,7 @@ let BuildCredits = exports.BuildCredits = function(card) {
     return credits.join('\n');
 }
 
-let BuildFooter = exports.BuildFooter = function(card) {
+const BuildFooter = exports.BuildFooter = function(card) {
     let reprints = card.Printings.filter(x => x.ArtificialId != card.Id);
 
     let footer = [];
@@ -98,7 +99,7 @@ let BuildFooter = exports.BuildFooter = function(card) {
     return footer.join('\n');
 }
 
-let BuildHeader = exports.BuildHeader = function(card) {
+const BuildHeader = exports.BuildHeader = function(card) {
     let header = '';
 
     if (card.Classification != 'Encounter' && card.Type != 'Hero' && card.Type != 'Alter-Ego') header += `${Formatters.bold(card.Classification)} `;
@@ -110,7 +111,7 @@ let BuildHeader = exports.BuildHeader = function(card) {
     return header;
 }
 
-exports.BuildRulesEmbed = function(card, alternateArt = null) {
+const BuildRulesEmbed = exports.BuildRulesEmbed = function(card, alternateArt = null) {
     let embed = new MessageEmbed();
     let image = BuildCardImagePath(card, alternateArt ?? card.Id);
     let ruleEntries = EvaluateRules(card);
@@ -132,7 +133,7 @@ exports.BuildRulesEmbed = function(card, alternateArt = null) {
     return embed;
 }
 
-let BuildStats = exports.BuildStats = function(card) {
+const BuildStats = exports.BuildStats = function(card) {
     let components = [];
 
     let hasEconomy = card.Cost != null || card.Resource != null || card.Boost != null;
@@ -228,7 +229,7 @@ const EvaluateRules = exports.EvaluateRules = function(card) {
     return rules.length > 0 ? [...new Set(rules)] : null;
 }
 
-exports.FindUniqueArts = function(card) {
+const FindUniqueArts = exports.FindUniqueArts = function(card) {
     return card.Printings.filter(x => x.UniqueArt).map(x => x.ArtificialId);
 }
 
@@ -239,7 +240,7 @@ const GetBaseId = exports.GetBaseId = function(card) {
 }
 
 const GetPrintingByArtificialId = exports.GetPrintingByArtificialId = function(card, artificialId) {
-    return card.Printings.find(x => x.ArtificialId == artificialId);
+    return card.Printings.find(x => x.ArtificialId === artificialId);
 }
 
 exports.ShareFaces = function(thisCard, thatCard) {
@@ -248,4 +249,186 @@ exports.ShareFaces = function(thisCard, thatCard) {
 
 exports.ShareGroups = function(thisCard, thatCard) {
     return thisCard.GroupId && thatCard.GroupId && thisCard.GroupId == thatCard.GroupId;
+}
+
+const Imbibe = exports.Imbibe = function(interaction, card, currentArtStyle, currentFace, currentElement, collection, rulesToggle, artToggle, message = null) {
+    let navigationRow = new MessageActionRow();
+    let toggleRow = new MessageActionRow();
+
+    let artStyles = FindUniqueArts(card);
+
+    if (collection.elements.length > 0) {
+        let style = collection.tag === 'Card' ? 'SECONDARY' : 'PRIMARY';
+
+        navigationRow.addComponents(new MessageButton()
+            .setCustomId('previousElement')
+            .setLabel(`Previous ${collection.tag}`)
+            .setStyle(style));
+        
+        navigationRow.addComponents(new MessageButton()
+            .setCustomId('nextElement')
+            .setLabel(`Next  ${collection.tag}`)
+            .setStyle(style));
+    }
+
+    if (collection.faces.length > 0)
+        navigationRow.addComponents(new MessageButton()
+            .setCustomId('cycleFace')
+            .setLabel('Flip Card')
+            .setStyle('PRIMARY'));
+
+    if (artStyles.length > 1)
+        navigationRow.addComponents(new MessageButton()
+            .setCustomId('cycleArt')
+            .setLabel('Change Art')
+            .setStyle('PRIMARY'));
+
+    if (EvaluateRules(card))
+        toggleRow.addComponents(new MessageButton()
+            .setCustomId('toggleRules')
+            .setLabel('Toggle Rules')
+            .setStyle('SECONDARY'));
+
+    toggleRow.addComponents(new MessageButton()
+        .setCustomId('toggleArt')
+        .setLabel('Toggle Art')
+        .setStyle('SUCCESS'));
+
+    toggleRow.addComponents(new MessageButton()
+        .setCustomId('clearComponents')
+        .setLabel('Clear Buttons')
+        .setStyle('DANGER'));
+
+    let promise;
+
+    let artificialId = artStyles[currentArtStyle];
+
+    let components = [];
+    let embeds = [];
+    let files = [];
+    
+    for (let row of [navigationRow, toggleRow]) {
+        if (row.components.length > 0) components.push(row);
+    }
+
+    if (!artToggle) {
+        if (!rulesToggle) embeds.push(BuildEmbed(card, artificialId));
+        else embeds.push(BuildRulesEmbed(card, artificialId));
+    }
+    else {
+        let printing = GetPrintingByArtificialId(card, artificialId);
+        let set = SetDao.SETS.find(x => x.Id === printing.SetId);
+
+        files.push({
+            attachment: BuildCardImagePath(card, artificialId),
+            name: `${(card.Incomplete || set.Incomplete) ? 'SPOILER_' : ''}${artificialId}.png`,
+            spoiler: card.Incomplete
+        });
+    }
+
+    let messageOptions = {
+        components: components,
+        embeds: embeds,
+        files: files
+    };
+
+    if (message) promise = message.edit(messageOptions);
+    else promise = SendMessageWithOptions(interaction, messageOptions);
+        
+    promise.then((message) => {
+        const collector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: 15000 });
+
+        collector.on('collect', i => {
+            if (i.user.id === interaction.member.id) {
+                if (i.customId != 'clearComponents') collector.stop('navigation');
+
+                i.deferUpdate()
+                .then(async () => {
+                    let nextArtStyle = currentArtStyle;
+                    let nextCard = card;
+                    let nextFace = currentFace;
+                    let nextElement = currentElement;
+                    let nextCollection = collection;
+                    let nextRulesToggle = rulesToggle;
+                    let nextArtToggle = artToggle;
+
+                    switch (i.customId) {
+                        case 'cycleArt':
+                            nextArtStyle = currentArtStyle + 1 >= artStyles.length ? 0 : currentArtStyle + 1;
+
+                            break;
+                        case 'cycleFace':
+                            nextArtStyle = 0;
+                            nextFace = currentFace + 1 >= nextCollection.faces.length ? 0 : currentFace + 1;
+                            nextCard = nextCollection.cards.find(x => x.Id === nextCollection.faces[nextFace]);
+                            nextRulesToggle = false;
+                            
+                            if (nextCollection.elements) nextElement = nextCollection.elements.findIndex(x => x.cardId === nextCard.Id);
+
+                            break;
+                        case 'previousElement':
+                            nextArtStyle = 0;
+                            nextElement = currentElement - 1 >= 0 ? currentElement - 1 : nextCollection.elements.length - 1;
+                            nextCard = nextCollection.cards.find(x => x.Id === nextCollection.elements[nextElement].cardId);
+                            nextRulesToggle = false;
+                            
+                            if (nextCollection.elements[nextElement].faces) {
+                                nextCollection.faces = nextCollection.elements[nextElement].faces;
+                                nextFace = nextCollection.faces.findIndex(x => x === nextCard.Id);
+                            }
+                            else {
+                                nextCollection.faces = [];
+                                nextFace = -1;
+                            }
+                            
+                            break;
+                        case 'nextElement':
+                            nextArtStyle = 0;
+                            nextElement = currentElement + 1 >= nextCollection.elements.length ? 0 : currentElement + 1;
+                            nextCard = nextCollection.cards.find(x => x.Id === nextCollection.elements[nextElement].cardId);
+                            nextRulesToggle = false;
+                            
+                            if (nextCollection.elements[nextElement].faces) {
+                                nextCollection.faces = nextCollection.elements[nextElement].faces;
+                                nextFace = nextCollection.faces.findIndex(x => x === nextCard.Id);
+                            }
+                            else {
+                                nextCollection.faces = [];
+                                nextFace = -1;
+                            }
+                            
+                            break;
+                        case 'toggleRules':
+                            nextRulesToggle = !rulesToggle;
+                            nextArtToggle = false;
+
+                            break;
+                        case 'toggleArt':
+                            nextRulesToggle = false;
+                            nextArtToggle = !nextArtToggle;
+
+                            break;
+                        case 'clearComponents':
+                            collector.stop('cancellation');
+                            return;
+                        default:
+                            break;
+                    }
+
+                    Imbibe(interaction, nextCard, nextArtStyle, nextFace, nextElement, nextCollection, nextRulesToggle, nextArtToggle, message);
+                });
+            }
+            else i.reply({embeds: [CreateEmbed(INTERACT_APOLOGY)], ephemeral: true});
+        });
+
+        collector.on('end', (i, reason) => {
+            let content = null;
+            let removeFiles = true;
+
+            if (reason === 'navigation') content = LOAD_APOLOGY;
+            else removeFiles = !artToggle;
+            
+            RemoveComponents(message, content, removeFiles);
+        });
+    });
 }
