@@ -192,15 +192,24 @@ class CardDao {
     static async RetrieveByCollection(collectionEntity, type) {
         const session = this.store.openSession();
 
-        let index = `${collectionEntity.Official ? OFFICIAL : UNOFFICIAL}${CardEntity.COLLECTION}`;
+        let index = `${collectionEntity.Official ? OFFICIAL : UNOFFICIAL}${CardEntity.COLLECTION}-witharrays`;
 
         let documents = await session.query({ indexName: index })
-            .whereEquals(`${type}Id`, collectionEntity.Id)
-            .orderBy('id()').all();
+            .search(`${type}Ids`, collectionEntity.Id, 'OR')
+            .all();
 
         let collection = new NavigationCollection('Card');
 
         if (documents.length > 0) {
+            documents.sort((a, b) => {
+                let artificialIdA = a.Printings.find(x => x[`${type}Id`] === collectionEntity.Id).ArtificialId;
+                let artificialIdB = b.Printings.find(x => x[`${type}Id`] === collectionEntity.Id).ArtificialId;
+
+                if (artificialIdA > artificialIdB) return 1;
+                else if (artificialIdA < artificialIdB) return -1;
+                else return 0;
+            });
+
             let results = [];
 
             for (let document of documents) {
