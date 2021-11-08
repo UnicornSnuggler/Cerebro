@@ -1,7 +1,7 @@
 const { CardEntity } = require('../models/cardEntity');
 const { GetBaseId, ShareFaces, ShareGroups } = require('../utilities/cardHelper');
 const { CreateDocumentStore, DeriveDatabase } = require('../utilities/documentStoreHelper');
-const { OFFICIAL, UNOFFICIAL } = require('../constants');
+const { OFFICIAL, UNOFFICIAL, BY_NAME } = require('../constants');
 
 const TrimDuplicates = function(cards) {
     let results = [];
@@ -127,24 +127,43 @@ class CardDao {
         terms = terms.toLowerCase();
 
         let index = `${official ? OFFICIAL : UNOFFICIAL}${CardEntity.COLLECTION}`;
-        let query = terms.normalize('NFD').replace(/[^a-z0-9]/gmi, '').toLowerCase();
+        let convertedQuery = terms.normalize('NFD').replace(/[\u0300-\u036f]/gmi, '').toLowerCase();
+        let tokenizedQuery = convertedQuery.replace(/[^a-z0-9 -]/gmi, '').replace(/[-]/gmi, ' ');
+        let strippedQuery = convertedQuery.replace(/[^a-z0-9]/gmi, '');
 
         let documents = await session.query({ indexName: index })
-            .whereRegex('id()', query).orElse()
-            .whereRegex('Name', query).orElse()
-            .whereRegex('Subname', query).orElse()
-            .whereRegex('StrippedName', query).orElse()
-            .whereRegex('StrippedSubname', query)
+            .search('id()', convertedQuery, 'AND').orElse()
+            .search('Name', convertedQuery, 'AND').orElse()
+            .search('TokenizedName', tokenizedQuery, 'AND').orElse()
+            .search('StrippedName', strippedQuery, 'AND').orElse()
+            .search('Subname', convertedQuery, 'AND').orElse()
+            .search('TokenizedSubname', tokenizedQuery, 'AND').orElse()
+            .search('StrippedSubname', strippedQuery, 'AND')
             .all();
-
+        
         if (documents.length === 0) {
+            convertedQuery = convertedQuery.replace(/[ ]/gmi, '');
+
             documents = await session.query({ indexName: index })
-                .whereEquals('id()', query).fuzzy(0.70).orElse()
-                .whereEquals('Name', query).fuzzy(0.70).orElse()
-                .whereEquals('Subname', query).fuzzy(0.70).orElse()
-                .whereEquals('StrippedName', query).fuzzy(0.70).orElse()
-                .whereEquals('StrippedSubname', query).fuzzy(0.70)
+                .whereRegex('id()', convertedQuery).orElse()
+                .whereRegex('Name', convertedQuery).orElse()
+                .whereRegex('TokenizedName', tokenizedQuery).orElse()
+                .whereRegex('StrippedName', strippedQuery).orElse()
+                .whereRegex('Subname', convertedQuery).orElse()
+                .whereRegex('TokenizedSubname', tokenizedQuery).orElse()
+                .whereRegex('StrippedSubname', strippedQuery)
                 .all();
+
+                if (documents.length === 0) {
+                    documents = await session.query({ indexName: index })
+                        .whereEquals('Name', convertedQuery).fuzzy(0.70).orElse()
+                        .whereEquals('TokenizedName', tokenizedQuery).fuzzy(0.70).orElse()
+                        .whereEquals('StrippedName', strippedQuery).fuzzy(0.70).orElse()
+                        .whereEquals('Subname', convertedQuery).fuzzy(0.70).orElse()
+                        .whereEquals('TokenizedSubname', tokenizedQuery).fuzzy(0.70).orElse()
+                        .whereEquals('StrippedSubname', strippedQuery).fuzzy(0.70)
+                        .all();
+                }
         }
 
         if (documents.length > 0) {

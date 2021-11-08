@@ -32,22 +32,28 @@ class RuleDao {
         const session = this.store.openSession();
 
         let index = `${official ? OFFICIAL : UNOFFICIAL}${RuleEntity.COLLECTION}`;
-        let query = terms.normalize('NFD').replace(/[^a-z0-9]/gmi, '').toLowerCase();
+        let convertedQuery = terms.normalize('NFD').replace(/[^a-z0-9 {}-]/gmi, '').toLowerCase();
+        let tokenizedQuery = convertedQuery.replace(/[^a-z0-9 {}-]/gmi, '').replace(/[-]/gmi, ' ');
+        let strippedQuery = convertedQuery.replace(/[^a-z0-9]/gmi, '');
 
         let documents = await session.query({ indexName: index })
-            .whereRegex('id()', query).orElse()
-            .whereRegex('Title', query).orElse()
-            .whereRegex('StrippedTitle', query).orElse()
-            .whereRegex('Terms', query)
+            .search('Terms', convertedQuery, 'AND')
             .orderBy('id()').all();
 
         if (documents.length === 0) {
             documents = await session.query({ indexName: index })
-                .whereEquals('id()', query).fuzzy(0.70).orElse()
-                .whereEquals('Title', query).fuzzy(0.70).orElse()
-                .whereEquals('StrippedTitle', query).fuzzy(0.70).orElse()
-                .whereEquals('Terms', query).fuzzy(0.70)
+                .whereRegex('Title', convertedQuery).orElse()
+                .whereRegex('TokenizedTitle', tokenizedQuery).orElse()
+                .whereRegex('StrippedTitle', strippedQuery)
                 .orderBy('id()').all();
+
+                if (documents.length === 0) {
+                    documents = await session.query({ indexName: index })
+                        .whereEquals('Title', convertedQuery).fuzzy(0.70).orElse()
+                        .whereEquals('TokenizedTitle', tokenizedQuery).fuzzy(0.70).orElse()
+                        .whereEquals('StrippedTitle', strippedQuery).fuzzy(0.70)
+                        .orderBy('id()').all();
+                }
         }
 
         let results = [];
