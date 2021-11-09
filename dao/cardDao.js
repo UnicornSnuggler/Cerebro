@@ -10,7 +10,7 @@ const TrimDuplicates = function(cards) {
     cards.sort((a, b) => a.Id - b.Id);
 
     for (let card of cards) {
-        if (!results.some(x => ShareFaces(card, x) || ShareGroups(card, x))) {
+        if (!results.some(x => (x.Subname && card.Subname && ShareFaces(card, x)) || ShareGroups(card, x))) {
             results.push(card);
         }
     }

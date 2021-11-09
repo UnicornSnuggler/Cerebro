@@ -27,8 +27,8 @@ class CardEntity extends BaseAuthoredEntity {
         this.Slash = document.Slash;
         this.Special = document.Special;
         this.Stage = document.Stage;
-        this.Subname = document.Subname;
         this.StartingThreat = document.StartingThreat;
+        this.Subname = document.Subname;
         this.TargetThreat = document.TargetThreat;
         this.Thwart = document.Thwart;
         this.Traits = document.Traits;
