@@ -10,7 +10,7 @@ const BuildCardImagePath = exports.BuildCardImagePath = function(card, artStyle)
     return `${process.env.cardImagePrefix}${card.Official ? 'official/' : `unofficial/`}${artStyle}.jpg`;
 }
 
-const BuildEmbed = exports.BuildEmbed = function(card, alternateArt = null) {
+const BuildEmbed = exports.BuildEmbed = function(card, alternateArt = null, spoilerFree = false) {
     let embed = new MessageEmbed();
 
     let description = [];
@@ -18,14 +18,14 @@ const BuildEmbed = exports.BuildEmbed = function(card, alternateArt = null) {
 
     if (card.Traits) subheader.push(ItalicizeText(Formatters.bold(card.Traits.join(', '))));
 
-    description.push(SpoilerIfIncomplete(subheader.join('\n'), card.Incomplete));
+    description.push(SpoilerIfIncomplete(subheader.join('\n'), card.Incomplete && !spoilerFree));
 
     let stats = BuildStats(card);
 
     if (stats.length > 0) {
         stats = FormatSymbols(stats);
 
-        description.push(SpoilerIfIncomplete(stats, card.Incomplete));
+        description.push(SpoilerIfIncomplete(stats, card.Incomplete && !spoilerFree));
     }
 
     let body = [];
@@ -33,19 +33,19 @@ const BuildEmbed = exports.BuildEmbed = function(card, alternateArt = null) {
     if (card.Rules) {
         let formattedRules = FormatText(card.Rules, card.Name);
 
-        body.push(QuoteText(SpoilerIfIncomplete(formattedRules, card.Incomplete)));
+        body.push(QuoteText(SpoilerIfIncomplete(formattedRules, card.Incomplete && !spoilerFree)));
     }
 
     if (card.Special) {
         let formattedSpecial = FormatText(card.Special, card.Name);
 
-        body.push(QuoteText(SpoilerIfIncomplete(formattedSpecial, card.Incomplete)));
+        body.push(QuoteText(SpoilerIfIncomplete(formattedSpecial, card.Incomplete && !spoilerFree)));
     }
 
     if (card.Flavor) {
         let escapedFlavor = Util.escapeMarkdown(card.Flavor);
 
-        body.push(SpoilerIfIncomplete(ItalicizeText(escapedFlavor), card.Incomplete));
+        body.push(SpoilerIfIncomplete(ItalicizeText(escapedFlavor), card.Incomplete && !spoilerFree));
     }
 
     if (!card.Official) body.push(BuildCredits(card));
@@ -55,15 +55,15 @@ const BuildEmbed = exports.BuildEmbed = function(card, alternateArt = null) {
     let image = BuildCardImagePath(card, alternateArt ?? card.Id);
 
     embed.setColor(COLORS[(card.Type == 'Villain' || card.Type == 'Main Scheme' ? 'Villain' : card.Classification)]);
-    embed.setTitle(SpoilerIfIncomplete((card.Unique ? SYMBOLS['{u}'] : '') + card.Name + (card.Subname ? ` — ${card.Subname}` : '' ), card.Incomplete));
+    embed.setTitle(SpoilerIfIncomplete((card.Unique ? SYMBOLS['{u}'] : '') + card.Name + (card.Subname ? ` — ${card.Subname}` : '' ), card.Incomplete && !spoilerFree));
     embed.setURL(image);
     embed.setDescription(description.join('\n\n'));
-    embed.setFooter(BuildFooter(card));
+    embed.setFooter(BuildFooter(card, spoilerFree));
 
     let printing = GetPrintingByArtificialId(card, alternateArt ?? card.Id);
     let set = SetDao.SETS.find(x => x.Id === printing.SetId);
     
-    if (!card.Incomplete && !set.Incomplete) embed.setThumbnail(image);
+    if (spoilerFree || (!card.Incomplete && !set.Incomplete)) embed.setThumbnail(image);
 
     return embed;
 }
@@ -80,18 +80,18 @@ const BuildCredits = exports.BuildCredits = function(card) {
     return credits.join('\n');
 }
 
-const BuildFooter = exports.BuildFooter = function(card) {
+const BuildFooter = exports.BuildFooter = function(card, spoilerFree = false) {
     let reprints = card.Printings.filter(x => x.ArtificialId != card.Id);
 
     let footer = [];
 
-    footer.push(Summary(GetPrintingByArtificialId(card, card.Id)));
+    footer.push(Summary(GetPrintingByArtificialId(card, card.Id), spoilerFree));
 
     if (reprints.length > 0 && reprints.length <= 3) {
-        for (let printing of reprints) footer.push(Summary(printing));
+        for (let printing of reprints) footer.push(Summary(printing, spoilerFree));
     }
     else if (reprints.length > 3) {
-        for (let i = 0; i < 2; i++) footer.push(Summary(reprints[i]));
+        for (let i = 0; i < 2; i++) footer.push(Summary(reprints[i], spoilerFree));
 
         footer.push(`...and ${reprints.length - 2} more reprints.`);
     }
@@ -111,7 +111,7 @@ const BuildHeader = exports.BuildHeader = function(card) {
     return header;
 }
 
-const BuildRulesEmbed = exports.BuildRulesEmbed = function(card, alternateArt = null) {
+const BuildRulesEmbed = exports.BuildRulesEmbed = function(card, alternateArt = null, spoilerFree = false) {
     let embed = new MessageEmbed();
     let image = BuildCardImagePath(card, alternateArt ?? card.Id);
     let ruleEntries = EvaluateRules(card);
@@ -121,14 +121,14 @@ const BuildRulesEmbed = exports.BuildRulesEmbed = function(card, alternateArt = 
     }
 
     embed.setColor(COLORS[(card.Type == 'Villain' || card.Type == 'Main Scheme' ? 'Villain' : card.Classification)]);
-    embed.setTitle(SpoilerIfIncomplete((card.Unique ? SYMBOLS['{u}'] : '') + card.Name + (card.Subname != null ? ` — ${card.Subname}` : '' ), card.Incomplete));
+    embed.setTitle(SpoilerIfIncomplete((card.Unique ? SYMBOLS['{u}'] : '') + card.Name + (card.Subname != null ? ` — ${card.Subname}` : '' ), card.Incomplete && !spoilerFree));
     embed.setURL(image);
-    embed.setFooter(BuildFooter(card));
+    embed.setFooter(BuildFooter(card, spoilerFree));
 
     let printing = GetPrintingByArtificialId(card, alternateArt ?? card.Id);
     let set = SetDao.SETS.find(x => x.Id === printing.SetId);
     
-    if (!card.Incomplete && !set.Incomplete) embed.setThumbnail(image);
+    if (spoilerFree || (!card.Incomplete && !set.Incomplete)) embed.setThumbnail(image);
 
     return embed;
 }
@@ -251,7 +251,7 @@ exports.ShareGroups = function(thisCard, thatCard) {
     return thisCard.GroupId && thatCard.GroupId && thisCard.GroupId == thatCard.GroupId;
 }
 
-const Imbibe = exports.Imbibe = function(interaction, card, currentArtStyle, currentFace, currentElement, collection, rulesToggle, artToggle, message = null) {
+const Imbibe = exports.Imbibe = function(interaction, card, currentArtStyle, currentFace, currentElement, collection, rulesToggle, artToggle, message = null, spoilerToggle = false) {
     let navigationRow = new MessageActionRow();
     let toggleRow = new MessageActionRow();
 
@@ -289,6 +289,12 @@ const Imbibe = exports.Imbibe = function(interaction, card, currentArtStyle, cur
             .setLabel('Toggle Rules')
             .setStyle('SECONDARY'));
 
+    if (card.Incomplete)
+        toggleRow.addComponents(new MessageButton()
+            .setCustomId('toggleSpoiler')
+            .setLabel('Unveil Secretly')
+            .setStyle('SECONDARY'));
+
     toggleRow.addComponents(new MessageButton()
         .setCustomId('toggleArt')
         .setLabel('Toggle Art')
@@ -308,12 +314,12 @@ const Imbibe = exports.Imbibe = function(interaction, card, currentArtStyle, cur
     let files = [];
     
     for (let row of [navigationRow, toggleRow]) {
-        if (row.components.length > 0) components.push(row);
+        if (!spoilerToggle && row.components.length > 0) components.push(row);
     }
 
     if (!artToggle) {
-        if (!rulesToggle) embeds.push(BuildEmbed(card, artificialId));
-        else embeds.push(BuildRulesEmbed(card, artificialId));
+        if (!rulesToggle) embeds.push(BuildEmbed(card, artificialId, spoilerToggle));
+        else embeds.push(BuildRulesEmbed(card, artificialId, spoilerToggle));
     }
     else {
         let printing = GetPrintingByArtificialId(card, artificialId);
@@ -321,8 +327,8 @@ const Imbibe = exports.Imbibe = function(interaction, card, currentArtStyle, cur
 
         files.push({
             attachment: BuildCardImagePath(card, artificialId),
-            name: `${(card.Incomplete || set.Incomplete) ? 'SPOILER_' : ''}${artificialId}.png`,
-            spoiler: card.Incomplete
+            name: `${(!spoilerToggle && (card.Incomplete || set.Incomplete)) ? 'SPOILER_' : ''}${artificialId}.png`,
+            spoiler: (!spoilerToggle && (card.Incomplete || set.Incomplete))
         });
     }
 
@@ -333,13 +339,16 @@ const Imbibe = exports.Imbibe = function(interaction, card, currentArtStyle, cur
     };
 
     if (message) promise = message.edit(messageOptions);
-    else promise = SendMessageWithOptions(interaction, messageOptions);
+    else promise = SendMessageWithOptions(interaction, messageOptions, spoilerToggle);
         
     promise.then((message) => {
         const collector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: 15000 });
 
         collector.on('collect', i => {
-            if (i.user.id === interaction.member.id) {
+            if (i.customId === 'toggleSpoiler') {
+                Imbibe(i, card, currentArtStyle, currentFace, currentElement, collection, rulesToggle, artToggle, null, true);
+            }
+            else if (i.user.id === interaction.member.id) {
                 if (i.customId != 'clearComponents') collector.stop('navigation');
 
                 i.deferUpdate()
@@ -351,6 +360,8 @@ const Imbibe = exports.Imbibe = function(interaction, card, currentArtStyle, cur
                     let nextCollection = collection;
                     let nextRulesToggle = rulesToggle;
                     let nextArtToggle = artToggle;
+                    let nextMessage = spoilerToggle ? null : message;
+                    let nextSpoilerToggle = spoilerToggle;
 
                     switch (i.customId) {
                         case 'cycleArt':
@@ -415,20 +426,22 @@ const Imbibe = exports.Imbibe = function(interaction, card, currentArtStyle, cur
                             break;
                     }
 
-                    Imbibe(interaction, nextCard, nextArtStyle, nextFace, nextElement, nextCollection, nextRulesToggle, nextArtToggle, message);
+                    Imbibe(interaction, nextCard, nextArtStyle, nextFace, nextElement, nextCollection, nextRulesToggle, nextArtToggle, nextMessage, nextSpoilerToggle);
                 });
             }
             else i.reply({embeds: [CreateEmbed(INTERACT_APOLOGY)], ephemeral: true});
         });
 
         collector.on('end', (i, reason) => {
-            let content = null;
-            let removeFiles = true;
+            if (!spoilerToggle) {
+                let content = null;
+                let removeFiles = true;
 
-            if (reason === 'navigation') content = LOAD_APOLOGY;
-            else removeFiles = !artToggle;
-            
-            RemoveComponents(message, content, removeFiles);
+                if (reason === 'navigation') content = LOAD_APOLOGY;
+                else removeFiles = !artToggle;
+                
+                RemoveComponents(message, content, removeFiles);
+            }
         });
     });
 }
