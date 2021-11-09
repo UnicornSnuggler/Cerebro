@@ -5,14 +5,14 @@ exports.Summary = function(printing, spoilerFree = false) {
     let pack = printing.PackId ? PackDao.PACKS.find(x => x.Id === printing.PackId) : null;
     let set = SetDao.SETS.find(x => x.Id === printing.SetId);
 
-    if (!spoilerFree && set.Incomplete) return "[Redacted]";
+    if (!spoilerFree && pack.Incomplete) return "[Redacted]";
 
-    let summary = `${set.Name} #${printing.SetNumber}`;
+    let summary = `${pack.Name} #${printing.PackNumber}`;
 
-    if (pack) {
-        summary += `, ${pack.Name}`;
+    if (set) {
+        summary += `, ${set.Name}`;
 
-        if (printing.PackNumber) summary += ` #${printing.PackNumber}`;
+        if (printing.SetNumber) summary += ` #${printing.SetNumber}`;
     }
 
     return summary;

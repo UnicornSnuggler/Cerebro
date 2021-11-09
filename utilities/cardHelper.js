@@ -5,6 +5,7 @@ const { CreateEmbed, RemoveComponents, SendMessageWithOptions } = require('../ut
 const { Summary } = require('./printingHelper');
 const { FormatSymbols, FormatText, SpoilerIfIncomplete, QuoteText, ItalicizeText } = require('./stringHelper');
 const { AFFIRMATIVE_EMOJI, COLORS, ID_LENGTH, INTERACT_APOLOGY, LOAD_APOLOGY, NEGATIVE_EMOJI, SYMBOLS } = require('../constants');
+const { PackDao } = require('../dao/packDao');
 
 const BuildCardImagePath = exports.BuildCardImagePath = function(card, artStyle) {
     return `${process.env.cardImagePrefix}${card.Official ? 'official/' : `unofficial/`}${artStyle}.jpg`;
@@ -61,20 +62,20 @@ const BuildEmbed = exports.BuildEmbed = function(card, alternateArt = null, spoi
     embed.setFooter(BuildFooter(card, spoilerFree));
 
     let printing = GetPrintingByArtificialId(card, alternateArt ?? card.Id);
-    let set = SetDao.SETS.find(x => x.Id === printing.SetId);
+    let pack = PackDao.PACKS.find(x => x.Id === printing.PackId);
     
-    if (spoilerFree || (!card.Incomplete && !set.Incomplete)) embed.setThumbnail(image);
+    if (spoilerFree || (!card.Incomplete && !pack.Incomplete)) embed.setThumbnail(image);
 
     return embed;
 }
 
 const BuildCredits = exports.BuildCredits = function(card) {
-    let set = SetDao.SETS.find(x => x.Id === GetPrintingByArtificialId(card, card.Id).SetId);
+    let pack = PackDao.PACKS.find(x => x.Id === GetPrintingByArtificialId(card, card.Id).PackId);
 
     let credits = [];
 
     credits.push(`${Formatters.bold('Author')}: <@${card.AuthorId}>`);
-    if (set.CouncilNumber) credits.push(`${AFFIRMATIVE_EMOJI} Released in Council Set #${set.CouncilNumber}!`);
+    if (pack.CouncilNumber) credits.push(`${AFFIRMATIVE_EMOJI} Released in Council Set #${pack.CouncilNumber}!`);
     else credits.push(`${NEGATIVE_EMOJI} Not yet released...`);
 
     return credits.join('\n');
@@ -126,9 +127,9 @@ const BuildRulesEmbed = exports.BuildRulesEmbed = function(card, alternateArt = 
     embed.setFooter(BuildFooter(card, spoilerFree));
 
     let printing = GetPrintingByArtificialId(card, alternateArt ?? card.Id);
-    let set = SetDao.SETS.find(x => x.Id === printing.SetId);
+    let pack = PackDao.PACKS.find(x => x.Id === printing.PackId);
     
-    if (spoilerFree || (!card.Incomplete && !set.Incomplete)) embed.setThumbnail(image);
+    if (spoilerFree || (!card.Incomplete && !pack.Incomplete)) embed.setThumbnail(image);
 
     return embed;
 }
@@ -323,12 +324,12 @@ const Imbibe = exports.Imbibe = function(interaction, card, currentArtStyle, cur
     }
     else {
         let printing = GetPrintingByArtificialId(card, artificialId);
-        let set = SetDao.SETS.find(x => x.Id === printing.SetId);
+        let pack = PackDao.PACKS.find(x => x.Id === printing.PackId);
 
         files.push({
             attachment: BuildCardImagePath(card, artificialId),
-            name: `${(!spoilerToggle && (card.Incomplete || set.Incomplete)) ? 'SPOILER_' : ''}${artificialId}.png`,
-            spoiler: (!spoilerToggle && (card.Incomplete || set.Incomplete))
+            name: `${(!spoilerToggle && (card.Incomplete || pack.Incomplete)) ? 'SPOILER_' : ''}${artificialId}.png`,
+            spoiler: (!spoilerToggle && (card.Incomplete || pack.Incomplete))
         });
     }
 

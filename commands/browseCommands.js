@@ -67,9 +67,8 @@ const SelectBox = async function(interaction, collectionEntities, type) {
 }
 
 const QueueCollectionResult = async function(interaction, collectionEntity, type, message = null) {
-    let invertedType = type === 'pack' ? 'set' : 'pack';
-    invertedType = invertedType.charAt(0).toUpperCase() + invertedType.slice(1);
-    let collection = await CardDao.RetrieveByCollection(collectionEntity, invertedType);
+    type = type.charAt(0).toUpperCase() + type.slice(1);
+    let collection = await CardDao.RetrieveByCollection(collectionEntity, type);
 
     let card = collection.cards[0];
     let currentArtStyle = 0;
@@ -115,14 +114,13 @@ module.exports = {
         try {
             let official = interaction.options.getSubcommandGroup() === 'official';
             let type = interaction.options.getSubcommand();
-            let invertedType = type === 'pack' ? 'set' : 'pack';
             let query = interaction.options.getString('name').toLowerCase();
 
             let convertedQuery = query.normalize('NFD').replace(/[^a-z0-9 -]/gmi, '').toLowerCase();
             let queryTokens = convertedQuery.replace(/[-]/gmi, ' ').split(' ');
             let strippedQuery = convertedQuery.replace(/[^a-z0-9]/gmi, '');
 
-            let collections = invertedType === 'pack' ? PackDao.PACKS : SetDao.SETS;
+            let collections = type === 'pack' ? PackDao.PACKS : SetDao.SETS;
 
             let results = collections.filter(collection => {
                 if (collection.Official != official) return false;

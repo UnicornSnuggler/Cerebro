@@ -5,6 +5,10 @@ class PackEntity extends BaseCollectionEntity {
 
     constructor (document) {
         super(document);
+
+        this.CouncilNumber = document.CouncilNumber;
+        this.Incomplete = document.Incomplete;
+        this.Number = document.Number;
     }
 }
 
