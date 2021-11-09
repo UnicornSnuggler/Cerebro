@@ -64,7 +64,7 @@ class CardDao {
     static async FindFacesAndStages(card) {
         let collection = new NavigationCollection('Stage');
 
-        if (card.Type === 'Villain' || card.Type === 'Main Scheme') {
+        if (card.GroupId) {
             let elements = await this.FindStages(card);
             
             if (elements) {
