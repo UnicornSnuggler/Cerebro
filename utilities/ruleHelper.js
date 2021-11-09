@@ -3,7 +3,7 @@ const { FormatSymbols, FormatText } = require('./stringHelper');
 const { COLORS } = require('../constants');
 
 const BuildRuleImagePath = exports.BuildRuleImagePath = function(rule) {
-    return `${process.env.ruleImagePrefix}${rule.Official ? 'official/' : `unofficial/`}${rule.Id}.png`;
+    return `${process.env.ruleImagePrefix}${rule.Official ? 'official/' : `unofficial/`}${rule.Id}.jpg`;
 }
 
 exports.BuildEmbed = function(rule) {
