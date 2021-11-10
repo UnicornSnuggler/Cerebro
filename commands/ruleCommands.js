@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageActionRow, MessageSelectMenu } = require('discord.js');
 const { RuleDao } = require('../dao/ruleDao');
+const { LogCommand, LogRuleResult } = require('../utilities/logHelper');
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed, SendMessageWithOptions } = require('../utilities/messageHelper');
 const { BuildEmbed } = require('../utilities/ruleHelper');
 const { SYMBOLS, INTERACT_APOLOGY, LOAD_APOLOGY } = require('../constants');
@@ -51,6 +52,8 @@ const SelectBox = async function(interaction, rules) {
         collector.on('collect', async i => {
             if (i.user.id === interaction.member.id) {
                 let rule = rules.find(x => x.Id === i.values[0]);
+
+                LogRuleResult(i, rule);
     
                 collector.stop('selection');
     
@@ -101,23 +104,36 @@ module.exports = {
                         .setName('title')
                         .setDescription('Query an unofficial rule by its title.')
                         .addStringOption(option => option.setName('terms').setDescription('The term(s) being queried.').setRequired(true)))),
-    async execute(interaction) {
+    async execute(context) {
         try {
-            if (interaction.options.getSubcommand() === 'title') {
-                let official = interaction.options.getSubcommandGroup() === 'official';
-                let terms = interaction.options.getString('terms');
+            let subCommand = context.options.getSubcommand();
+            let subCommandGroup = context.options.getSubcommandGroup();
+            let command = `/rule ${subCommandGroup} ${subCommand}`;
+
+            if (subCommand === 'title') {
+                let terms = context.options.getString('terms');
+
+                LogCommand(context, command, terms);
+
+                let official = subCommandGroup === 'official';
     
                 let results = await RuleDao.RetrieveByTerm(terms, official);
 
-                if (!results || results.length === 0) SendContentAsEmbed(interaction, 'No results were found for the given query...');
-                else if (results.length === 1) SendMessageWithOptions(interaction, { embeds: [BuildEmbed(results[0])] });
-                else if (results.length > 1) SelectBox(interaction, results);
+                if (!results || results.length === 0) SendContentAsEmbed(context, 'No results were found for the given query...');
+                else if (results.length === 1) {
+                    let rule = results[0];
+
+                    LogRuleResult(context, rule);
+
+                    SendMessageWithOptions(context, { embeds: [BuildEmbed(rule)] });
+                }
+                else if (results.length > 1) SelectBox(context, results);
             }
-            else SendContentAsEmbed(interaction, 'Something weird happened...');
+            else SendContentAsEmbed(context, 'Something weird happened...');
         }
         catch (e) {
             console.log(e);
-            SendContentAsEmbed(interaction, 'Something went wrong... Check the logs to find out more.');
+            SendContentAsEmbed(context, 'Something went wrong... Check the logs to find out more.');
         }
     }
 }

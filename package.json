@@ -33,6 +33,7 @@
     "fs": "^0.0.1-security",
     "node-events": "0.0.2",
     "ravendb": "^5.0.3",
-    "requests": "^0.3.0"
+    "requests": "^0.3.0",
+    "uuid": "^8.3.2"
   }
 }

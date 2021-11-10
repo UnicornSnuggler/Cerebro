@@ -5,6 +5,7 @@ const { CardDao } = require('../dao/cardDao');
 const { PackDao } = require('../dao/packDao');
 const { SetDao } = require('../dao/setDao');
 const { Imbibe } = require('../utilities/cardHelper');
+const { LogCommand, LogCollectionResult } = require('../utilities/logHelper');
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed } = require('../utilities/messageHelper');
 const { LOAD_APOLOGY, INTERACT_APOLOGY } = require('../constants');
 
@@ -66,7 +67,9 @@ const SelectBox = async function(interaction, collectionEntities, type) {
     });
 }
 
-const QueueCollectionResult = async function(interaction, collectionEntity, type, message = null) {
+const QueueCollectionResult = async function(context, collectionEntity, type, message = null) {
+    LogCollectionResult(context, collectionEntity, type);
+
     type = type.charAt(0).toUpperCase() + type.slice(1);
     let collection = await CardDao.RetrieveByCollection(collectionEntity, type);
 
@@ -75,7 +78,7 @@ const QueueCollectionResult = async function(interaction, collectionEntity, type
     let currentFace = collection.faces.length > 0 ? 0 : -1;
     let currentElement = 0;
 
-    Imbibe(interaction, card, currentArtStyle, currentFace, currentElement, collection, false, false, message);
+    Imbibe(context, card, currentArtStyle, currentFace, currentElement, collection, false, false, message);
 }
 
 module.exports = {
@@ -110,17 +113,23 @@ module.exports = {
                             .setName('set')
                             .setDescription('Browse all of the cards in an unofficial set.')
                             .addStringOption(option => option.setName('name').setDescription('The name of the set being queried.').setRequired(true)))),
-    async execute(interaction) {
-        try {
-            let official = interaction.options.getSubcommandGroup() === 'official';
-            let type = interaction.options.getSubcommand();
-            let query = interaction.options.getString('name').toLowerCase();
+    async execute(context) {
+        let subCommand = context.options.getSubcommand();
+        let subCommandGroup = context.options.getSubcommandGroup();
+        let command = `/browse ${subCommandGroup} ${subCommand}`;
 
+        try {
+            let query = context.options.getString('name');
+
+            LogCommand(context, command, query);
+
+            let official = subCommandGroup === 'official';
+            
             let convertedQuery = query.normalize('NFD').replace(/[^a-z0-9 -]/gmi, '').toLowerCase();
             let queryTokens = convertedQuery.replace(/[-]/gmi, ' ').split(' ');
             let strippedQuery = convertedQuery.replace(/[^a-z0-9]/gmi, '');
 
-            let collections = type === 'pack' ? PackDao.PACKS : SetDao.SETS;
+            let collections = subCommand === 'pack' ? PackDao.PACKS : SetDao.SETS;
 
             let results = collections.filter(collection => {
                 if (collection.Official != official) return false;
@@ -139,13 +148,13 @@ module.exports = {
                 }
             });
             
-            if (!results || results.length === 0) SendContentAsEmbed(interaction, 'No results were found for the given query...');
-            else if (results.length > 1) SelectBox(interaction, results, type);
-            else if (results.length === 1) QueueCollectionResult(interaction, results[0], type);
+            if (!results || results.length === 0) SendContentAsEmbed(context, 'No results were found for the given query...');
+            else if (results.length > 1) SelectBox(context, results, subCommand);
+            else if (results.length === 1) QueueCollectionResult(context, results[0], subCommand);
         }
         catch (e) {
             console.log(e);
-            SendContentAsEmbed(interaction, 'Something went wrong... Check the logs to find out more.');
+            SendContentAsEmbed(context, 'Something went wrong... Check the logs to find out more.');
         }
     }
 }

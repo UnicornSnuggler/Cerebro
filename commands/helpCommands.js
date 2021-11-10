@@ -46,7 +46,7 @@ module.exports = {
                     repliedUser: false
                 },
                 embeds: [embed],
-                ephemeral: false
+                ephemeral: true
             });
         }
         catch (e) {

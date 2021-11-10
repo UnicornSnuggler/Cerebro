@@ -3,6 +3,7 @@ const { MessageActionRow, MessageSelectMenu } = require('discord.js');
 const { CardDao } = require('../dao/cardDao');
 const { PackDao } = require('../dao/packDao');
 const { FindUniqueArts, GetPrintingByArtificialId, Imbibe } = require('../utilities/cardHelper');
+const { LogCardResult, LogCommand } = require('../utilities/logHelper');
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed } = require('../utilities/messageHelper');
 const { SYMBOLS, LOAD_APOLOGY, INTERACT_APOLOGY } = require('../constants');
 
@@ -77,7 +78,9 @@ const SelectBox = async function(interaction, cards) {
     });
 }
 
-const QueueCardResult = async function(interaction, card, message = null) {
+const QueueCardResult = async function(context, card, message = null) {
+    LogCardResult(context, card);
+
     let collection = await CardDao.FindFacesAndStages(card);
 
     let expandedCard = collection.cards.find(x => x.Id === card.Id);
@@ -85,7 +88,7 @@ const QueueCardResult = async function(interaction, card, message = null) {
     let currentFace = collection.faces.length > 0 ? collection.faces.findIndex(x => x === expandedCard.Id) : -1;
     let currentStage = collection.elements.length > 0 ? collection.elements.findIndex(x => x.cardId === expandedCard.Id) : -1;
 
-    Imbibe(interaction, expandedCard, currentArtStyle, currentFace, currentStage, collection, false, false, message);
+    Imbibe(context, expandedCard, currentArtStyle, currentFace, currentStage, collection, false, false, message);
 }
 
 module.exports = {
@@ -110,24 +113,30 @@ module.exports = {
                         .setName('name')
                         .setDescription('Query a card by its title and subtitle.')
                         .addStringOption(option => option.setName('terms').setDescription('The term(s) being queried.').setRequired(true)))),
-    async execute(interaction) {
+    async execute(context) {
         try {
-            if (interaction.options.getSubcommand() === 'name') {
-                let official = interaction.options.getSubcommandGroup() === 'official';
-                let terms = interaction.options.getString('terms');
+            let subCommand = context.options.getSubcommand();
+            let subCommandGroup = context.options.getSubcommandGroup();
+            let command = `/card ${subCommandGroup} ${subCommand}`;
+
+            if (subCommand === 'name') {
+                let terms = context.options.getString('terms');
+
+                LogCommand(context, command, terms);
+
+                let official = subCommandGroup === 'official';
     
                 let results = await CardDao.RetrieveByName(terms, official);
                 
-                if (!results || results.length === 0) SendContentAsEmbed(interaction, 'No results were found for the given query...');
-                else if (results.length === 1) QueueCardResult(interaction, results[0]);
-                else if (results.length > 1) SelectBox(interaction, results);
+                if (!results || results.length === 0) SendContentAsEmbed(context, 'No results were found for the given query...');
+                else if (results.length === 1) QueueCardResult(context, results[0]);
+                else if (results.length > 1) SelectBox(context, results);
             }
-            else if (interaction.options.getSubcommand() === 'textbox') SendContentAsEmbed(interaction, 'Not yet implemented... Sit tight!');
-            else SendContentAsEmbed(interaction, 'Something weird happened...');
+            else SendContentAsEmbed(context, 'Something weird happened...');
         }
         catch (e) {
             console.log(e);
-            SendContentAsEmbed(interaction, 'Something went wrong... Check the logs to find out more.');
+            SendContentAsEmbed(context, 'Something went wrong... Check the logs to find out more.');
         }
     }
 }
