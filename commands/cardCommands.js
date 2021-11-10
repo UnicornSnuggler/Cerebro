@@ -6,6 +6,7 @@ const { FindUniqueArts, GetPrintingByArtificialId, Imbibe } = require('../utilit
 const { LogCardResult, LogCommand } = require('../utilities/logHelper');
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed } = require('../utilities/messageHelper');
 const { SYMBOLS, LOAD_APOLOGY, INTERACT_APOLOGY } = require('../constants');
+const { SetDao } = require('../dao/setDao');
 
 const SelectBox = async function(interaction, cards) {
     let selector = new MessageSelectMenu()
@@ -23,13 +24,13 @@ const SelectBox = async function(interaction, cards) {
     
     for (let card of cards) {
         let description = card.Type;
-        let packId = GetPrintingByArtificialId(card, card.Id).PackId ?? null;
+        let setId = GetPrintingByArtificialId(card, card.Id).SetId ?? null;
         
-        if (packId) {
-            let pack = PackDao.PACKS.find(x => x.Id === packId);
+        if (setId) {
+            let set = SetDao.SETS.find(x => x.Id === setId);
 
-            if (card.Classification === 'Hero' && !['Alter-Ego', 'Hero'].includes(card.Type)) description = `${pack.Name} ${description}`;
-            else if (card.Classification === 'Encounter') description = `${description} (${pack.Name})`;
+            if (card.Classification === 'Hero' && !['Alter-Ego', 'Hero'].includes(card.Type)) description = `${set.Name} ${description}`;
+            else if (card.Classification === 'Encounter') description = `${description} (${set.Name})`;
         }
         else description = `${card.Classification} ${description}`;
         

@@ -239,6 +239,25 @@ class CardDao {
             return null;
         }
     }
+
+    static async RetrieveByIdList(ids) {
+        const session = this.store.openSession();
+    
+        let documents = await session.query({ indexName: 'allcards' })
+            .whereIn('id()', ids)
+            .all();
+    
+        if (documents.length > 0) {    
+            let results = [];
+    
+            for (let document of documents) {
+                results.push(new CardEntity(document));
+            }
+
+            return results;
+        }
+        else return null;
+    }
 }
 
 module.exports = { CardDao }

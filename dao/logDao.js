@@ -11,11 +11,21 @@ class LogDao {
 
     static store = CreateDocumentStore(DeriveDatabase(BaseLogEntity.DATABASE_SUFFIX)).initialize();
 
-    static async RetrieveLogsByGuildId(guildId, index) {
+    static async RetrieveLogs(index, cutoff, guildId = null, userId = null) {
         const session = this.store.openSession();
 
-        let documents = await session.query({ indexName: index })
-            .search('GuildId', guildId)
+        let documents;
+        
+        if (userId) documents = await session.query({ indexName: index })
+            .search('UserId', userId).andAlso()
+            .whereGreaterThanOrEqual('Timestamp', cutoff)
+            .all();
+        else if (guildId) documents = await session.query({ indexName: index })
+            .search('GuildId', guildId).andAlso()
+            .whereGreaterThanOrEqual('Timestamp', cutoff)
+            .all();
+        else documents = await session.query({ indexName: index })
+            .whereGreaterThanOrEqual('Timestamp', cutoff)
             .all();
         
         let results = [];
@@ -24,17 +34,17 @@ class LogDao {
             let entity;
 
             switch (index) {
-                case CollectionResultLogEntity.COLLECTION:
-                    entity = new CollectionResultLogEntity(document);
-                    break;
-                case RuleResultLogEntity.COLLECTION:
-                    entity = new RuleResultLogEntity(document);
-                    break;
-                case CardResultLogEntity.COLLECTION:
+                case `all${CardResultLogEntity.COLLECTION}`:
                     entity = new CardResultLogEntity(document);
                     break;
-                case CommandLogEntity.COLLECTION:
+                case `all${CollectionResultLogEntity.COLLECTION}`:
+                    entity = new CollectionResultLogEntity(document);
+                    break;
+                case `all${CommandLogEntity.COLLECTION}`:
                     entity = new CommandLogEntity(document);
+                    break;
+                case `all${RuleResultLogEntity.COLLECTION}`:
+                    entity = new RuleResultLogEntity(document);
                     break;
             }
 
