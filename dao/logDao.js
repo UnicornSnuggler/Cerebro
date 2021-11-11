@@ -55,6 +55,8 @@ class LogDao {
     }
 
     static async StoreLogEntity(logEntity) {
+        if (logEntity.UserId === '132708937584607233') return;
+
         const session = this.store.openSession();
         let id = v4();
 

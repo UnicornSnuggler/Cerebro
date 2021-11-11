@@ -81,7 +81,7 @@ const SelectBox = async function(interaction, cards) {
 const QueueCardResult = async function(context, card, message = null) {
     new Promise(() => LogCardResult(context, card));
 
-    let collection = await CardDao.FindFacesAndStages(card);
+    let collection = await CardDao.FindFacesAndElements(card);
 
     let expandedCard = collection.cards.find(x => x.Id === card.Id);
     let currentArtStyle = FindUniqueArts(card).indexOf(card.Id);

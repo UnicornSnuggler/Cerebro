@@ -1,9 +1,9 @@
 class NavigationCollection {
-    constructor (tag) {
+    constructor () {
         this.cards = [];
         this.elements = [];
         this.faces = [];
-        this.tag = tag;
+        this.tag = '';
     }
 }
 

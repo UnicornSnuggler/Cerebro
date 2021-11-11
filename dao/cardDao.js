@@ -1,3 +1,4 @@
+const { GroupDao } = require('./groupDao');
 const { CardEntity } = require('../models/cardEntity');
 const { NavigationCollection } = require('../models/navigationCollection');
 const { GetBaseId, ShareFaces, ShareGroups } = require('../utilities/cardHelper');
@@ -43,7 +44,7 @@ class CardDao {
         return results.length > 1 ? results : null;
     }
 
-    static async FindStages(card) {
+    static async FindElements(card) {
         if (!card.GroupId) return null;
 
         let index = `${card.Official ? OFFICIAL : UNOFFICIAL}${CardEntity.COLLECTION}`;
@@ -61,11 +62,15 @@ class CardDao {
         return results.length > 1 ? results : null;
     }
 
-    static async FindFacesAndStages(card) {
-        let collection = new NavigationCollection('Stage');
+    static async FindFacesAndElements(card) {
+        let collection = new NavigationCollection();
 
         if (card.GroupId) {
-            let elements = await this.FindStages(card);
+            let group = GroupDao.GROUPS.find(x => x.Id === card.GroupId);
+
+            collection.tag = group.Type === 'Composition' ? 'Component' : 'Stage';
+
+            let elements = await this.FindElements(card);
             
             if (elements) {
                 for (let element of elements) {
@@ -198,7 +203,8 @@ class CardDao {
             .search(`${type}Ids`, collectionEntity.Id, 'OR')
             .all();
 
-        let collection = new NavigationCollection('Card');
+        let collection = new NavigationCollection();
+        collection.tag = 'Card';
 
         if (documents.length > 0) {
             documents.sort((a, b) => {
