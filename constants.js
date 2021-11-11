@@ -11,6 +11,8 @@ exports.COLORS = {
 };
 
 exports.ID_LENGTH = 5;
+exports.INTERACT_TIMEOUT = 30;
+exports.SELECT_TIMEOUT = 45;
 
 exports.OFFICIAL = 'official';
 exports.UNOFFICIAL = 'unofficial';

@@ -4,7 +4,7 @@ const { RuleDao } = require('../dao/ruleDao');
 const { LogCommand, LogRuleResult } = require('../utilities/logHelper');
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed, SendMessageWithOptions } = require('../utilities/messageHelper');
 const { BuildEmbed } = require('../utilities/ruleHelper');
-const { SYMBOLS, INTERACT_APOLOGY, LOAD_APOLOGY } = require('../constants');
+const { SYMBOLS, INTERACT_APOLOGY, LOAD_APOLOGY, SELECT_TIMEOUT } = require('../constants');
 
 const SelectBox = async function(interaction, rules) {
     let selector = new MessageSelectMenu()
@@ -47,13 +47,13 @@ const SelectBox = async function(interaction, rules) {
     promise = SendContentAsEmbed(interaction, prompt, [components]);
     
     promise.then((message) => {
-        const collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: 15000 });
+        const collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: SELECT_TIMEOUT * 1000 });
 
         collector.on('collect', async i => {
             if (i.user.id === interaction.member.id) {
                 let rule = rules.find(x => x.Id === i.values[0]);
 
-                LogRuleResult(i, rule);
+                new Promise(() => LogRuleResult(i, rule));
     
                 collector.stop('selection');
     
@@ -113,7 +113,7 @@ module.exports = {
             if (subCommand === 'title') {
                 let terms = context.options.getString('terms');
 
-                LogCommand(context, command, terms);
+                new Promise(() => LogCommand(context, command, terms));
 
                 let official = subCommandGroup === 'official';
     
@@ -123,7 +123,7 @@ module.exports = {
                 else if (results.length === 1) {
                     let rule = results[0];
 
-                    LogRuleResult(context, rule);
+                    new Promise(() => LogRuleResult(context, rule));
 
                     SendMessageWithOptions(context, { embeds: [BuildEmbed(rule)] });
                 }

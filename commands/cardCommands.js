@@ -1,12 +1,11 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageActionRow, MessageSelectMenu } = require('discord.js');
 const { CardDao } = require('../dao/cardDao');
-const { PackDao } = require('../dao/packDao');
+const { SetDao } = require('../dao/setDao');
 const { FindUniqueArts, GetPrintingByArtificialId, Imbibe } = require('../utilities/cardHelper');
 const { LogCardResult, LogCommand } = require('../utilities/logHelper');
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed } = require('../utilities/messageHelper');
-const { SYMBOLS, LOAD_APOLOGY, INTERACT_APOLOGY } = require('../constants');
-const { SetDao } = require('../dao/setDao');
+const { SYMBOLS, LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT } = require('../constants');
 
 const SelectBox = async function(interaction, cards) {
     let selector = new MessageSelectMenu()
@@ -51,7 +50,7 @@ const SelectBox = async function(interaction, cards) {
     let promise = SendContentAsEmbed(interaction, prompt, [components]);
     
     promise.then((message) => {
-        let collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: 10000 });
+        let collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: SELECT_TIMEOUT * 1000 });
 
         collector.on('collect', async i => {
             if (i.user.id === interaction.member.id) {
@@ -80,7 +79,7 @@ const SelectBox = async function(interaction, cards) {
 }
 
 const QueueCardResult = async function(context, card, message = null) {
-    LogCardResult(context, card);
+    new Promise(() => LogCardResult(context, card));
 
     let collection = await CardDao.FindFacesAndStages(card);
 
@@ -123,7 +122,7 @@ module.exports = {
             if (subCommand === 'name') {
                 let terms = context.options.getString('terms');
 
-                LogCommand(context, command, terms);
+                new Promise(() => LogCommand(context, command, terms));
 
                 let official = subCommandGroup === 'official';
     

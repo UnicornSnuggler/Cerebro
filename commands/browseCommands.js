@@ -7,7 +7,7 @@ const { SetDao } = require('../dao/setDao');
 const { Imbibe } = require('../utilities/cardHelper');
 const { LogCommand, LogCollectionResult } = require('../utilities/logHelper');
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed } = require('../utilities/messageHelper');
-const { LOAD_APOLOGY, INTERACT_APOLOGY } = require('../constants');
+const { LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT } = require('../constants');
 
 const SelectBox = async function(interaction, collectionEntities, type) {
     let selector = new MessageSelectMenu()
@@ -39,7 +39,7 @@ const SelectBox = async function(interaction, collectionEntities, type) {
     let promise = SendContentAsEmbed(interaction, prompt, [components]);
     
     promise.then((message) => {
-        let collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: 20000 });
+        let collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: SELECT_TIMEOUT * 1000 });
 
         collector.on('collect', async i => {
             if (i.user.id === interaction.member.id) {
@@ -68,7 +68,7 @@ const SelectBox = async function(interaction, collectionEntities, type) {
 }
 
 const QueueCollectionResult = async function(context, collectionEntity, type, message = null) {
-    LogCollectionResult(context, collectionEntity, type);
+    new Promise(() => LogCollectionResult(context, collectionEntity, type));
 
     type = type.charAt(0).toUpperCase() + type.slice(1);
     let collection = await CardDao.RetrieveByCollection(collectionEntity, type);
@@ -121,7 +121,7 @@ module.exports = {
         try {
             let query = context.options.getString('name');
 
-            LogCommand(context, command, query);
+            new Promise(() => LogCommand(context, command, query));
 
             let official = subCommandGroup === 'official';
             

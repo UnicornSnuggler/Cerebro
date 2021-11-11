@@ -1,11 +1,10 @@
 const { Formatters, MessageActionRow, MessageButton, MessageEmbed, Util } = require('discord.js');
+const { PackDao } = require('../dao/packDao');
 const { RuleDao } = require('../dao/ruleDao');
-const { SetDao } = require('../dao/setDao');
 const { CreateEmbed, RemoveComponents, SendMessageWithOptions } = require('../utilities/messageHelper');
 const { Summary } = require('./printingHelper');
 const { FormatSymbols, FormatText, SpoilerIfIncomplete, QuoteText, ItalicizeText } = require('./stringHelper');
-const { AFFIRMATIVE_EMOJI, COLORS, ID_LENGTH, INTERACT_APOLOGY, LOAD_APOLOGY, NEGATIVE_EMOJI, SYMBOLS } = require('../constants');
-const { PackDao } = require('../dao/packDao');
+const { AFFIRMATIVE_EMOJI, COLORS, ID_LENGTH, INTERACT_APOLOGY, LOAD_APOLOGY, NEGATIVE_EMOJI, SYMBOLS, INTERACT_TIMEOUT } = require('../constants');
 
 const BuildCardImagePath = exports.BuildCardImagePath = function(card, artStyle) {
     return `${process.env.cardImagePrefix}${card.Official ? 'official/' : `unofficial/`}${artStyle}.jpg`;
@@ -343,7 +342,7 @@ const Imbibe = exports.Imbibe = function(interaction, card, currentArtStyle, cur
     else promise = SendMessageWithOptions(interaction, messageOptions, spoilerToggle);
         
     promise.then((message) => {
-        const collector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: 15000 });
+        const collector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: INTERACT_TIMEOUT * 1000 });
 
         collector.on('collect', i => {
             if (i.customId === 'toggleSpoiler') {
