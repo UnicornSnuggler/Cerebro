@@ -130,12 +130,14 @@ class CardDao {
 
         terms = terms.toLowerCase();
 
+        let wildcard = terms.includes('*');
+
         let index = `${official ? OFFICIAL : UNOFFICIAL}${CardEntity.COLLECTION}`;
         let convertedQuery = terms.normalize('NFD').replace(/[\u0300-\u036f]/gmi, '').toLowerCase();
         let tokenizedQuery = convertedQuery.replace(/[^a-z0-9 -]/gmi, '').replace(/[-]/gmi, ' ');
         let strippedQuery = convertedQuery.replace(/[^a-z0-9]/gmi, '');
 
-        let documents = await session.query({ indexName: index })
+        let documents = !wildcard ? await session.query({ indexName: index })
             .search('id()', convertedQuery, 'AND').orElse()
             .search('Name', convertedQuery, 'AND').orElse()
             .search('TokenizedName', tokenizedQuery, 'AND').orElse()
@@ -143,17 +145,17 @@ class CardDao {
             .search('Subname', convertedQuery, 'AND').orElse()
             .search('TokenizedSubname', tokenizedQuery, 'AND').orElse()
             .search('StrippedSubname', strippedQuery, 'AND')
-            .all();
+            .all() : [];
 
         if (documents.length === 0) {
-            documents = await session.query({ indexName: index })
+            documents = !wildcard ? await session.query({ indexName: index })
                 .whereLucene('Name', convertedQuery).orElse()
                 .whereLucene('TokenizedName', tokenizedQuery).orElse()
                 .whereLucene('StrippedName', strippedQuery).orElse()
                 .whereLucene('Subname', convertedQuery).orElse()
                 .whereLucene('TokenizedSubname', tokenizedQuery).orElse()
                 .whereLucene('StrippedSubname', strippedQuery)
-                .all();
+                .all() : [];
         
             if (documents.length === 0) {
                 documents = await session.query({ indexName: index })
