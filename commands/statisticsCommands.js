@@ -83,16 +83,16 @@ module.exports = {
             let embeds = [];
 
             if (type === 'cards') {
-                embeds.push(await BuildCardResultsEmbed(results));
+                embeds.push(await BuildCardResultsEmbed(results, scale, timeframe));
             }
             else if (type === 'packs') {
-                embeds.push(await BuildPackResultsEmbed(results));
+                embeds.push(await BuildPackResultsEmbed(results, scale, timeframe));
             }
             else if (type === 'sets') {
-                embeds.push(await BuildSetResultsEmbed(results));
+                embeds.push(await BuildSetResultsEmbed(results, scale, timeframe));
             }
             else if (type === 'users') {
-                embeds.push(await BuildUserResultsEmbed(results));
+                embeds.push(await BuildUserResultsEmbed(results, scale, timeframe));
             }
 
             let options = {

@@ -36,11 +36,11 @@ const BuildBaseOrganizedEntity = function(context, collection, packId, setId) {
     return entity;
 }
 
-exports.BuildCardResultsEmbed = async function(results) {
+exports.BuildCardResultsEmbed = async function(results, scale, timeframe) {
     let embed = new MessageEmbed();
 
     embed.setColor(COLORS["Basic"]);
-    embed.setTitle('Card Statistics');
+    embed.setTitle(`${CapitalizedTitleElement(scale)} ${CapitalizedTitleElement(timeframe)} Card Statistics`);
 
     let resultEntries = [];
 
@@ -81,11 +81,11 @@ exports.BuildCardResultsEmbed = async function(results) {
     return embed;
 }
 
-exports.BuildPackResultsEmbed = async function(results) {
+exports.BuildPackResultsEmbed = async function(results, scale, timeframe) {
     let embed = new MessageEmbed();
 
     embed.setColor(COLORS["Basic"]);
-    embed.setTitle('Pack Statistics');
+    embed.setTitle(`${CapitalizedTitleElement(scale)} ${CapitalizedTitleElement(timeframe)} Pack Statistics`);
 
     let resultEntries = [];
 
@@ -112,11 +112,11 @@ exports.BuildPackResultsEmbed = async function(results) {
     return embed;
 }
 
-exports.BuildSetResultsEmbed = async function(results) {
+exports.BuildSetResultsEmbed = async function(results, scale, timeframe) {
     let embed = new MessageEmbed();
 
     embed.setColor(COLORS["Basic"]);
-    embed.setTitle('Set Statistics');
+    embed.setTitle(`${CapitalizedTitleElement(scale)} ${CapitalizedTitleElement(timeframe)} Set Statistics`);
 
     let resultEntries = [];
 
@@ -143,11 +143,11 @@ exports.BuildSetResultsEmbed = async function(results) {
     return embed;
 }
 
-exports.BuildUserResultsEmbed = async function(results) {
+exports.BuildUserResultsEmbed = async function(results, scale, timeframe) {
     let embed = new MessageEmbed();
 
     embed.setColor(COLORS["Basic"]);
-    embed.setTitle('User Statistics');
+    embed.setTitle(`${CapitalizedTitleElement(scale)} ${CapitalizedTitleElement(timeframe)} User Statistics`);
 
     let resultEntries = [];
 
@@ -171,6 +171,10 @@ exports.BuildUserResultsEmbed = async function(results) {
     embed.setDescription(DeriveEmbedDescription(resultEntries));
 
     return embed;
+}
+
+const CapitalizedTitleElement = function(element) {
+    return element === 'all-time' ? 'All-Time' : element.charAt(0).toUpperCase() + element.slice(1);
 }
 
 const DeriveEmbedDescription = function(resultEntries) {
