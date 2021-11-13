@@ -45,7 +45,7 @@ exports.FormatText = function(text, exclusion = null) {
                 let index = Object.keys(replacements).length;
 
                 replacements[`{${index}}`] = exclusion;
-                text = text.replace(exclusion, `{${index}}`);
+                text = text.replaceAll(exclusion, `{${index}}`);
             }
         }
     }
