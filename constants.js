@@ -17,8 +17,9 @@ exports.SELECT_TIMEOUT = 45;
 exports.OFFICIAL = 'official';
 exports.UNOFFICIAL = 'unofficial';
 
-exports.LOAD_APOLOGY = 'Please wait while result details are being retrieved. Art rendering will likely result in longer load times.';
+exports.DM_APOLOGY = 'Sorry, but you can\'t view server statistics in a direct message...';
 exports.INTERACT_APOLOGY = 'Sorry, but you can\'t interact with another user\'s query result...';
+exports.LOAD_APOLOGY = 'Please wait while result details are being retrieved. Art rendering will likely result in longer load times.';
 
 exports.AFFIRMATIVE_EMOJI = '<:released:906312522804654200>';
 exports.NEGATIVE_EMOJI = '<:unreleased:906312522859155487>';

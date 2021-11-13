@@ -9,7 +9,7 @@ const { LogCommand, LogCollectionResult } = require('../utilities/logHelper');
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed } = require('../utilities/messageHelper');
 const { LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT } = require('../constants');
 
-const SelectBox = async function(interaction, collectionEntities, type) {
+const SelectBox = async function(context, collectionEntities, type) {
     let selector = new MessageSelectMenu()
         .setCustomId('selector')
         .setPlaceholder(`No ${type} selected...`);
@@ -36,20 +36,22 @@ const SelectBox = async function(interaction, collectionEntities, type) {
 
     let components = new MessageActionRow().addComponents(selector);
 
-    let promise = SendContentAsEmbed(interaction, prompt, [components]);
+    let promise = SendContentAsEmbed(context, prompt, [components]);
     
     promise.then((message) => {
         let collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: SELECT_TIMEOUT * 1000 });
 
         collector.on('collect', async i => {
-            if (i.user.id === interaction.member.id) {
+            let userId = context.type != 'DEFAULT' ? context.user.id : context.author.id;
+
+            if (i.user.id === userId) {
                 let collectionEntity = collectionEntities.find(x => x.Id === i.values[0]);
 
                 collector.stop('selection');
 
                 i.deferUpdate()
                 .then(() => {
-                    QueueCollectionResult(interaction, collectionEntity, type, message);
+                    QueueCollectionResult(context, collectionEntity, type, message);
                 });
             }
             else {

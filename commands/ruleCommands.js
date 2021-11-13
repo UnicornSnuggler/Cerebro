@@ -6,7 +6,7 @@ const { CreateEmbed, RemoveComponents, SendContentAsEmbed, SendMessageWithOption
 const { BuildEmbed } = require('../utilities/ruleHelper');
 const { SYMBOLS, INTERACT_APOLOGY, LOAD_APOLOGY, SELECT_TIMEOUT } = require('../constants');
 
-const SelectBox = async function(interaction, rules) {
+const SelectBox = async function(context, rules) {
     let selector = new MessageSelectMenu()
         .setCustomId('selector')
         .setPlaceholder('No rule selected...');
@@ -44,13 +44,15 @@ const SelectBox = async function(interaction, rules) {
 
     let components = new MessageActionRow().addComponents(selector);
 
-    promise = SendContentAsEmbed(interaction, prompt, [components]);
+    promise = SendContentAsEmbed(context, prompt, [components]);
     
     promise.then((message) => {
         const collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: SELECT_TIMEOUT * 1000 });
 
         collector.on('collect', async i => {
-            if (i.user.id === interaction.member.id) {
+            let userId = context.type != 'DEFAULT' ? context.user.id : context.author.id;
+
+            if (i.user.id === userId) {
                 let rule = rules.find(x => x.Id === i.values[0]);
 
                 new Promise(() => LogRuleResult(i, rule));

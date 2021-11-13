@@ -7,7 +7,7 @@ const { LogCardResult, LogCommand } = require('../utilities/logHelper');
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed } = require('../utilities/messageHelper');
 const { SYMBOLS, LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT } = require('../constants');
 
-const SelectBox = async function(interaction, cards) {
+const SelectBox = async function(context, cards) {
     let selector = new MessageSelectMenu()
         .setCustomId('selector')
         .setPlaceholder('No card selected...');
@@ -47,20 +47,22 @@ const SelectBox = async function(interaction, cards) {
 
     let components = new MessageActionRow().addComponents(selector);
 
-    let promise = SendContentAsEmbed(interaction, prompt, [components]);
+    let promise = SendContentAsEmbed(context, prompt, [components]);
     
     promise.then((message) => {
         let collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: SELECT_TIMEOUT * 1000 });
 
         collector.on('collect', async i => {
-            if (i.user.id === interaction.member.id) {
+            let userId = context.type != 'DEFAULT' ? context.user.id : context.author.id;
+
+            if (i.user.id === userId) {
                 let card = cards.find(x => x.Id === i.values[0]);
 
                 collector.stop('selection');
 
                 i.deferUpdate()
                 .then(() => {
-                    QueueCardResult(interaction, card, message);
+                    QueueCardResult(context, card, message);
                 });
             }
             else {

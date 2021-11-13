@@ -1,5 +1,5 @@
 require('dotenv').config()
-const { Client, Collection, Intents } = require('discord.js');
+const { Client, Collection, Intents, Constants } = require('discord.js');
 const { AuthorDao } = require('./dao/authorDao');
 const { FormattingDao } = require('./dao/formattingDao');
 const { GroupDao } = require('./dao/groupDao');
@@ -10,7 +10,7 @@ const { ArtificialInteraction } = require('./models/artificialInteraction');
 const { SendContentAsEmbed } = require('./utilities/messageHelper');
 const fs = require('fs');
 
-const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS] });
+const client = new Client({ intents: [Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES], partials: [Constants.PartialTypes.CHANNEL] });
 
 client.commands = new Collection();
 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
@@ -32,6 +32,27 @@ client.on('ready', async () => {
 });
 
 client.on('messageCreate', message => {
+    HandleMessages(message);
+});
+
+client.on('interactionCreate', interaction => {
+    if (!interaction.isCommand()) return;
+
+    const command = client.commands.get(interaction.commandName);
+
+    if (!command) return;
+
+    try {
+        command.execute(interaction);
+    }
+    catch (error) {
+        console.error(error);
+
+        SendContentAsEmbed(interaction, 'There was an error while executing this command!', true);
+    }
+});
+
+const HandleMessages = function(message) {
     if (message.author.bot) return;
 
     let matches = message.content.match(/\{\{.+?\}\}/gi);
@@ -90,23 +111,6 @@ client.on('messageCreate', message => {
             }
         }
     }
-});
-
-client.on('interactionCreate', interaction => {
-    if (!interaction.isCommand()) return;
-
-    const command = client.commands.get(interaction.commandName);
-
-    if (!command) return;
-
-    try {
-        command.execute(interaction);
-    }
-    catch (error) {
-        console.error(error);
-
-        SendContentAsEmbed(interaction, 'There was an error while executing this command!', true);
-    }
-});
+}
 
 client.login(process.env.discordToken);

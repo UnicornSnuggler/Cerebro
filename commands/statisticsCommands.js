@@ -5,7 +5,8 @@ const { CommandLogEntity } = require('../models/commandLogEntity');
 const { RuleResultLogEntity } = require('../models/ruleResultLogEntity');
 const { LogDao } = require('../dao/logDao');
 const { BuildCardResultsEmbed, BuildSetResultsEmbed, BuildPackResultsEmbed, BuildUserResultsEmbed } = require('../utilities/logHelper');
-const { SendContentAsEmbed, SendMessageWithOptions } = require('../utilities/messageHelper');
+const { SendContentAsEmbed, SendMessageWithOptions, CreateEmbed } = require('../utilities/messageHelper');
+const { DM_APOLOGY } = require('../constants');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -77,7 +78,13 @@ module.exports = {
             let cutoff = factor ? Date.now() - factor : 0;
 
             if (scale === 'personal') results = await LogDao.RetrieveLogs(index, cutoff, null, context.user.id);
-            else if (scale === 'server') results = await LogDao.RetrieveLogs(index, cutoff, context.guildId);
+            else if (scale === 'server') {
+                if (context.guildId) results = await LogDao.RetrieveLogs(index, cutoff, context.guildId);
+                else {
+                    SendMessageWithOptions(context, { embeds: [CreateEmbed(DM_APOLOGY)] });
+                    return;
+                }
+            }
             else if (scale === 'global') results = await LogDao.RetrieveLogs(index, cutoff);
 
             let embeds = [];
@@ -95,11 +102,7 @@ module.exports = {
                 embeds.push(await BuildUserResultsEmbed(results, scale, timeframe));
             }
 
-            let options = {
-                embeds: embeds
-            };
-
-            SendMessageWithOptions(context, options);
+            SendMessageWithOptions(context, { embeds: embeds });
         }
         catch (e) {
             console.log(e);

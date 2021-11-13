@@ -251,7 +251,7 @@ exports.ShareGroups = function(thisCard, thatCard) {
     return thisCard.GroupId && thatCard.GroupId && thisCard.GroupId == thatCard.GroupId;
 }
 
-const Imbibe = exports.Imbibe = function(interaction, card, currentArtStyle, currentFace, currentElement, collection, rulesToggle, artToggle, message = null, spoilerToggle = false) {
+const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, currentFace, currentElement, collection, rulesToggle, artToggle, message = null, spoilerToggle = false) {
     let navigationRow = new MessageActionRow();
     let toggleRow = new MessageActionRow();
 
@@ -339,16 +339,18 @@ const Imbibe = exports.Imbibe = function(interaction, card, currentArtStyle, cur
     };
 
     if (message) promise = message.edit(messageOptions);
-    else promise = SendMessageWithOptions(interaction, messageOptions, spoilerToggle);
+    else promise = SendMessageWithOptions(context, messageOptions, spoilerToggle);
         
     promise.then((message) => {
         const collector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: INTERACT_TIMEOUT * 1000 });
 
         collector.on('collect', i => {
+            let userId = context.type != 'DEFAULT' ? context.user.id : context.author.id;
+
             if (i.customId === 'toggleSpoiler') {
                 Imbibe(i, card, currentArtStyle, currentFace, currentElement, collection, rulesToggle, artToggle, null, true);
             }
-            else if (i.user.id === interaction.member.id) {
+            else if (i.user.id === userId) {
                 if (i.customId != 'clearComponents') collector.stop('navigation');
 
                 i.deferUpdate()
@@ -426,7 +428,7 @@ const Imbibe = exports.Imbibe = function(interaction, card, currentArtStyle, cur
                             break;
                     }
 
-                    Imbibe(interaction, nextCard, nextArtStyle, nextFace, nextElement, nextCollection, nextRulesToggle, nextArtToggle, nextMessage, nextSpoilerToggle);
+                    Imbibe(context, nextCard, nextArtStyle, nextFace, nextElement, nextCollection, nextRulesToggle, nextArtToggle, nextMessage, nextSpoilerToggle);
                 });
             }
             else i.reply({embeds: [CreateEmbed(INTERACT_APOLOGY)], ephemeral: true});
