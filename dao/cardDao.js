@@ -8,10 +8,19 @@ const { OFFICIAL, UNOFFICIAL } = require('../constants');
 const TrimDuplicates = function(cards) {
     let results = [];
 
-    cards.sort((a, b) => a.Id - b.Id);
+    cards.sort((a, b) => {
+        let compare = a.Name.localeCompare(b.Name);
+
+        if (compare === 0) {
+            return a.Id.localeCompare(b.Id);
+        }
+        else {
+            return compare;
+        }
+    });
 
     for (let card of cards) {
-        if (!results.some(x => (x.Subname && card.Subname && ShareFaces(card, x)) || ShareGroups(card, x))) {
+        if (!results.some(x => ((!['Hero', 'Alter-Ego'].includes(x.Type) || x.Subname) && ShareFaces(card, x)) || ShareGroups(card, x))) {
             results.push(card);
         }
     }
