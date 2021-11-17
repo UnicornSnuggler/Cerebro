@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { MessageActionRow, MessageSelectMenu } = require('discord.js');
+const { MessageActionRow, MessageSelectMenu, MessageButton } = require('discord.js');
 const { CardDao } = require('../dao/cardDao');
 const { SetDao } = require('../dao/setDao');
 const { FindUniqueArts, GetPrintingByArtificialId, Imbibe, BuildCollectionFromBatch } = require('../utilities/cardHelper');
@@ -47,24 +47,48 @@ const SelectBox = async function(context, cards) {
     }
 
     let selectMenuRow = new MessageActionRow().addComponents(selector);
+    let buttonRow = new MessageActionRow()
+        .addComponents(new MessageButton()
+            .setCustomId('browse')
+            .setLabel('Browse Results')
+            .setStyle('PRIMARY'))
+        .addComponents(new MessageButton()
+            .setCustomId('cancel')
+            .setLabel('Cancel Selection')
+            .setStyle('DANGER'));
 
-    let promise = SendContentAsEmbed(context, prompt, [selectMenuRow]);
+    let promise = SendContentAsEmbed(context, prompt, [selectMenuRow, buttonRow]);
     
     promise.then((message) => {
-        let collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: SELECT_TIMEOUT * 1000 });
+        let collector = message.createMessageComponentCollector({ time: SELECT_TIMEOUT * 1000 });
 
         collector.on('collect', async i => {
             let userId = context.type != 'DEFAULT' ? context.user.id : context.author.id;
 
             if (i.user.id === userId) {
-                let card = items.find(x => x.Id === i.values[0]);
-
-                collector.stop('selection');
-
-                i.deferUpdate()
-                .then(() => {
-                    QueueCardResult(context, card, message);
-                });
+                if (i.componentType === 'BUTTON') {
+                    if (i.customId === 'browse') {
+                        collector.stop('selection');
+        
+                        i.deferUpdate()
+                        .then(() => {
+                            QueueBatchResult(context, items, message);
+                        });
+                    }
+                    else {
+                        collector.stop('cancel');
+                    }
+                }
+                else {
+                    let card = items.find(x => x.Id === i.values[0]);
+    
+                    collector.stop('selection');
+    
+                    i.deferUpdate()
+                    .then(() => {
+                        QueueCardResult(context, card, message);
+                    });
+                }
             }
             else {
                 i.reply({embeds: [CreateEmbed(INTERACT_APOLOGY)], ephemeral: true})
@@ -72,9 +96,11 @@ const SelectBox = async function(context, cards) {
         });
 
         collector.on('end', (i, reason) => {
-            let content = 'The timeout was reached...';
+            let content;
 
             if (reason === 'selection') content = LOAD_APOLOGY;
+            else if (reason === 'cancel') content = 'Selection was canceled...';
+            else content = 'The timeout was reached...';
             
             RemoveComponents(message, content);
         });

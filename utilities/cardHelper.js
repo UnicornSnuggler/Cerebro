@@ -6,6 +6,7 @@ const { Summary } = require('./printingHelper');
 const { FormatSymbols, FormatText, SpoilerIfIncomplete, QuoteText, ItalicizeText } = require('./stringHelper');
 const { AFFIRMATIVE_EMOJI, COLORS, ID_LENGTH, INTERACT_APOLOGY, LOAD_APOLOGY, NEGATIVE_EMOJI, SYMBOLS, INTERACT_TIMEOUT } = require('../constants');
 const { NavigationCollection } = require('../models/navigationCollection');
+const { SetDao } = require('../dao/setDao');
 
 const BuildCardImagePath = exports.BuildCardImagePath = function(card, artStyle) {
     return `${process.env.cardImagePrefix}${card.Official ? 'official/' : `unofficial/`}${artStyle}.jpg`;
@@ -125,11 +126,17 @@ const BuildFooter = exports.BuildFooter = function(card, spoilerFree = false) {
 }
 
 const BuildHeader = exports.BuildHeader = function(card) {
-    let header = '';
+    let description = card.Type;
+    let setId = GetPrintingByArtificialId(card, card.Id).SetId ?? null;
+    
+    if (setId) {
+        let set = SetDao.SETS.find(x => x.Id === setId);
 
-    if (card.Classification != 'Encounter' && card.Type != 'Hero' && card.Type != 'Alter-Ego') header += `${Formatters.bold(card.Classification)} `;
+        if (card.Classification === 'Hero' && !['Alter-Ego', 'Hero'].includes(card.Type)) description = `${set.Name} ${description}`;
+    }
+    else description = `${card.Classification} ${description}`;
 
-    header += Formatters.bold(card.Type);
+    let header = Formatters.bold(description);
 
     if (card.Stage) header += ` — ${Formatters.italic(`Stage ${card.Stage}`)}`;
 
@@ -296,7 +303,7 @@ const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, current
             .setStyle(style));
     }
 
-    if (collection.faces.length > 0)
+    if (collection.faces.length > 1)
         navigationRow.addComponents(new MessageButton()
             .setCustomId('cycleFace')
             .setLabel('Flip Card')
