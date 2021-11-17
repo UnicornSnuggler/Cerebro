@@ -11,7 +11,7 @@ const { GetPrintingByArtificialId, BuildCardImagePath } = require('./cardHelper'
 const { COLORS } = require('../constants');
 
 const BuildBaseEntity = function(context, collection) {
-    let userId = context.type != 'DEFAULT' ? context.user.id : context.author.id;
+    let userId = context.user ? context.user.id : context.author.id;
     let guildId = context.guildId;
 
     let entity = {

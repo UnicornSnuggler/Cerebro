@@ -63,7 +63,7 @@ const SelectBox = async function(context, cards) {
         let collector = message.createMessageComponentCollector({ time: SELECT_TIMEOUT * 1000 });
 
         collector.on('collect', async i => {
-            let userId = context.type != 'DEFAULT' ? context.user.id : context.author.id;
+            let userId = context.user ? context.user.id : context.author.id;
 
             if (i.user.id === userId) {
                 if (i.componentType === 'BUTTON') {

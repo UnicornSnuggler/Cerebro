@@ -50,7 +50,7 @@ const SelectBox = async function(context, rules) {
         const collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: SELECT_TIMEOUT * 1000 });
 
         collector.on('collect', async i => {
-            let userId = context.type != 'DEFAULT' ? context.user.id : context.author.id;
+            let userId = context.user ? context.user.id : context.author.id;
 
             if (i.user.id === userId) {
                 let rule = rules.find(x => x.Id === i.values[0]);
