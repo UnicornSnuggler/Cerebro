@@ -2,9 +2,9 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageActionRow, MessageSelectMenu } = require('discord.js');
 const { CardDao } = require('../dao/cardDao');
 const { SetDao } = require('../dao/setDao');
-const { FindUniqueArts, GetPrintingByArtificialId, Imbibe } = require('../utilities/cardHelper');
+const { FindUniqueArts, GetPrintingByArtificialId, Imbibe, BuildCollectionFromBatch } = require('../utilities/cardHelper');
 const { LogCardResult, LogCommand } = require('../utilities/logHelper');
-const { CreateEmbed, RemoveComponents, SendContentAsEmbed } = require('../utilities/messageHelper');
+const { CreateEmbed, RemoveComponents, SendContentAsEmbed, SendMessageWithOptions, Authorized } = require('../utilities/messageHelper');
 const { SYMBOLS, LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT } = require('../constants');
 
 const SelectBox = async function(context, cards) {
@@ -13,15 +13,16 @@ const SelectBox = async function(context, cards) {
         .setPlaceholder('No card selected...');
 
     let prompt = `${cards.length} results were found for the given query!`;
+    let items = cards;
 
     if (cards.length > 25) {
-        cards = cards.slice(0, 25);
+        items = cards.slice(0, 25);
         prompt += ' Only the top 25 results could be shown.';
     }
 
     prompt += '\n\nPlease select from the following...';
     
-    for (let card of cards) {
+    for (let card of items) {
         let description = card.Type;
         let setId = GetPrintingByArtificialId(card, card.Id).SetId ?? null;
         
@@ -45,9 +46,9 @@ const SelectBox = async function(context, cards) {
         }]);
     }
 
-    let components = new MessageActionRow().addComponents(selector);
+    let selectMenuRow = new MessageActionRow().addComponents(selector);
 
-    let promise = SendContentAsEmbed(context, prompt, [components]);
+    let promise = SendContentAsEmbed(context, prompt, [selectMenuRow]);
     
     promise.then((message) => {
         let collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: SELECT_TIMEOUT * 1000 });
@@ -56,7 +57,7 @@ const SelectBox = async function(context, cards) {
             let userId = context.type != 'DEFAULT' ? context.user.id : context.author.id;
 
             if (i.user.id === userId) {
-                let card = cards.find(x => x.Id === i.values[0]);
+                let card = items.find(x => x.Id === i.values[0]);
 
                 collector.stop('selection');
 
@@ -93,6 +94,17 @@ const QueueCardResult = async function(context, card, message = null) {
     Imbibe(context, expandedCard, currentArtStyle, currentFace, currentStage, collection, false, false, message);
 }
 
+const QueueBatchResult = async function(context, batch, message = null) {
+    let collection = BuildCollectionFromBatch(batch);
+
+    let card = collection.cards[0];
+    let currentArtStyle = 0;
+    let currentFace = collection.faces.length > 0 ? 0 : -1;
+    let currentElement = 0;
+
+    Imbibe(context, card, currentArtStyle, currentFace, currentElement, collection, false, false, message);
+}
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('card')
@@ -101,40 +113,65 @@ module.exports = {
             subcommand
                 .setName('official')
                 .setDescription('Query an official card.')
-                .addSubcommand(subsubcommand => 
+                .addSubcommand(subsubcommand =>
                     subsubcommand
                         .setName('name')
-                        .setDescription('Query a card by its title and subtitle.')
+                        .setDescription('Query cards by their title and subtitle.')
+                        .addStringOption(option => option.setName('terms').setDescription('The term(s) being queried.').setRequired(true)))
+                .addSubcommand(subsubcommand =>
+                    subsubcommand
+                        .setName('text')
+                        .setDescription('Query cards by the text in their textbox.')
+                        .addStringOption(option => option.setName('terms').setDescription('The term(s) being queried.').setRequired(true)))
+                .addSubcommand(subsubcommand =>
+                    subsubcommand
+                        .setName('traits')
+                        .setDescription('Query cards by their traits.')
                         .addStringOption(option => option.setName('terms').setDescription('The term(s) being queried.').setRequired(true))))
         .addSubcommandGroup(subcommand =>
             subcommand
                 .setName('unofficial')
                 .setDescription('Query an unofficial card.')
-                .addSubcommand(subsubcommand => 
+                .addSubcommand(subsubcommand =>
                     subsubcommand
                         .setName('name')
-                        .setDescription('Query a card by its title and subtitle.')
+                        .setDescription('Query cards by their title and subtitle.')
+                        .addStringOption(option => option.setName('terms').setDescription('The term(s) being queried.').setRequired(true)))
+                .addSubcommand(subsubcommand =>
+                    subsubcommand
+                        .setName('text')
+                        .setDescription('Query cards by the text in their textbox.')
+                        .addStringOption(option => option.setName('terms').setDescription('The term(s) being queried.').setRequired(true)))
+                .addSubcommand(subsubcommand =>
+                    subsubcommand
+                        .setName('traits')
+                        .setDescription('Query cards by their traits.')
                         .addStringOption(option => option.setName('terms').setDescription('The term(s) being queried.').setRequired(true)))),
     async execute(context) {
+        if (!Authorized(context)) return;
+
         try {
             let subCommand = context.options.getSubcommand();
             let subCommandGroup = context.options.getSubcommandGroup();
             let command = `/card ${subCommandGroup} ${subCommand}`;
+            
+            let terms = context.options.getString('terms');
+            let official = subCommandGroup === 'official';
 
-            if (subCommand === 'name') {
-                let terms = context.options.getString('terms');
+            new Promise(() => LogCommand(context, command, terms));
 
-                new Promise(() => LogCommand(context, command, terms));
-
-                let official = subCommandGroup === 'official';
-    
-                let results = await CardDao.RetrieveByName(terms, official);
-                
-                if (!results || results.length === 0) SendContentAsEmbed(context, 'No results were found for the given query...');
-                else if (results.length === 1) QueueCardResult(context, results[0]);
-                else if (results.length > 1) SelectBox(context, results);
+            let results = [];
+            
+            if (subCommand === 'name') results = await CardDao.RetrieveByName(terms, official);
+            else if (subCommand === 'text') results = await CardDao.RetrieveByText(terms, official);
+            else if (subCommand === 'traits') {
+                terms = terms.split(',').map(x => x.toLowerCase().replace(/[^a-z0-9]/gmi, ''));
+                results = await CardDao.RetrieveByTraits(terms, official);
             }
-            else SendContentAsEmbed(context, 'Something weird happened...');
+            
+            if (!results || results.length === 0) SendContentAsEmbed(context, 'No results were found for the given query...');
+            else if (results.length === 1) QueueCardResult(context, results[0]);
+            else if (results.length > 1) SelectBox(context, results);
         }
         catch (e) {
             console.log(e);

@@ -1,7 +1,7 @@
 const { GroupDao } = require('./groupDao');
 const { CardEntity } = require('../models/cardEntity');
 const { NavigationCollection } = require('../models/navigationCollection');
-const { GetBaseId, ShareFaces, ShareGroups } = require('../utilities/cardHelper');
+const { GetBaseId, ShareFaces, ShareGroups, BuildCollectionFromBatch } = require('../utilities/cardHelper');
 const { CreateDocumentStore, DeriveDatabase } = require('../utilities/documentStoreHelper');
 const { OFFICIAL, UNOFFICIAL } = require('../constants');
 
@@ -11,11 +11,12 @@ const TrimDuplicates = function(cards) {
     cards.sort((a, b) => {
         let compare = a.Name.localeCompare(b.Name);
 
-        if (compare === 0) {
-            return a.Id.localeCompare(b.Id);
-        }
+        if (compare != 0) return compare;
         else {
-            return compare;
+            compare = a.Subname && b.Subname ? a.Subname.localeCompare(b.Subname) : 0;
+            
+            if (compare != 0) return compare;
+            else return a.Id.localeCompare(b.Id);
         }
     });
 
@@ -141,12 +142,14 @@ class CardDao {
 
         let wildcard = terms.includes('*');
 
-        let index = `${official ? OFFICIAL : UNOFFICIAL}${CardEntity.COLLECTION}`;
+        let index = `all${CardEntity.COLLECTION}`;
         let convertedQuery = terms.normalize('NFD').replace(/[\u0300-\u036f]/gmi, '').toLowerCase();
         let tokenizedQuery = convertedQuery.replace(/[^a-z0-9 -]/gmi, '').replace(/[-]/gmi, ' ');
         let strippedQuery = convertedQuery.replace(/[^a-z0-9]/gmi, '');
 
         let documents = !wildcard ? await session.query({ indexName: index })
+            .whereEquals('Official', official)
+            .andAlso().openSubclause()
             .search('id()', convertedQuery, 'AND').orElse()
             .search('Name', convertedQuery, 'AND').orElse()
             .search('TokenizedName', tokenizedQuery, 'AND').orElse()
@@ -154,20 +157,26 @@ class CardDao {
             .search('Subname', convertedQuery, 'AND').orElse()
             .search('TokenizedSubname', tokenizedQuery, 'AND').orElse()
             .search('StrippedSubname', strippedQuery, 'AND')
+            .closeSubclause()
             .all() : [];
 
         if (documents.length === 0) {
             documents = !wildcard ? await session.query({ indexName: index })
+                .whereEquals('Official', official)
+                .andAlso().openSubclause()
                 .whereLucene('Name', convertedQuery).orElse()
                 .whereLucene('TokenizedName', tokenizedQuery).orElse()
                 .whereLucene('StrippedName', strippedQuery).orElse()
                 .whereLucene('Subname', convertedQuery).orElse()
                 .whereLucene('TokenizedSubname', tokenizedQuery).orElse()
                 .whereLucene('StrippedSubname', strippedQuery)
+                .closeSubclause()
                 .all() : [];
         
             if (documents.length === 0) {
                 documents = await session.query({ indexName: index })
+                    .whereEquals('Official', official)
+                    .andAlso().openSubclause()
                     .whereRegex('id()', convertedQuery).orElse()
                     .whereRegex('Name', convertedQuery).orElse()
                     .whereRegex('TokenizedName', tokenizedQuery).orElse()
@@ -175,16 +184,20 @@ class CardDao {
                     .whereRegex('Subname', convertedQuery).orElse()
                     .whereRegex('TokenizedSubname', tokenizedQuery).orElse()
                     .whereRegex('StrippedSubname', strippedQuery)
+                    .closeSubclause()
                     .all();
 
                 if (documents.length === 0) {
                     documents = await session.query({ indexName: index })
+                        .whereEquals('Official', official)
+                        .andAlso().openSubclause()
                         .whereEquals('Name', convertedQuery).fuzzy(0.70).orElse()
                         .whereEquals('TokenizedName', tokenizedQuery).fuzzy(0.70).orElse()
                         .whereEquals('StrippedName', strippedQuery).fuzzy(0.70).orElse()
                         .whereEquals('Subname', convertedQuery).fuzzy(0.70).orElse()
                         .whereEquals('TokenizedSubname', tokenizedQuery).fuzzy(0.70).orElse()
                         .whereEquals('StrippedSubname', strippedQuery).fuzzy(0.70)
+                        .closeSubclause()
                         .all();
                 }
             }
@@ -214,9 +227,6 @@ class CardDao {
             .search(`${type}Ids`, collectionEntity.Id, 'OR')
             .all();
 
-        let collection = new NavigationCollection();
-        collection.tag = 'Card';
-
         if (documents.length > 0) {
             documents.sort((a, b) => {
                 let artificialIdA = a.Printings.find(x => x[`${type}Id`] === collectionEntity.Id).ArtificialId;
@@ -233,24 +243,7 @@ class CardDao {
                 results.push(new CardEntity(document));
             }
             
-            for (let card of results) {
-                collection.cards.push(card);
-
-                let element = {
-                    cardId: card.Id,
-                    faces: null
-                };
-
-                let baseId = GetBaseId(card);
-
-                if (card.Id.length != baseId.length) element.faces = results.filter(x => x.Id.includes(baseId)).map(x => x.Id);
-
-                collection.elements.push(element);
-            }
-            
-            collection.faces = collection.elements[0].faces ?? [];
-
-            return collection;
+            return BuildCollectionFromBatch(results);
         }
         else {
             return null;
@@ -260,7 +253,7 @@ class CardDao {
     static async RetrieveByIdList(ids) {
         const session = this.store.openSession();
     
-        let documents = await session.query({ indexName: 'allcards' })
+        let documents = await session.query({ indexName: `all${CardEntity.COLLECTION}` })
             .whereIn('id()', ids)
             .all();
     
@@ -272,6 +265,53 @@ class CardDao {
             }
 
             return results;
+        }
+        else return null;
+    }
+
+    static async RetrieveByText(terms, official) {
+        const session = this.store.openSession();
+
+        let documents = await session.query({ indexName: `all${CardEntity.COLLECTION}` })
+            .whereEquals('Official', official)
+            .andAlso().openSubclause()
+            .whereRegex('Rules', terms)
+            .orElse().whereRegex('Special', terms)
+            .closeSubclause()
+            .all();
+    
+        if (documents.length > 0) {    
+            let results = [];
+    
+            for (let document of documents) {
+                results.push(new CardEntity(document));
+            }
+
+            return TrimDuplicates(results);
+        }
+        else return null;
+    }
+
+    static async RetrieveByTraits(terms, official) {
+        const session = this.store.openSession();
+
+        let query = session.query({ indexName: `all${CardEntity.COLLECTION}` })
+            .whereEquals('Official', official);
+
+        for (let term of terms) {
+            query = query.andAlso().whereRegex('Traits', term);
+        }
+    
+        let documents = await query.all();
+    
+        if (documents.length > 0) {    
+            let results = [];
+    
+            for (let document of documents) {
+                results.push(new CardEntity(document));
+            }
+
+            return TrimDuplicates(results);
         }
         else return null;
     }

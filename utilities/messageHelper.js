@@ -1,6 +1,19 @@
 const { MessageEmbed } = require("discord.js");
 const { COLORS } = require("../constants");
 
+exports.Authorized = function(context) {
+    if (context.guildId) {
+        let permissions = context.client.guilds.cache.get(context.guildId).me.permissionsIn(context.channelId);
+
+        if (!permissions.has('VIEW_CHANNEL') || !permissions.has('SEND_MESSAGES') || !permissions.has('MANAGE_MESSAGES')) {
+            SendContentAsEmbed(context, "I don't have sufficient permissions here!", null, true);
+            return false;
+        }
+    }
+    
+    return true;
+}
+
 let CreateEmbed = exports.CreateEmbed = function(content, color = COLORS.Default, title = null) {
     const embed = new MessageEmbed()
         .setColor(color)
@@ -26,7 +39,7 @@ exports.RemoveComponents = function(message, content, removeFiles = true) {
     message.edit(messageOptions);
 }
 
-exports.SendContentAsEmbed = function(context, content, components = null, ephemeral = false) {
+let SendContentAsEmbed = exports.SendContentAsEmbed = function(context, content, components = null, ephemeral = false) {
     let embed = CreateEmbed(content);
 
     return context.reply({

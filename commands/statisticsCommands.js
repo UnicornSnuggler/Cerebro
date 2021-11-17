@@ -5,7 +5,7 @@ const { CommandLogEntity } = require('../models/commandLogEntity');
 const { RuleResultLogEntity } = require('../models/ruleResultLogEntity');
 const { LogDao } = require('../dao/logDao');
 const { BuildCardResultsEmbed, BuildSetResultsEmbed, BuildPackResultsEmbed, BuildUserResultsEmbed } = require('../utilities/logHelper');
-const { SendContentAsEmbed, SendMessageWithOptions, CreateEmbed } = require('../utilities/messageHelper');
+const { SendContentAsEmbed, SendMessageWithOptions, CreateEmbed, Authorized } = require('../utilities/messageHelper');
 const { DM_APOLOGY } = require('../constants');
 
 module.exports = {
@@ -37,6 +37,8 @@ module.exports = {
 			.addChoice('sets', 'sets')
 			.addChoice('users', 'users')),
     async execute(context) {
+        if (!Authorized(context)) return;
+        
         try {
             let scale = context.options.getString('scale');
             let timeframe = context.options.getString('timeframe');

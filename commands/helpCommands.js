@@ -1,13 +1,15 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageEmbed } = require('discord.js');
-const { SendContentAsEmbed } = require('../utilities/messageHelper');
+const { SendContentAsEmbed, Authorized } = require('../utilities/messageHelper');
 const { COLORS } = require('../constants');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('help')
         .setDescription('Get some help getting started!'),
-    async execute(interaction) {
+    async execute(context) {
+        if (!Authorized(context)) return;
+
         try {
             const embed = new MessageEmbed()
                 .setTitle('Help')
@@ -36,7 +38,7 @@ module.exports = {
                 'In this way, the query `{{Captain America*}}` will match `Captain America`, `Captain America\s Shield`, and `Captain America\'s Helmet`.\n' +
                 '[Read more](https://github.com/UnicornSnuggler/Cerebro/wiki/Card-Commands#wildcards).');
 
-            interaction.reply({
+            context.reply({
                 allowedMentions: {
                     repliedUser: false
                 },
@@ -45,7 +47,7 @@ module.exports = {
         }
         catch (e) {
             console.log(e);
-            SendContentAsEmbed(interaction, 'Something went wrong... Check the logs to find out more.');
+            SendContentAsEmbed(context, 'Something went wrong... Check the logs to find out more.');
         }
     }
 }

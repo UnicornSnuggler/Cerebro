@@ -5,7 +5,7 @@ const { GroupDao } = require('../dao/groupDao');
 const { PackDao } = require('../dao/packDao');
 const { RuleDao } = require('../dao/ruleDao');
 const { SetDao } = require('../dao/setDao');
-const { SendContentAsEmbed } = require('../utilities/messageHelper');
+const { SendContentAsEmbed, Authorized } = require('../utilities/messageHelper');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -24,6 +24,8 @@ module.exports = {
                 .addChoice('Rules', 'rules')
                 .addChoice('Sets', 'sets')),
     async execute(interaction) {
+        if (!Authorized(context)) return;
+        
         try {
             switch (interaction.options.getString('list')) {
                 case 'all':

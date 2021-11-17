@@ -2,7 +2,7 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageActionRow, MessageSelectMenu } = require('discord.js');
 const { RuleDao } = require('../dao/ruleDao');
 const { LogCommand, LogRuleResult } = require('../utilities/logHelper');
-const { CreateEmbed, RemoveComponents, SendContentAsEmbed, SendMessageWithOptions } = require('../utilities/messageHelper');
+const { CreateEmbed, RemoveComponents, SendContentAsEmbed, SendMessageWithOptions, Authorized } = require('../utilities/messageHelper');
 const { BuildEmbed } = require('../utilities/ruleHelper');
 const { SYMBOLS, INTERACT_APOLOGY, LOAD_APOLOGY, SELECT_TIMEOUT } = require('../constants');
 
@@ -107,6 +107,8 @@ module.exports = {
                         .setDescription('Query an unofficial rule by its title.')
                         .addStringOption(option => option.setName('terms').setDescription('The term(s) being queried.').setRequired(true)))),
     async execute(context) {
+        if (!Authorized(context)) return;
+        
         try {
             let subCommand = context.options.getSubcommand();
             let subCommandGroup = context.options.getSubcommandGroup();

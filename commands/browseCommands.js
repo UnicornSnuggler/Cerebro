@@ -6,7 +6,7 @@ const { PackDao } = require('../dao/packDao');
 const { SetDao } = require('../dao/setDao');
 const { Imbibe } = require('../utilities/cardHelper');
 const { LogCommand, LogCollectionResult } = require('../utilities/logHelper');
-const { CreateEmbed, RemoveComponents, SendContentAsEmbed } = require('../utilities/messageHelper');
+const { CreateEmbed, RemoveComponents, SendContentAsEmbed, Authorized } = require('../utilities/messageHelper');
 const { LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT } = require('../constants');
 
 const SelectBox = async function(context, collectionEntities, type) {
@@ -116,6 +116,8 @@ module.exports = {
                             .setDescription('Browse all of the cards in an unofficial set.')
                             .addStringOption(option => option.setName('name').setDescription('The name of the set being queried.').setRequired(true)))),
     async execute(context) {
+        if (!Authorized(context)) return;
+        
         let subCommand = context.options.getSubcommand();
         let subCommandGroup = context.options.getSubcommandGroup();
         let command = `/browse ${subCommandGroup} ${subCommand}`;

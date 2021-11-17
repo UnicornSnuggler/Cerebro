@@ -5,9 +5,34 @@ const { CreateEmbed, RemoveComponents, SendMessageWithOptions } = require('../ut
 const { Summary } = require('./printingHelper');
 const { FormatSymbols, FormatText, SpoilerIfIncomplete, QuoteText, ItalicizeText } = require('./stringHelper');
 const { AFFIRMATIVE_EMOJI, COLORS, ID_LENGTH, INTERACT_APOLOGY, LOAD_APOLOGY, NEGATIVE_EMOJI, SYMBOLS, INTERACT_TIMEOUT } = require('../constants');
+const { NavigationCollection } = require('../models/navigationCollection');
 
 const BuildCardImagePath = exports.BuildCardImagePath = function(card, artStyle) {
     return `${process.env.cardImagePrefix}${card.Official ? 'official/' : `unofficial/`}${artStyle}.jpg`;
+}
+
+exports.BuildCollectionFromBatch = function(batch) {
+    let collection = new NavigationCollection();
+    collection.tag = 'Card';
+    
+    for (let card of batch) {
+        collection.cards.push(card);
+
+        let element = {
+            cardId: card.Id,
+            faces: null
+        };
+
+        let baseId = GetBaseId(card);
+
+        if (card.Id.length != baseId.length) element.faces = batch.filter(x => x.Id.includes(baseId)).map(x => x.Id);
+
+        collection.elements.push(element);
+    }
+    
+    collection.faces = collection.elements[0].faces ?? [];
+
+    return collection;
 }
 
 const BuildEmbed = exports.BuildEmbed = function(card, alternateArt = null, spoilerFree = false) {
