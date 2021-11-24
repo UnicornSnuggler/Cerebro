@@ -2,6 +2,10 @@ const { Formatters } = require('discord.js');
 const { FormattingDao } = require('../dao/formattingDao');
 const { SYMBOLS } = require('../constants');
 
+exports.EscapeRegex = function(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 let FormatSymbols = exports.FormatSymbols = function(text) {
     for (let key in SYMBOLS) text = text.replaceAll(key, SYMBOLS[key]);
 

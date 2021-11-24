@@ -13,11 +13,18 @@ const fs = require('fs');
 const client = new Client({ intents: [Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES], partials: [Constants.PartialTypes.CHANNEL] });
 
 client.commands = new Collection();
-const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
+const globalCommandFiles = fs.readdirSync('./global_commands').filter(file => file.endsWith('.js'));
 
-for (const file of commandFiles) {
-    const command = require(`./commands/${file}`);
-    client.commands.set(command.data.name, command);
+for (const globalCommandFile of globalCommandFiles) {
+    const globalCommand = require(`./global_commands/${globalCommandFile}`);
+    client.commands.set(globalCommand.data.name, globalCommand);
+}
+
+const guildCommandFiles = fs.readdirSync('./guild_commands').filter(file => file.endsWith('.js'));
+
+for (const guildCommandFile of guildCommandFiles) {
+    const guildCommand = require(`./guild_commands/${guildCommandFile}`);
+    client.commands.set(guildCommand.data.name, guildCommand);
 }
 
 client.on('ready', async () => {

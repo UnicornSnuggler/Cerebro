@@ -4,6 +4,7 @@ const { NavigationCollection } = require('../models/navigationCollection');
 const { GetBaseId, ShareFaces, ShareGroups, BuildCollectionFromBatch } = require('../utilities/cardHelper');
 const { CreateDocumentStore, DeriveDatabase } = require('../utilities/documentStoreHelper');
 const { OFFICIAL, UNOFFICIAL } = require('../constants');
+const { EscapeRegex } = require('../utilities/stringHelper');
 
 const TrimDuplicates = function(cards) {
     let results = [];
@@ -272,11 +273,13 @@ class CardDao {
     static async RetrieveByText(terms, official) {
         const session = this.store.openSession();
 
+        let escapedTerms = EscapeRegex(terms);
+
         let documents = await session.query({ indexName: `all${CardEntity.COLLECTION}` })
             .whereEquals('Official', official)
             .andAlso().openSubclause()
-            .whereRegex('Rules', terms)
-            .orElse().whereRegex('Special', terms)
+            .whereRegex('Rules', escapedTerms)
+            .orElse().whereRegex('Special', escapedTerms)
             .closeSubclause()
             .all();
     
@@ -299,7 +302,9 @@ class CardDao {
             .whereEquals('Official', official);
 
         for (let term of terms) {
-            query = query.andAlso().whereRegex('Traits', term);
+            let escapedTerm = EscapeRegex(term);
+            
+            query = query.andAlso().whereRegex('Traits', escapedTerm);
         }
     
         let documents = await query.all();

@@ -11,7 +11,6 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('update')
         .setDescription('Update locally stored lists.')
-        .setDefaultPermission(false)
         .addStringOption(option =>
             option.setName('list')
                 .setDescription('The list to be updated.')
@@ -23,11 +22,11 @@ module.exports = {
                 .addChoice('Packs', 'packs')
                 .addChoice('Rules', 'rules')
                 .addChoice('Sets', 'sets')),
-    async execute(interaction) {
+    async execute(context) {
         if (!Authorized(context)) return;
         
         try {
-            switch (interaction.options.getString('list')) {
+            switch (context.options.getString('list')) {
                 case 'all':
                     await AuthorDao.RetrieveAllAuthors();
                     await FormattingDao.RetrieveAllFormattings();
@@ -35,39 +34,39 @@ module.exports = {
                     await PackDao.RetrieveAllPacks();
                     await RuleDao.RetrieveKeywordsAndSchemeIcons();
                     await SetDao.RetrieveAllSets();
-                    SendContentAsEmbed(interaction, 'All lists updated!', null, true);
+                    SendContentAsEmbed(context, 'All lists updated!', null, true);
                     break;
                 case 'authors':
                     await AuthorDao.RetrieveAllAuthors();
-                    SendContentAsEmbed(interaction, 'Authors list updated!', null, true);
+                    SendContentAsEmbed(context, 'Authors list updated!', null, true);
                     break;
                 case 'formattings':
                     await FormattingDao.RetrieveAllFormattings();
-                    SendContentAsEmbed(interaction, 'Formattings list updated!', null, true);
+                    SendContentAsEmbed(context, 'Formattings list updated!', null, true);
                     break;
                 case 'groups':
                     await GroupDao.RetrieveAllGroups();
-                    SendContentAsEmbed(interaction, 'Groups list updated!', null, true);
+                    SendContentAsEmbed(context, 'Groups list updated!', null, true);
                     break;
                 case 'packs':
                     await PackDao.RetrieveAllPacks();
-                    SendContentAsEmbed(interaction, 'Packs list updated!', null, true);
+                    SendContentAsEmbed(context, 'Packs list updated!', null, true);
                     break;
                 case 'rules':
                     await RuleDao.RetrieveKeywordsAndSchemeIcons();
-                    SendContentAsEmbed(interaction, 'Rules list updated!', null, true);
+                    SendContentAsEmbed(context, 'Rules list updated!', null, true);
                     break;
                 case 'sets':
                     await SetDao.RetrieveAllSets();
-                    SendContentAsEmbed(interaction, 'Sets list updated!', null, true);
+                    SendContentAsEmbed(context, 'Sets list updated!', null, true);
                     break;
                 default:
-                    SendContentAsEmbed(interaction, 'That option is invalid...', null, true);
+                    SendContentAsEmbed(context, 'That option is invalid...', null, true);
             }
         }
         catch (e) {
             console.log(e);
-            SendContentAsEmbed(interaction, 'Something went wrong... Check the logs to find out more.');
+            SendContentAsEmbed(context, 'Something went wrong... Check the logs to find out more.');
         }
     }
 }
