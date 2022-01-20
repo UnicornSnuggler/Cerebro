@@ -1,7 +1,7 @@
 const { GroupDao } = require('./groupDao');
 const { CardEntity } = require('../models/cardEntity');
 const { NavigationCollection } = require('../models/navigationCollection');
-const { GetBaseId, ShareFaces, ShareGroups, BuildCollectionFromBatch } = require('../utilities/cardHelper');
+const { GetBaseId, ShareFaces, ShareGroups, BuildCollectionFromBatch, ResourceConverter } = require('../utilities/cardHelper');
 const { CreateDocumentStore, DeriveDatabase } = require('../utilities/documentStoreHelper');
 const { OFFICIAL, UNOFFICIAL } = require('../constants');
 const { EscapeRegex } = require('../utilities/stringHelper');
@@ -256,7 +256,7 @@ class CardDao {
         else return null;
     }
 
-    static async RetrieveWithFilters(origin, aspect, cost, text, traits, type) {
+    static async RetrieveWithFilters(origin, aspect, cost, resource, text, traits, type) {
         const session = this.store.openSession();
         let first = true;
 
@@ -276,6 +276,22 @@ class CardDao {
             query = query.openSubclause()
                 .whereRegex('Cost', cost)
                 .closeSubclause();
+        }
+
+        if (resource) {
+            !first ? query = query.andAlso() : first = false;
+
+            if (resource === 'none') {
+                query = query.openSubclause()
+                    .negateNext()
+                    .whereExists('Resource')
+                    .closeSubclause();                    
+            }
+            else {
+                query = query.openSubclause()
+                    .whereRegex('Resource', ResourceConverter[resource])
+                    .closeSubclause();
+            }
         }
 
         if (text) {

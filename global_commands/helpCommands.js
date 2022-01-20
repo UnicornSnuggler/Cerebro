@@ -24,11 +24,15 @@ module.exports = {
 
             embed.addField('Official Cards', 'Any cards printed by Fantasy Flight Games in official Marvel Champions products are considered \'official cards\'. ' +
                 'Queries for official cards are made by wrapping the name of the card being queried in two sets of curly braces — `{{like this}}`.\n' +
-                '[Read more](https://github.com/UnicornSnuggler/Cerebro/wiki/Card-Commands).');
+                '[Read more](https://github.com/UnicornSnuggler/Cerebro/wiki/Card-Commands#wrapper-syntax).');
 
             embed.addField('Unofficial Cards', 'Any cards created by members of the Marvel Champions community with no affiliation to Fantasy Flight Games are considered \'unofficial cards\'. ' +
                 'Queries for unofficial cards are made by wrapping the name of the card being queried in two sets of angle brackets — `<<like this>>`.\n' +
-                '[Read more](https://github.com/UnicornSnuggler/Cerebro/wiki/Card-Commands).');
+                '[Read more](https://github.com/UnicornSnuggler/Cerebro/wiki/Card-Commands#wrapper-syntax).');
+
+            embed.addField('Advanced Card Queries', 'The `/card` command can be used to perform in-depth queries for cards based on a series of filters. ' +
+                'Cards can be filtered by their respective `aspect`, `cost`, `name`, `resource`, `text`, `traits`, and `type` values.\n' +
+                '[Read more](https://github.com/UnicornSnuggler/Cerebro/wiki/Card-Commands#querying).');
 
             embed.addField('Browse Collections', 'Sets and packs can be browsed using the `/browse` command. ' +
                 'Card results will be returned with two buttons — `Previous Card` and `Next Card` — that can be used to navigate between all of the cards in the queried collection.\n' +

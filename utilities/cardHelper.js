@@ -275,6 +275,13 @@ const GetPrintingByArtificialId = exports.GetPrintingByArtificialId = function(c
     return card.Printings.find(x => x.ArtificialId === artificialId);
 }
 
+exports.ResourceConverter = {
+    'energy': '{e}',
+    'mental': '{m}',
+    'physical': '{p}',
+    'wild': '{w}'
+};
+
 exports.ShareFaces = function(thisCard, thatCard) {
     return thisCard.Id != thatCard.Id && GetBaseId(thisCard) === GetBaseId(thatCard);
 }

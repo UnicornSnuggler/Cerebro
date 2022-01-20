@@ -2,9 +2,9 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageActionRow, MessageSelectMenu, MessageButton } = require('discord.js');
 const { CardDao } = require('../dao/cardDao');
 const { SetDao } = require('../dao/setDao');
-const { FindUniqueArts, GetPrintingByArtificialId, Imbibe, BuildCollectionFromBatch } = require('../utilities/cardHelper');
+const { FindUniqueArts, GetPrintingByArtificialId, Imbibe, BuildCollectionFromBatch, ResourceConverter } = require('../utilities/cardHelper');
 const { LogCardResult, LogCommand } = require('../utilities/logHelper');
-const { CreateEmbed, RemoveComponents, SendContentAsEmbed, SendMessageWithOptions, Authorized } = require('../utilities/messageHelper');
+const { CreateEmbed, RemoveComponents, SendContentAsEmbed, Authorized } = require('../utilities/messageHelper');
 const { SYMBOLS, LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT } = require('../constants');
 
 const SelectBox = async function(context, cards) {
@@ -167,6 +167,16 @@ module.exports = {
                 .setRequired(false))
         .addStringOption(option =>
             option
+                .setName('resource')
+                .setDescription('Query cards by their printed resource.')
+                .setRequired(false)
+                .addChoice('energy', 'energy')
+                .addChoice('mental', 'mental')
+                .addChoice('physical', 'physical')
+                .addChoice('wild', 'wild')
+                .addChoice('none', 'none'))
+        .addStringOption(option =>
+            option
                 .setName('text')
                 .setDescription('Query cards by the text in their textbox.')
                 .setRequired(false))
@@ -210,6 +220,9 @@ module.exports = {
             let nameOption = context.options.getString('name');
             let name = nameOption ? nameOption.toLowerCase() : null;
             
+            let resourceOption = context.options.getString('resource');
+            let resource = resourceOption ? resourceOption.toLowerCase() : null;
+            
             let textOption = context.options.getString('text');
             let text = textOption ? textOption.toLowerCase() : null;
 
@@ -219,7 +232,7 @@ module.exports = {
             let typeOption = context.options.getString('type');
             let type = typeOption ? typeOption.toLowerCase() : null;
             
-            if (!aspect && !cost && !name && !text && !traits && !type) {
+            if (!aspect && !cost && !name && !resource && !text && !traits && !type) {
                 SendContentAsEmbed(context, 'You must specify at least one search criteria...', null, true);
                 return;
             }
@@ -234,13 +247,21 @@ module.exports = {
                 if (results) {
                     if (aspect) results = results.filter(card => card.Classification.toLowerCase() === aspect);
                     if (cost) results = results.filter(card => card.Cost && card.Cost.toLowerCase() === cost);
+                    if (resource) {
+                        if (resource === 'none') {
+                            results = results.filter(card => !card.Resource);
+                        }
+                        else {
+                            results = results.filter(card => card.Resource && card.Resource.toLowerCase().includes(ResourceConverter[resource]));
+                        }
+                    }
                     if (text) results = results.filter(card => (card.Rules && card.Rules.toLowerCase().includes(text)) || (card.Special && card.Special.toLowerCase().includes(text)));
                     if (traits) results = results.filter(card => card.Traits && traits.every(element => card.Traits.find(trait => trait.toLowerCase() === element.trim())));
                     if (type) results = results.filter(card => card.Type.toLowerCase() === type);
                 }
             }
             else {
-                results = await CardDao.RetrieveWithFilters(origin, aspect, cost, text, traits, type);
+                results = await CardDao.RetrieveWithFilters(origin, aspect, cost, resource, text, traits, type);
             }
             
             if (!results || results.length === 0) SendContentAsEmbed(context, 'No results were found for the given query...');
