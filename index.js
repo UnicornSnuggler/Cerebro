@@ -68,7 +68,7 @@ const HandleMessages = function(message) {
         const command = client.commands.get('card');
         
         for (let match of matches) {
-            message.options = new ArtificialInteraction('name', true, match.replace(/[{}]/gmi, ''));
+            message.options = new ArtificialInteraction(true, match.replace(/[{}]/gmi, ''));
 
             try {
                 command.execute(message);
@@ -87,7 +87,7 @@ const HandleMessages = function(message) {
         const command = client.commands.get('card');
         
         for (let match of matches) {
-            message.options = new ArtificialInteraction('name', false, match.replace(/[<>]/gmi, ''));
+            message.options = new ArtificialInteraction(false, match.replace(/[<>]/gmi, ''));
 
             try {
                 command.execute(message);

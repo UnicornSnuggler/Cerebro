@@ -35,7 +35,7 @@ module.exports = {
                 '[Read more](https://github.com/UnicornSnuggler/Cerebro/wiki/Browse-Commands).');
 
             embed.addField('Wildcards', 'Users can force Cerebro to make partial matches by incorporating a wildcard symbol — or asterisk (`*`) — anywhere in their term. ' +
-                'In this way, the query `{{Captain America*}}` will match `Captain America`, `Captain America\s Shield`, and `Captain America\'s Helmet`.\n' +
+                'In this way, the query `{{Captain America*}}` will match `Captain America`, `Captain America\'s Shield`, and `Captain America\'s Helmet`.\n' +
                 '[Read more](https://github.com/UnicornSnuggler/Cerebro/wiki/Card-Commands#wildcards).');
 
             context.reply({

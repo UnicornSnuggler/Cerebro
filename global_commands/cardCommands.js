@@ -72,7 +72,7 @@ const SelectBox = async function(context, cards) {
         
                         i.deferUpdate()
                         .then(() => {
-                            QueueBatchResult(context, items, message);
+                            QueueBatchResult(context, cards, message);
                         });
                     }
                     else {
@@ -135,64 +135,112 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('card')
         .setDescription('Query cards.')
-        .addSubcommandGroup(subcommand =>
-            subcommand
-                .setName('official')
-                .setDescription('Query an official card.')
-                .addSubcommand(subsubcommand =>
-                    subsubcommand
-                        .setName('name')
-                        .setDescription('Query cards by their title and subtitle.')
-                        .addStringOption(option => option.setName('terms').setDescription('The term(s) being queried.').setRequired(true)))
-                .addSubcommand(subsubcommand =>
-                    subsubcommand
-                        .setName('text')
-                        .setDescription('Query cards by the text in their textbox.')
-                        .addStringOption(option => option.setName('terms').setDescription('The term(s) being queried.').setRequired(true)))
-                .addSubcommand(subsubcommand =>
-                    subsubcommand
-                        .setName('traits')
-                        .setDescription('Query cards by their traits.')
-                        .addStringOption(option => option.setName('terms').setDescription('The term(s) being queried.').setRequired(true))))
-        .addSubcommandGroup(subcommand =>
-            subcommand
-                .setName('unofficial')
-                .setDescription('Query an unofficial card.')
-                .addSubcommand(subsubcommand =>
-                    subsubcommand
-                        .setName('name')
-                        .setDescription('Query cards by their title and subtitle.')
-                        .addStringOption(option => option.setName('terms').setDescription('The term(s) being queried.').setRequired(true)))
-                .addSubcommand(subsubcommand =>
-                    subsubcommand
-                        .setName('text')
-                        .setDescription('Query cards by the text in their textbox.')
-                        .addStringOption(option => option.setName('terms').setDescription('The term(s) being queried.').setRequired(true)))
-                .addSubcommand(subsubcommand =>
-                    subsubcommand
-                        .setName('traits')
-                        .setDescription('Query cards by their traits.')
-                        .addStringOption(option => option.setName('terms').setDescription('The term(s) being queried.').setRequired(true)))),
+        .addStringOption(option =>
+            option
+                .setName('origin')
+                .setDescription('The origin of the card.')
+                .setRequired(true)
+                .addChoice('official', 'official')
+                .addChoice('unofficial', 'unofficial')
+                .addChoice('all', 'all'))
+        .addStringOption(option =>
+            option
+                .setName('aspect')
+                .setDescription('Query cards by their aspect.')
+                .setRequired(false)
+                .addChoice('aggression', 'aggression')
+                .addChoice('basic', 'basic')
+                .addChoice('encounter', 'encounter')
+                .addChoice('hero', 'hero')
+                .addChoice('justice', 'justice')
+                .addChoice('leadership', 'leadership')
+                .addChoice('protection', 'protection'))
+        .addStringOption(option =>
+            option
+                .setName('cost')
+                .setDescription('Query cards by their cost.')
+                .setRequired(false))
+        .addStringOption(option =>
+            option
+                .setName('name')
+                .setDescription('Query cards by their title and subtitle.')
+                .setRequired(false))
+        .addStringOption(option =>
+            option
+                .setName('text')
+                .setDescription('Query cards by the text in their textbox.')
+                .setRequired(false))
+        .addStringOption(option =>
+            option
+                .setName('traits')
+                .setDescription('Query cards by their traits.')
+                .setRequired(false))
+        .addStringOption(option =>
+            option
+                .setName('type')
+                .setDescription('Query cards by their type.')
+                .setRequired(false)
+                .addChoice('ally', 'ally')
+                .addChoice('alter-ego', 'alter-ego')
+                .addChoice('attachment', 'attachment')
+                .addChoice('environment', 'environment')
+                .addChoice('event', 'event')
+                .addChoice('hero', 'hero')
+                .addChoice('main scheme', 'main scheme')
+                .addChoice('minion', 'minion')
+                .addChoice('obligation', 'obligation')
+                .addChoice('resource', 'resource')
+                .addChoice('side scheme', 'side scheme')
+                .addChoice('support', 'support')
+                .addChoice('treachery', 'treachery')
+                .addChoice('upgrade', 'upgrade')
+                .addChoice('villain', 'villain')),
     async execute(context) {
         if (!Authorized(context)) return;
 
         try {
-            let subCommand = context.options.getSubcommand();
-            let subCommandGroup = context.options.getSubcommandGroup();
-            let command = `/card ${subCommandGroup} ${subCommand}`;
+            let command = `/card`;
+            let origin = context.options.getString('origin');
             
-            let terms = context.options.getString('terms');
-            let official = subCommandGroup === 'official';
+            let aspectOption = context.options.getString('aspect');
+            let aspect = aspectOption ? aspectOption.toLowerCase() : null;
+            
+            let cost = context.options.getString('cost');
+            
+            let nameOption = context.options.getString('name');
+            let name = nameOption ? nameOption.toLowerCase() : null;
+            
+            let textOption = context.options.getString('text');
+            let text = textOption ? textOption.toLowerCase() : null;
 
-            new Promise(() => LogCommand(context, command, terms));
+            let traitsOption = context.options.getString('traits');
+            let traits = traitsOption ? traitsOption.split(',').map(x => x.toLowerCase().replace(/[^a-z0-9]/gmi, '')) : null;
+            
+            let typeOption = context.options.getString('type');
+            let type = typeOption ? typeOption.toLowerCase() : null;
+            
+            if (!aspect && !cost && !name && !text && !traits && !type) {
+                SendContentAsEmbed(context, 'You must specify at least one search criteria...', null, true);
+                return;
+            }
+
+            new Promise(() => LogCommand(context, command, null));
 
             let results = [];
-            
-            if (subCommand === 'name') results = await CardDao.RetrieveByName(terms, official);
-            else if (subCommand === 'text') results = await CardDao.RetrieveByText(terms, official);
-            else if (subCommand === 'traits') {
-                terms = terms.split(',').map(x => x.toLowerCase().replace(/[^a-z0-9]/gmi, ''));
-                results = await CardDao.RetrieveByTraits(terms, official);
+
+            if (name) {
+                results = await CardDao.RetrieveByName(name, origin);
+
+                if (results) {
+                    if (aspect) results = results.filter(card => card.Classification.toLowerCase() === aspect);
+                    if (cost) results = results.filter(card => card.Cost && card.Cost.toLowerCase() === cost);
+                    if (text) results = results.filter(card => (card.Rules && card.Rules.toLowerCase().includes(text)) || (card.Special && card.Special.toLowerCase().includes(text)));
+                    if (traits) results = results.filter(card => card.Traits && traits.every(element => card.Traits.find(trait => trait.toLowerCase() === element.trim())));
+                    if (type) results = results.filter(card => card.Type.toLowerCase() === type);
+                }
+            }
+            else {
+                results = await CardDao.RetrieveWithFilters(origin, aspect, cost, text, traits, type);
             }
             
             if (!results || results.length === 0) SendContentAsEmbed(context, 'No results were found for the given query...');
