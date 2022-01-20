@@ -28,10 +28,10 @@ class RuleDao {
         console.log(`Loaded ${this.KEYWORDS_AND_ICONS.length} keywords and scheme icons from the database!\n`);
     }
 
-    static async RetrieveByTerm(terms, official) {
+    static async RetrieveByTerm(terms, origin) {
         const session = this.store.openSession();
 
-        let index = `${official ? OFFICIAL : UNOFFICIAL}${RuleEntity.COLLECTION}`;
+        let index = `${origin}${RuleEntity.COLLECTION}`;
         let convertedQuery = terms.normalize('NFD').replace(/[^a-z0-9 {}-]/gmi, '').toLowerCase();
         let tokenizedQuery = convertedQuery.replace(/[^a-z0-9 {}-]/gmi, '').replace(/[-]/gmi, ' ');
         let strippedQuery = convertedQuery.replace(/[^a-z0-9]/gmi, '');

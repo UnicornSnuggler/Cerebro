@@ -88,52 +88,40 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('rule')
         .setDescription('Query rules.')
-        .addSubcommandGroup(subcommand =>
-            subcommand
-                .setName('official')
-                .setDescription('Query an official Rules Reference entry.')
-                .addSubcommand(subsubcommand => 
-                    subsubcommand
-                        .setName('title')
-                        .setDescription('Query an official Rules Reference entry by its title.')
-                        .addStringOption(option => option.setName('terms').setDescription('The term(s) being queried.').setRequired(true))))
-        .addSubcommandGroup(subcommand =>
-            subcommand
-                .setName('unofficial')
-                .setDescription('Query an unofficial rule.')
-                .addSubcommand(subsubcommand => 
-                    subsubcommand
-                        .setName('title')
-                        .setDescription('Query an unofficial rule by its title.')
-                        .addStringOption(option => option.setName('terms').setDescription('The term(s) being queried.').setRequired(true)))),
+        .addStringOption(option =>
+            option
+                .setName('origin')
+                .setDescription('The origin of the rule.')
+                .setRequired(true)
+                .addChoice('official', 'official')
+                .addChoice('unofficial', 'unofficial')
+                .addChoice('all', 'all'))
+        .addStringOption(option =>
+            option
+                .setName('title')
+                .setDescription('Query an official Rules Reference entry by its title.')
+                .setRequired(true)),
     async execute(context) {
         if (!Authorized(context)) return;
         
         try {
-            let subCommand = context.options.getSubcommand();
-            let subCommandGroup = context.options.getSubcommandGroup();
-            let command = `/rule ${subCommandGroup} ${subCommand}`;
+            let origin = context.options.getString('origin');
+            let titleOption = context.options.getString('title');
+            let command = `/rule`;
 
-            if (subCommand === 'title') {
-                let terms = context.options.getString('terms');
+            new Promise(() => LogCommand(context, command, null));
 
-                new Promise(() => LogCommand(context, command, terms));
+            let results = await RuleDao.RetrieveByTerm(titleOption, origin);
 
-                let official = subCommandGroup === 'official';
-    
-                let results = await RuleDao.RetrieveByTerm(terms, official);
+            if (!results || results.length === 0) SendContentAsEmbed(context, 'No results were found for the given query...');
+            else if (results.length === 1) {
+                let rule = results[0];
 
-                if (!results || results.length === 0) SendContentAsEmbed(context, 'No results were found for the given query...');
-                else if (results.length === 1) {
-                    let rule = results[0];
+                new Promise(() => LogRuleResult(context, rule));
 
-                    new Promise(() => LogRuleResult(context, rule));
-
-                    SendMessageWithOptions(context, { embeds: [BuildEmbed(rule)] });
-                }
-                else if (results.length > 1) SelectBox(context, results);
+                SendMessageWithOptions(context, { embeds: [BuildEmbed(rule)] });
             }
-            else SendContentAsEmbed(context, 'Something weird happened...');
+            else if (results.length > 1) SelectBox(context, results);
         }
         catch (e) {
             console.log(e);

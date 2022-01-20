@@ -1,15 +1,15 @@
 class ArtificialInteraction {
-    constructor (subcommand, official, terms) {
+    constructor (official, terms) {
         this.getString = function(_) {
-            return terms;
-        };
-        
-        this.getSubcommand = function(_) {
-            return subcommand;
-        };
-
-        this.getSubcommandGroup = function(_) {
-            return official ? 'official' : 'unofficial';
+            if (_ === 'origin') {
+                return official ? 'official' : 'unofficial';
+            }
+            else if (_ === 'name' || _ === 'title') {
+                return terms;
+            }
+            else {
+                return null;
+            }
         };
     }
 }
