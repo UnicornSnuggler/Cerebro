@@ -106,7 +106,7 @@ const HandleMessages = function(message) {
         const command = client.commands.get('rule');
         
         for (let match of matches) {
-            message.options = new ArtificialInteraction('title', true, match.replace(/[()]/gmi, ''));
+            message.options = new ArtificialInteraction(true, match.replace(/[()]/gmi, ''));
 
             try {
                 command.execute(message);
