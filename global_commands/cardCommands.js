@@ -155,6 +155,11 @@ module.exports = {
                 .addChoice('justice', 'justice')
                 .addChoice('leadership', 'leadership')
                 .addChoice('protection', 'protection'))
+        .addMentionableOption(option =>
+            option
+                .setName('author')
+                .setDescription('Query unofficial cards by their author.')
+                .setRequired(false))
         .addStringOption(option =>
             option
                 .setName('cost')
@@ -215,6 +220,9 @@ module.exports = {
             let aspectOption = context.options.getString('aspect');
             let aspect = aspectOption ? aspectOption.toLowerCase() : null;
             
+            let authorOption = context.options.getMentionable('author');
+            let author = authorOption ? authorOption.id : null;
+            
             let cost = context.options.getString('cost');
             
             let nameOption = context.options.getString('name');
@@ -232,7 +240,7 @@ module.exports = {
             let typeOption = context.options.getString('type');
             let type = typeOption ? typeOption.toLowerCase() : null;
             
-            if (!aspect && !cost && !name && !resource && !text && !traits && !type) {
+            if (!aspect && !author && !cost && !name && !resource && !text && !traits && !type) {
                 SendContentAsEmbed(context, 'You must specify at least one search criteria...', null, true);
                 return;
             }
@@ -246,6 +254,7 @@ module.exports = {
 
                 if (results) {
                     if (aspect) results = results.filter(card => card.Classification.toLowerCase() === aspect);
+                    if (author) results = results.filter(card => card.AuthorId === author);
                     if (cost) results = results.filter(card => card.Cost && card.Cost.toLowerCase() === cost);
                     if (resource) {
                         if (resource === 'none') {
@@ -261,7 +270,7 @@ module.exports = {
                 }
             }
             else {
-                results = await CardDao.RetrieveWithFilters(origin, aspect, cost, resource, text, traits, type);
+                results = await CardDao.RetrieveWithFilters(origin, aspect, author, cost, resource, text, traits, type);
             }
             
             if (!results || results.length === 0) SendContentAsEmbed(context, 'No results were found for the given query...');

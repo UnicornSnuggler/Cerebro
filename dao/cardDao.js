@@ -256,7 +256,7 @@ class CardDao {
         else return null;
     }
 
-    static async RetrieveWithFilters(origin, aspect, cost, resource, text, traits, type) {
+    static async RetrieveWithFilters(origin, aspect, author, cost, resource, text, traits, type) {
         const session = this.store.openSession();
         let first = true;
 
@@ -267,6 +267,14 @@ class CardDao {
 
             query = query.openSubclause()
                 .whereRegex('Classification', aspect)
+                .closeSubclause();
+        }
+
+        if (author) {
+            !first ? query = query.andAlso() : first = false;
+
+            query = query.openSubclause()
+                .whereRegex('AuthorId', author)
                 .closeSubclause();
         }
 

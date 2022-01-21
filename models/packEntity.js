@@ -9,6 +9,7 @@ class PackEntity extends BaseCollectionEntity {
         this.CouncilNumber = document.CouncilNumber;
         this.Incomplete = document.Incomplete;
         this.Number = document.Number;
+        this.ReleaseStatus = document.ReleaseStatus;
     }
 }
 
