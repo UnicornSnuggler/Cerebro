@@ -2,6 +2,7 @@ exports.COLORS = {
     Default: '4F80C2',
     Aggression: 'FF3D3D',
     Basic: 'DFDFDF',
+    Determination: 'AC60CC',
     Encounter: 'FF9100',
     Hero: '2337CF',
     Justice: 'F9FC26',
