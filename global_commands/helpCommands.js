@@ -31,7 +31,7 @@ module.exports = {
                 '[Read more](https://github.com/UnicornSnuggler/Cerebro/wiki/Card-Commands#wrapper-syntax).');
 
             embed.addField('Advanced Card Queries', 'The `/card` command can be used to perform in-depth queries for cards based on a series of filters. ' +
-                'Cards can be filtered by their respective `aspect`, `cost`, `name`, `resource`, `text`, `traits`, and `type` values.\n' +
+                'Cards can be filtered by their respective `aspect`, `author`, `cost`, `name`, `resource`, `text`, `traits`, and `type` values.\n' +
                 '[Read more](https://github.com/UnicornSnuggler/Cerebro/wiki/Card-Commands#querying).');
 
             embed.addField('Browse Collections', 'Sets and packs can be browsed using the `/browse` command. ' +
