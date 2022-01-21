@@ -84,7 +84,7 @@ const BuildEmbed = exports.BuildEmbed = function(card, alternateArt = null, spoi
     embed.setTitle(SpoilerIfIncomplete((card.Unique ? SYMBOLS['{u}'] : '') + card.Name + (card.Subname ? ` — ${card.Subname}` : '' ), card.Incomplete && !spoilerFree));
     embed.setURL(image);
     embed.setDescription(description.join('\n\n'));
-    embed.setFooter(BuildFooter(card, spoilerFree));
+    embed.setFooter({ text: BuildFooter(card, spoilerFree) });
 
     let printing = GetPrintingByArtificialId(card, alternateArt ?? card.Id);
     let pack = PackDao.PACKS.find(x => x.Id === printing.PackId);
@@ -156,7 +156,7 @@ const BuildRulesEmbed = exports.BuildRulesEmbed = function(card, alternateArt = 
     embed.setColor(COLORS[(card.Type == 'Villain' || card.Type == 'Main Scheme' ? 'Villain' : card.Classification)]);
     embed.setTitle(SpoilerIfIncomplete((card.Unique ? SYMBOLS['{u}'] : '') + card.Name + (card.Subname != null ? ` — ${card.Subname}` : '' ), card.Incomplete && !spoilerFree));
     embed.setURL(image);
-    embed.setFooter(BuildFooter(card, spoilerFree));
+    embed.setFooter({ text: BuildFooter(card, spoilerFree) });
 
     let printing = GetPrintingByArtificialId(card, alternateArt ?? card.Id);
     let pack = PackDao.PACKS.find(x => x.Id === printing.PackId);
