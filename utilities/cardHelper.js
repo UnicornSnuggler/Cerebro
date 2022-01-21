@@ -4,7 +4,7 @@ const { RuleDao } = require('../dao/ruleDao');
 const { CreateEmbed, RemoveComponents, SendMessageWithOptions } = require('../utilities/messageHelper');
 const { Summary } = require('./printingHelper');
 const { FormatSymbols, FormatText, SpoilerIfIncomplete, QuoteText, ItalicizeText } = require('./stringHelper');
-const { RELEASED_EMOJI, COLORS, ID_LENGTH, INTERACT_APOLOGY, LOAD_APOLOGY, UNRELEASED_EMOJI, SYMBOLS, INTERACT_TIMEOUT, TINKERER_EMOJI } = require('../constants');
+const { RELEASED_EMOJI, COLORS, ID_LENGTH, INTERACT_APOLOGY, LOAD_APOLOGY, UNRELEASED_EMOJI, SYMBOLS, INTERACT_TIMEOUT, TINKERER_EMOJI, WARNING_EMOJI } = require('../constants');
 const { NavigationCollection } = require('../models/navigationCollection');
 const { SetDao } = require('../dao/setDao');
 
@@ -102,7 +102,7 @@ const BuildCredits = exports.BuildCredits = function(card) {
     credits.push(`${Formatters.bold('Author')}: <@${card.AuthorId}>`);
     if (pack.ReleaseStatus === 2) credits.push(`${RELEASED_EMOJI} Released in Council Set #${pack.CouncilNumber}!`);
     else if (pack.ReleaseStatus === 1) credits.push(`${TINKERER_EMOJI} The Tinkerer Blue Gold Seal of Approval!`);
-    else credits.push(`${UNRELEASED_EMOJI} Not yet released...`);
+    else credits.push(`${WARNING_EMOJI} Not yet released...`);
 
     return credits.join('\n');
 }
