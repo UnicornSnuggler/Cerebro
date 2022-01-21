@@ -150,6 +150,7 @@ module.exports = {
                 .setRequired(false)
                 .addChoice('aggression', 'aggression')
                 .addChoice('basic', 'basic')
+                .addChoice('determination', 'determination')
                 .addChoice('encounter', 'encounter')
                 .addChoice('hero', 'hero')
                 .addChoice('justice', 'justice')
