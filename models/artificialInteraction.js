@@ -11,6 +11,10 @@ class ArtificialInteraction {
                 return null;
             }
         };
+
+        this.getMentionable = function(_) {
+            return null;
+        }
     }
 }
 
