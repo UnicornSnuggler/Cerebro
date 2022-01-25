@@ -23,6 +23,7 @@ exports.INTERACT_APOLOGY = 'Sorry, but you can\'t interact with another user\'s 
 exports.LOAD_APOLOGY = 'Please wait while result details are being retrieved. Art rendering will likely result in longer load times.';
 
 exports.RELEASED_EMOJI = '<:released:906312522804654200>';
+exports.REVIEWING_EMOJI = ':mag:';
 exports.TINKERER_EMOJI = '<:tinkerer_seal:934102800491757668>';
 exports.UNRELEASED_EMOJI = '<:unreleased:906312522859155487>';
 exports.WARNING_EMOJI = ':warning:';
