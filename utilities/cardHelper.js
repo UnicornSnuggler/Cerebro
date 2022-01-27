@@ -4,7 +4,7 @@ const { RuleDao } = require('../dao/ruleDao');
 const { CreateEmbed, RemoveComponents, SendMessageWithOptions } = require('../utilities/messageHelper');
 const { Summary } = require('./printingHelper');
 const { FormatSymbols, FormatText, SpoilerIfIncomplete, QuoteText, ItalicizeText } = require('./stringHelper');
-const { RELEASED_EMOJI, COLORS, ID_LENGTH, INTERACT_APOLOGY, LOAD_APOLOGY, UNRELEASED_EMOJI, SYMBOLS, INTERACT_TIMEOUT, TINKERER_EMOJI, WARNING_EMOJI, REVIEWING_EMOJI } = require('../constants');
+const { RELEASED_EMOJI, COLORS, ID_LENGTH, INTERACT_APOLOGY, LOAD_APOLOGY, UNRELEASED_EMOJI, SYMBOLS, INTERACT_TIMEOUT, TINKERER_EMOJI, WARNING_EMOJI, REVIEWING_EMOJI, SERVER_CONFIG } = require('../constants');
 const { NavigationCollection } = require('../models/navigationCollection');
 const { SetDao } = require('../dao/setDao');
 
@@ -305,6 +305,8 @@ const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, current
     let navigationRow = new MessageActionRow();
     let toggleRow = new MessageActionRow();
 
+    let spoilerOverride = (!context.guildId || (SERVER_CONFIG.SpoilerExceptions[context.guildId] && SERVER_CONFIG.SpoilerExceptions[context.guildId].includes(context.channelId)));
+
     let artStyles = FindUniqueArts(card);
 
     if (collection.elements.length > 0) {
@@ -339,7 +341,7 @@ const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, current
             .setLabel('Toggle Rules')
             .setStyle('SECONDARY'));
 
-    if (card.Incomplete)
+    if (!spoilerOverride && card.Incomplete)
         toggleRow.addComponents(new MessageButton()
             .setCustomId('toggleSpoiler')
             .setLabel('Unveil Secretly')
@@ -368,8 +370,8 @@ const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, current
     }
 
     if (!artToggle) {
-        if (!rulesToggle) embeds.push(BuildEmbed(card, artificialId, spoilerToggle));
-        else embeds.push(BuildRulesEmbed(card, artificialId, spoilerToggle));
+        if (!rulesToggle) embeds.push(BuildEmbed(card, artificialId, spoilerOverride || spoilerToggle));
+        else embeds.push(BuildRulesEmbed(card, artificialId, spoilerOverride || spoilerToggle));
     }
     else {
         let printing = GetPrintingByArtificialId(card, artificialId);
@@ -377,8 +379,8 @@ const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, current
 
         files.push({
             attachment: BuildCardImagePath(card, artificialId),
-            name: `${(!spoilerToggle && (card.Incomplete || pack.Incomplete)) ? 'SPOILER_' : ''}${artificialId}.png`,
-            spoiler: (!spoilerToggle && (card.Incomplete || pack.Incomplete))
+            name: `${(!spoilerOverride && (!spoilerToggle && (card.Incomplete || pack.Incomplete))) ? 'SPOILER_' : ''}${artificialId}.png`,
+            spoiler: (!spoilerOverride && (!spoilerToggle && (card.Incomplete || pack.Incomplete)))
         });
     }
 
@@ -389,7 +391,7 @@ const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, current
     };
 
     if (message) promise = message.edit(messageOptions);
-    else promise = SendMessageWithOptions(context, messageOptions, spoilerToggle);
+    else promise = SendMessageWithOptions(context, messageOptions, !spoilerOverride && spoilerToggle);
         
     promise.then((message) => {
         const collector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: INTERACT_TIMEOUT * 1000 });

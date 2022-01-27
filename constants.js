@@ -12,9 +12,27 @@ exports.COLORS = {
 };
 
 exports.SERVER_CONFIG = {
+    SpoilerExceptions: {
+        '387054806528688134': [   // Lemonsbottest
+            '936361526284144640', // #cerebro-beta-spoilers
+            '936361456755179620'  // #cerebro-spoilers
+        ],
+        '641317998442971146': [   // Marvel Champions LCG Homebrew
+            '710144027789623416', // #spoiler-discussion-cards
+            '825206371451404288'  // #spoiler-discussion-others
+        ],
+        '740664734071652403': [   // Solo Champions League
+            '756227996469297173'  // #upcoming-releases
+        ]
+    },
     UnofficialRestrictions: {
-        '387054806528688134': ['936326825079083009', '936326004723576962'],
-        '607399156780105741': ['747860006174457947']
+        '387054806528688134': [   // Lemonsbottest
+            '936326825079083009', // #cerebro-beta-unofficial
+            '936326004723576962'  // #cerebro-unofficial
+        ],
+        '607399156780105741': [   // Marvel Champions LCG Community Server
+            '747860006174457947'  // #homebrew
+        ]
     }
 };
 
