@@ -11,6 +11,13 @@ exports.COLORS = {
     Villain: 'BA00D6'
 };
 
+exports.SERVER_CONFIG = {
+    UnofficialRestrictions: {
+        '387054806528688134': ['936326825079083009', '936326004723576962'],
+        '607399156780105741': ['747860006174457947']
+    }
+};
+
 exports.ID_LENGTH = 5;
 exports.INTERACT_TIMEOUT = 30;
 exports.SELECT_TIMEOUT = 45;
