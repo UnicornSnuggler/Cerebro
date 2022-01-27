@@ -62,6 +62,10 @@ client.on('interactionCreate', interaction => {
 const HandleMessages = function(message) {
     if (message.author.bot) return;
 
+    if (message.mentions.users.find(x => x === client.user)) {
+        message.react('💕');
+    }
+
     let matches = message.content.match(/\{\{.+?\}\}/gi);
 
     if (matches) {
