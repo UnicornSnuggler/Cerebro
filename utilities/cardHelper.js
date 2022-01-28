@@ -8,7 +8,7 @@ const { RELEASED_EMOJI, COLORS, ID_LENGTH, INTERACT_APOLOGY, LOAD_APOLOGY, UNREL
 const { NavigationCollection } = require('../models/navigationCollection');
 const { SetDao } = require('../dao/setDao');
 
-const BuildCardImagePath = exports.BuildCardImagePath = function(card, artStyle) {
+const BuildCardImagePath = exports.BuildCardImagePath = function(card, artStyle = card.Id) {
     return `${process.env.cardImagePrefix}${card.Official ? 'official/' : `unofficial/`}${artStyle}.jpg`;
 }
 

@@ -256,6 +256,18 @@ class CardDao {
         else return null;
     }
 
+    static async RetrieveRandomCard() {
+        const session = this.store.openSession();
+
+        let documents = await session.query({ indexName: `official${CardEntity.COLLECTION}` })
+            .whereEquals('Incomplete', false)
+            .randomOrdering()
+            .take(1)
+            .all();
+
+        return new CardEntity(documents[0]);
+    }
+
     static async RetrieveWithFilters(origin, aspect, author, cost, resource, text, traits, type) {
         const session = this.store.openSession();
         let first = true;

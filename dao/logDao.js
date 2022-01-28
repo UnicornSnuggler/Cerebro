@@ -11,6 +11,22 @@ class LogDao {
 
     static store = CreateDocumentStore(DeriveDatabase(BaseLogEntity.DATABASE_SUFFIX)).initialize();
 
+    static async RetrieveLogCountByCardId(cardId) {
+        const session = this.store.openSession();
+
+        let documents = await session.query({ indexName: 'allcardresults' })
+            .whereEquals('CardId', cardId)
+            .all();
+
+        let results = [];
+
+        for (let document of documents) {
+            results.push(document);
+        }
+
+        return results.length;
+    }
+
     static async RetrieveLogs(index, cutoff, guildId = null, userId = null) {
         const session = this.store.openSession();
 

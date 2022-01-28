@@ -22,7 +22,7 @@ exports.BuildEmbed = function(rule) {
     }
     else embed.setImage(imagePath);
 
-    if (rule.Footer) embed.setFooter(rule.Footer);
+    if (rule.Footer) embed.setFooter({ text: rule.Footer });
 
     return embed;
 }

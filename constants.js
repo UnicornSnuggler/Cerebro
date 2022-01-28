@@ -12,6 +12,18 @@ exports.COLORS = {
 };
 
 exports.SERVER_CONFIG = {
+    CardOfTheDay: {
+        '660715546274430994': [   // All the Nerd Things
+            '834033098584490035'  // #marvel-champions
+        ],
+        '387054806528688134': [   // Lemonsbottest
+            '903745628797018192', // #cerebro
+            '903791106913869856'  // #cerebro-beta
+        ],
+        '641317998442971146': [   // Marvel Champions LCG Homebrew
+            '896999311710232586'  // #cerebro
+        ]
+    },
     SpoilerExceptions: {
         '387054806528688134': [   // Lemonsbottest
             '936361526284144640', // #cerebro-beta-spoilers
@@ -36,6 +48,7 @@ exports.SERVER_CONFIG = {
     }
 };
 
+exports.DAY_MILLIS = 86400000;
 exports.ID_LENGTH = 5;
 exports.INTERACT_TIMEOUT = 30;
 exports.SELECT_TIMEOUT = 45;
