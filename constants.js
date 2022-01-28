@@ -13,16 +13,31 @@ exports.COLORS = {
 
 exports.SERVER_CONFIG = {
     CardOfTheDay: {
-        '660715546274430994': [   // All the Nerd Things
-            '834033098584490035'  // #marvel-champions
-        ],
-        '387054806528688134': [   // Lemonsbottest
-            '903745628797018192', // #cerebro
-            '903791106913869856'  // #cerebro-beta
-        ],
-        '641317998442971146': [   // Marvel Champions LCG Homebrew
-            '896999311710232586'  // #cerebro
-        ]
+        '660715546274430994': {         // All the Nerd Things
+            role: null,
+            channels: [
+                '793879881812541440'    // #developer-stuff
+            ]
+        },
+        '387054806528688134': {         // Lemonsbottest
+            role: '936658501101555762', // Card of the Day
+            channels: [
+                '903745628797018192',   // #cerebro
+                '903791106913869856'    // #cerebro-beta
+            ]
+        },
+        '641317998442971146': {         // Marvel Champions LCG Homebrew
+            role: null,
+            channels: [                     
+                '896999311710232586'    // #cerebro
+            ]
+        },
+        '607399156780105741': {         // Marvel Champions LCG Community Server
+            role: '936657267590316072', // Card of the Day
+            channels: [
+                '936656891411562606'    // #card-of-the-day
+            ]
+        }
     },
     SpoilerExceptions: {
         '387054806528688134': [   // Lemonsbottest

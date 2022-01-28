@@ -261,6 +261,8 @@ class CardDao {
 
         let documents = await session.query({ indexName: `official${CardEntity.COLLECTION}` })
             .whereEquals('Incomplete', false)
+            .andAlso()
+            .whereNotEquals('Classification', 'Encounter')
             .randomOrdering()
             .take(1)
             .all();
