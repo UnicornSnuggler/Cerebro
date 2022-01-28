@@ -34,7 +34,7 @@ for (const guildCommandFile of guildCommandFiles) {
 
 function millisUntilEight() {
     let now = new Date();
-    let millis = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0, 0, 0) - now;
+    let millis = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 14, 0, 0, 0) - now;
 
     if (millis < 0) millis += DAY_MILLIS;
 
