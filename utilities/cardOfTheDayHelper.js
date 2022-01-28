@@ -1,12 +1,23 @@
 const { PackDao } = require('../dao/packDao');
 const { CreateEmbed } = require('./messageHelper');
-const { SERVER_CONFIG, COLORS } = require('../constants')
+const { COLORS } = require('../constants')
 const { CardDao } = require('../dao/cardDao');
 const { BuildCardImagePath, GetPrintingByArtificialId } = require('./cardHelper');
 const { LogDao } = require('../dao/logDao');
 const { GetDateString } = require('./dateHelper');
+const { ConfigurationDao } = require('../dao/configurationDao');
 
-exports.cardOfTheDay = async function cardOfTheDay(client) {
+exports.cardOfTheDayLoop = async function cardOfTheDayLoop(client) {
+    for (let [guildId, data] of Object.entries(ConfigurationDao.CONFIGURATION.CardOfTheDay)) {
+        let guild = client.guilds.resolve(guildId);
+
+        if (guild) {
+            await cardOfTheDay(guild, data.channels, data.role);
+        }
+    }
+}
+
+const cardOfTheDay = exports.cardOfTheDay = async function(guild, channels, role) {
     let card = await CardDao.RetrieveRandomCard();
     let queryCount = await LogDao.RetrieveLogCountByCardId(card.Id);
     let firstPrinting = GetPrintingByArtificialId(card, card.Id);
@@ -23,54 +34,48 @@ exports.cardOfTheDay = async function cardOfTheDay(client) {
 
     baseEmbed.setImage(BuildCardImagePath(card));
 
-    for (let [guildId, data] of Object.entries(SERVER_CONFIG.CardOfTheDay)) {
-        let guild = client.guilds.resolve(guildId);
+    channels.forEach(channelId => {
+        let channel = guild.channels.resolve(channelId);
 
-        if (guild) {
-            data.channels.forEach(channelId => {
-                let channel = guild.channels.resolve(channelId);
+        if (channel) {
+            let permissions = guild.me.permissionsIn(channelId);
 
-                if (channel) {
-                    let permissions = guild.me.permissionsIn(channelId);
-    
-                    if (permissions.has('VIEW_CHANNEL') && permissions.has('SEND_MESSAGES') && permissions.has('MANAGE_MESSAGES')) {
-                        let ping = `It's time for the **Card of the Day**!`;
+            if (permissions.has('VIEW_CHANNEL') && permissions.has('SEND_MESSAGES') && permissions.has('MANAGE_MESSAGES')) {
+                let ping = `It's time for the **Card of the Day**!`;
 
-                        if (data.role) {
-                            ping = ping.replace('\*\*Card of the Day\*\*', `<@&${data.role}>`);
-                        }
+                if (role) {
+                    ping = ping.replace('\*\*Card of the Day\*\*', `<@&${role}>`);
+                }
 
 
-                        if (permissions.has('CREATE_PUBLIC_THREADS')) {
-                            channel.send({
-                                embeds: [baseEmbed]
-                            })
-                            .then(message => {
-                                message.startThread({
-                                    name: GetDateString(true)
-                                })
-                                .then(thread => {
-                                    thread.send({
-                                        content: ping,
-                                        allowedMentions: {
-                                            parse: ['roles']
-                                        }
-                                    })
-                                });
-                            });
-                        }
-                        else {
-                            channel.send({
+                if (permissions.has('CREATE_PUBLIC_THREADS')) {
+                    channel.send({
+                        embeds: [baseEmbed]
+                    })
+                    .then(message => {
+                        message.startThread({
+                            name: GetDateString(true)
+                        })
+                        .then(thread => {
+                            thread.send({
                                 content: ping,
                                 allowedMentions: {
                                     parse: ['roles']
-                                },
-                                embeds: [baseEmbed]
-                            });
-                        }
-                    }
+                                }
+                            })
+                        });
+                    });
                 }
-            });
+                else {
+                    channel.send({
+                        content: ping,
+                        allowedMentions: {
+                            parse: ['roles']
+                        },
+                        embeds: [baseEmbed]
+                    });
+                }
+            }
         }
-    }
+    });
 }

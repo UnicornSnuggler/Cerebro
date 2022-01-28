@@ -1,10 +1,11 @@
 const { Formatters, MessageActionRow, MessageButton, MessageEmbed, Util } = require('discord.js');
 const { PackDao } = require('../dao/packDao');
 const { RuleDao } = require('../dao/ruleDao');
+const { ConfigurationDao } = require('../dao/configurationDao');
 const { CreateEmbed, RemoveComponents, SendMessageWithOptions } = require('../utilities/messageHelper');
 const { Summary } = require('./printingHelper');
 const { FormatSymbols, FormatText, SpoilerIfIncomplete, QuoteText, ItalicizeText } = require('./stringHelper');
-const { RELEASED_EMOJI, COLORS, ID_LENGTH, INTERACT_APOLOGY, LOAD_APOLOGY, UNRELEASED_EMOJI, SYMBOLS, INTERACT_TIMEOUT, TINKERER_EMOJI, WARNING_EMOJI, REVIEWING_EMOJI, SERVER_CONFIG } = require('../constants');
+const { RELEASED_EMOJI, COLORS, ID_LENGTH, INTERACT_APOLOGY, LOAD_APOLOGY, UNRELEASED_EMOJI, SYMBOLS, INTERACT_TIMEOUT, TINKERER_EMOJI, WARNING_EMOJI, REVIEWING_EMOJI } = require('../constants');
 const { NavigationCollection } = require('../models/navigationCollection');
 const { SetDao } = require('../dao/setDao');
 
@@ -305,7 +306,7 @@ const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, current
     let navigationRow = new MessageActionRow();
     let toggleRow = new MessageActionRow();
 
-    let spoilerOverride = (!context.guildId || (SERVER_CONFIG.SpoilerExceptions[context.guildId] && SERVER_CONFIG.SpoilerExceptions[context.guildId].includes(context.channelId)));
+    let spoilerOverride = (!context.guildId || (ConfigurationDao.CONFIGURATION.SpoilerExceptions[context.guildId] && ConfigurationDao.CONFIGURATION.SpoilerExceptions[context.guildId].includes(context.channelId)));
 
     let artStyles = FindUniqueArts(card);
 

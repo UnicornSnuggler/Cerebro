@@ -5,7 +5,8 @@ const { SetDao } = require('../dao/setDao');
 const { FindUniqueArts, GetPrintingByArtificialId, Imbibe, BuildCollectionFromBatch, ResourceConverter } = require('../utilities/cardHelper');
 const { LogCardResult, LogCommand } = require('../utilities/logHelper');
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed, Authorized } = require('../utilities/messageHelper');
-const { SYMBOLS, LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT, SERVER_CONFIG } = require('../constants');
+const { SYMBOLS, LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT } = require('../constants');
+const { ConfigurationDao } = require('../dao/configurationDao');
 
 const SelectBox = async function(context, cards) {
     let selector = new MessageSelectMenu()
@@ -242,8 +243,8 @@ module.exports = {
             let type = typeOption ? typeOption.toLowerCase() : null;
 
             if (origin !== 'official' && context.guildId) {
-                if (SERVER_CONFIG.UnofficialRestrictions[context.guildId] && !SERVER_CONFIG.UnofficialRestrictions[context.guildId].includes(context.channelId)) {
-                    SendContentAsEmbed(context, `Unofficial content queries are restricted to the following channels:${SERVER_CONFIG.UnofficialRestrictions[context.guildId].map(x => `\n<#${x}>`).join('')}`, null, true);
+                if (ConfigurationDao.CONFIGURATION.UnofficialRestrictions[context.guildId] && !ConfigurationDao.CONFIGURATION.UnofficialRestrictions[context.guildId].includes(context.channelId)) {
+                    SendContentAsEmbed(context, `Unofficial content queries are restricted to the following channels:${ConfigurationDao.CONFIGURATION.UnofficialRestrictions[context.guildId].map(x => `\n<#${x}>`).join('')}`, null, true);
                     return;
                 }
             }

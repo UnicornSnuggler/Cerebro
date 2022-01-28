@@ -10,7 +10,8 @@ const { ArtificialInteraction } = require('./models/artificialInteraction');
 const { SendContentAsEmbed } = require('./utilities/messageHelper');
 const { DAY_MILLIS } = require('./constants')
 const fs = require('fs');
-const { cardOfTheDay } = require('./utilities/cardOfTheDayHelper');
+const { cardOfTheDayLoop } = require('./utilities/cardOfTheDayHelper');
+const { ConfigurationDao } = require('./dao/configurationDao');
 
 const client = new Client({ intents: [Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES], partials: [Constants.PartialTypes.CHANNEL] });
 
@@ -47,13 +48,14 @@ client.on('ready', async () => {
     await PackDao.RetrieveAllPacks();
     await RuleDao.RetrieveKeywordsAndSchemeIcons();
     await SetDao.RetrieveAllSets();
+    await ConfigurationDao.RetrieveConfiguration();
 
     console.log(`Logged in as ${client.user.tag}!`);
 
     setTimeout(function() {
-        cardOfTheDay(client);
+        cardOfTheDayLoop(client);
         setInterval(function() {
-            cardOfTheDay(client);
+            cardOfTheDayLoop(client);
         }, DAY_MILLIS)
     }, millisUntilEight());
 });

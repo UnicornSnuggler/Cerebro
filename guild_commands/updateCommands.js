@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { AuthorDao } = require('../dao/authorDao');
+const { ConfigurationDao } = require('../dao/configurationDao');
 const { FormattingDao } = require('../dao/formattingDao');
 const { GroupDao } = require('../dao/groupDao');
 const { PackDao } = require('../dao/packDao');
@@ -17,6 +18,7 @@ module.exports = {
                 .setRequired(true)
                 .addChoice('All', 'all')
                 .addChoice('Authors', 'authors')
+                .addChoice('Configuration', 'configuration')
                 .addChoice('Formattings', 'formattings')
                 .addChoice('Groups', 'groups')
                 .addChoice('Packs', 'packs')
@@ -39,6 +41,10 @@ module.exports = {
                 case 'authors':
                     await AuthorDao.RetrieveAllAuthors();
                     SendContentAsEmbed(context, 'Authors list updated!', null, true);
+                    break;
+                case 'configuration':
+                    await ConfigurationDao.RetrieveConfiguration();
+                    SendContentAsEmbed(context, 'Primary configuration updated!', null, true);
                     break;
                 case 'formattings':
                     await FormattingDao.RetrieveAllFormattings();
