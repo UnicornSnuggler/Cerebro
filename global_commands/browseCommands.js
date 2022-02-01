@@ -42,7 +42,7 @@ const SelectBox = async function(context, collectionEntities, type) {
         let collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: SELECT_TIMEOUT * 1000 });
 
         collector.on('collect', async i => {
-            let userId = context.user ? context.user.id : context.author.id;
+            let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
 
             if (i.user.id === userId) {
                 let collectionEntity = collectionEntities.find(x => x.Id === i.values[0]);

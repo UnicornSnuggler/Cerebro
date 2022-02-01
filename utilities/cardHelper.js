@@ -398,7 +398,7 @@ const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, current
         const collector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: INTERACT_TIMEOUT * 1000 });
 
         collector.on('collect', i => {
-            let userId = context.type != 'DEFAULT' ? context.user.id : context.author.id;
+            let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
 
             if (i.customId === 'toggleSpoiler') {
                 Imbibe(i, card, currentArtStyle, currentFace, currentElement, collection, rulesToggle, artToggle, null, true);
