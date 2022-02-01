@@ -2,6 +2,10 @@ const { Formatters } = require('discord.js');
 const { FormattingDao } = require('../dao/formattingDao');
 const { SYMBOLS } = require('../constants');
 
+exports.CapitalizedTitleElement = function(element) {
+    return element === 'all-time' ? 'All-Time' : element.charAt(0).toUpperCase() + element.slice(1);
+}
+
 exports.EscapeRegex = function(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

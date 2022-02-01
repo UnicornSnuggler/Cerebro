@@ -9,6 +9,7 @@ const { CommandLogEntity } = require('../models/commandLogEntity');
 const { RuleResultLogEntity } = require('../models/ruleResultLogEntity');
 const { GetPrintingByArtificialId, BuildCardImagePath } = require('./cardHelper');
 const { COLORS } = require('../constants');
+const { CapitalizedTitleElement } = require('./stringHelper');
 
 const BuildBaseEntity = function(context, collection) {
     let userId = context.user ? context.user.id : context.author.id;
@@ -171,10 +172,6 @@ exports.BuildUserResultsEmbed = async function(results, scale, timeframe) {
     embed.setDescription(DeriveEmbedDescription(resultEntries));
 
     return embed;
-}
-
-const CapitalizedTitleElement = function(element) {
-    return element === 'all-time' ? 'All-Time' : element.charAt(0).toUpperCase() + element.slice(1);
 }
 
 const DeriveEmbedDescription = function(resultEntries) {

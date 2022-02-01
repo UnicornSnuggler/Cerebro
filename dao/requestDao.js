@@ -6,37 +6,36 @@ class RequestDao {
     constructor() { }
 
     static store = CreateDocumentStore(DeriveDatabase(RequestEntity.DATABASE_SUFFIX)).initialize();
-
-    static async RetrieveRequestsByUserId(userId, type) {
+    
+    static async RetrieveAllRequests(type) {
         const session = this.store.openSession();
 
-        let documents = await session.query({ indexName: `${type}requests` })
-            .whereEquals('UserId', userId)
-            .all();
+        let query = session.query({ indexName: `allrequests` });
 
-        let results = [];
-
-        for (let document of documents) {
-            results.push(document);
-        }
-
-        return results.length > 0 ? results : null;
-    }
-
-    static async RetrieveAllRequests(type, override) {
-        const session = this.store.openSession();
-
-        let query = session.query({ indexName: `${type}requests` });
-
-        if (!override) {
-            query = query
-                .whereEquals('Flag', 1)
-                .orElse()
-                .whereEquals('Flag', 2);
+        if (type !== 'all') {
+            query = query.whereEquals('Type', type);
         }
 
         let documents = await query.all();
         
+        let results = [];
+        
+        for (let document of documents) {
+            let entity = new RequestEntity(document);
+            
+            results.push(entity);
+        }
+        
+        return results.length > 0 ? results : null;
+    }
+
+    static async RetrieveRequestById(requestId) {
+        const session = this.store.openSession();
+
+        let documents = await session.query({ indexName: `allrequests` })
+            .whereRegex('id()', requestId)
+            .all();
+
         let results = [];
 
         for (let document of documents) {
@@ -48,6 +47,30 @@ class RequestDao {
         return results.length > 0 ? results : null;
     }
 
+    static async RetrieveRequestsByUserId(userId, type) {
+        const session = this.store.openSession();
+
+        let query = session.query({ indexName: `allrequests` })
+            .whereEquals('UserId', userId);
+
+        if (type !== 'all') {
+            query = query.andAlso()
+                .whereEquals('Type', type);
+        }
+
+        let documents = await query.all();
+
+        let results = [];
+
+        for (let document of documents) {
+            let entity = new RequestEntity(document);
+
+            results.push(entity);
+        }
+
+        return results.length > 0 ? results : null;
+    }
+    
     static async StoreRequestEntity(requestEntity) {
         const session = this.store.openSession();
         let id = v4();

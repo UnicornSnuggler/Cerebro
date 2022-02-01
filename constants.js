@@ -11,6 +11,9 @@ exports.COLORS = {
     Villain: 'BA00D6'
 };
 
+exports.WIZARD = '132708937584607233';
+exports.ACOLYTE = '906244686476345344';
+
 exports.DAY_MILLIS = 86400000;
 exports.ID_LENGTH = 5;
 exports.INTERACT_TIMEOUT = 30;

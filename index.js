@@ -13,7 +13,7 @@ const fs = require('fs');
 const { cardOfTheDayLoop } = require('./utilities/cardOfTheDayHelper');
 const { ConfigurationDao } = require('./dao/configurationDao');
 
-const client = new Client({ intents: [Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES], partials: [Constants.PartialTypes.CHANNEL] });
+const client = new Client({ intents: [Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS], partials: [Constants.PartialTypes.CHANNEL] });
 
 client.commands = new Collection();
 const globalCommandFiles = fs.readdirSync('./global_commands').filter(file => file.endsWith('.js'));
