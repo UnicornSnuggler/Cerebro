@@ -4,7 +4,7 @@ const { RuleDao } = require('../dao/ruleDao');
 const { LogCommand, LogRuleResult } = require('../utilities/logHelper');
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed, SendMessageWithOptions, Authorized } = require('../utilities/messageHelper');
 const { BuildEmbed } = require('../utilities/ruleHelper');
-const { SYMBOLS, INTERACT_APOLOGY, LOAD_APOLOGY, SELECT_TIMEOUT } = require('../constants');
+const { SYMBOLS, INTERACT_APOLOGY, LOAD_APOLOGY, SELECT_TIMEOUT, TIMEOUT_APOLOGY } = require('../constants');
 
 const SelectBox = async function(context, rules) {
     let selector = new MessageSelectMenu()
@@ -75,7 +75,7 @@ const SelectBox = async function(context, rules) {
         });
 
         collector.on('end', (i, reason) => {
-            let content = 'The timeout was reached...';
+            let content = TIMEOUT_APOLOGY;
 
             if (reason === 'selection') content = LOAD_APOLOGY;
             
