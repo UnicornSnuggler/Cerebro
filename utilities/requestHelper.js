@@ -587,66 +587,68 @@ exports.SendRequestEmbed = async function(context, request, moderator, owner) {
     });
 
     promise.then((message) => {
-        const buttonCollector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: INTERACT_TIMEOUT * 1000 * 2 });
-
-        buttonCollector.on('collect', i => {
-            i.deferUpdate()
-            .then(async () => {
-                let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
-
-                if (i.user.id === userId) {
-                    switch (i.customId) {
-                        case 'clearComponents':
-                            buttonCollector.stop(null);
-                            break;
-                        case 'delete':
-                            buttonCollector.stop(null);
-                            SendConfirmation(context, request, 'Are you sure you want to delete this request?', DeleteRequest);
-                            break;
-                        case 'banished':
-                            buttonCollector.stop(null);
-                            SendConfirmation(context, request, `Are you sure you want to mark request \`${id}\` as **${FLAG_TYPES.banished}**?`, BanishRequest);
-                            break;
-                        case 'denied':
-                            buttonCollector.stop(null);
-                            SendConfirmation(context, request, `Are you sure you want to mark request \`${id}\` as **${FLAG_TYPES.denied}**?`, DenyRequest);
-                            break;
-                        case 'approved':
-                        case 'complete':
-                        case 'inProgress':
-                            buttonCollector.stop(null);
-                            await UpdateRequestFlag(context, request, FLAG_TYPES[i.customId]);
-                            break;
-                        default:
-                            let embed = CreateEmbed('Not yet implemented!', COLORS.Basic);
-            
-                            i.followUp({
-                                embeds: [embed],
-                                ephemeral: true
-                            });
-                            break;
+        if (components.length > 0) {
+            const buttonCollector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: INTERACT_TIMEOUT * 1000 * 2 });
+    
+            buttonCollector.on('collect', i => {
+                i.deferUpdate()
+                .then(async () => {
+                    let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
+    
+                    if (i.user.id === userId) {
+                        switch (i.customId) {
+                            case 'clearComponents':
+                                buttonCollector.stop(null);
+                                break;
+                            case 'delete':
+                                buttonCollector.stop(null);
+                                SendConfirmation(context, request, 'Are you sure you want to delete this request?', DeleteRequest);
+                                break;
+                            case 'banished':
+                                buttonCollector.stop(null);
+                                SendConfirmation(context, request, `Are you sure you want to mark request \`${id}\` as **${FLAG_TYPES.banished}**?`, BanishRequest);
+                                break;
+                            case 'denied':
+                                buttonCollector.stop(null);
+                                SendConfirmation(context, request, `Are you sure you want to mark request \`${id}\` as **${FLAG_TYPES.denied}**?`, DenyRequest);
+                                break;
+                            case 'approved':
+                            case 'complete':
+                            case 'inProgress':
+                                buttonCollector.stop(null);
+                                await UpdateRequestFlag(context, request, FLAG_TYPES[i.customId]);
+                                break;
+                            default:
+                                let embed = CreateEmbed('Not yet implemented!', COLORS.Basic);
+                
+                                i.followUp({
+                                    embeds: [embed],
+                                    ephemeral: true
+                                });
+                                break;
+                        }
                     }
-                }
-                else {
-                    i.followUp({
-                        embeds: [CreateEmbed(INTERACT_APOLOGY, COLORS.Basic)],
-                        ephemeral: true
+                    else {
+                        i.followUp({
+                            embeds: [CreateEmbed(INTERACT_APOLOGY, COLORS.Basic)],
+                            ephemeral: true
+                        });
+                    }
+                });
+            });
+    
+            buttonCollector.on('end', (i, notification) => {
+                RemoveComponents(message, null);
+    
+                if (notification && notification !== 'time') {
+                    let embed = CreateEmbed(notification, COLORS.Basic);
+    
+                    context.followUp({
+                        embeds: [embed]
                     });
                 }
             });
-        });
-
-        buttonCollector.on('end', (i, notification) => {
-            RemoveComponents(message, null);
-
-            if (notification && notification !== 'time') {
-                let embed = CreateEmbed(notification, COLORS.Basic);
-
-                context.followUp({
-                    embeds: [embed]
-                });
-            }
-        });
+        }
     });
 }
 
