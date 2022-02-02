@@ -4,22 +4,23 @@ const { CreateEmbed } = require("./messageHelper");
 exports.DirectMessageUser = async function(user, message) {            
     let embed = CreateEmbed(message, COLORS.Basic);
 
-    await user.send({
-        embeds: [embed]
-    });
+    try {
+        await user.send({
+            embeds: [embed]
+        });
+    }
+    catch (exception) {
+        console.log(`Could not send a direct message to ${user.username}...`);
+    }
 }
 
 exports.GetUser = async function(context, userId) {
-    let user = null;
+    try {
+        let user = await context.client.users.fetch(userId);
 
-    for (let guild of context.client.guilds._cache) {
-        let guildMember = await guild[1].members.fetch(userId);
-
-        if (guildMember) {
-            user = guildMember.user;
-            break;
-        }
+        return user ? user : null;
     }
-
-    return user;
+    catch (exception) {
+        console.log(exception);
+    }
 }
