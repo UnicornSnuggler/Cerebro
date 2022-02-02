@@ -42,6 +42,11 @@ module.exports = {
                 'In this way, the query `{{Captain America*}}` will match `Captain America`, `Captain America\'s Shield`, and `Captain America\'s Helmet`.\n' +
                 '[Read more](https://github.com/UnicornSnuggler/Cerebro/wiki/Card-Commands#wildcards).');
 
+            embed.addField('Submitting Requests', 'Users can request that new data and features be added to Cerebro and review their existing requests using the `/request` command. ' +
+                'Submitted requests will be reviewed by moderators and either approved, denied, or banished. ' +
+                'Follow-up requests cannot be made until a moderator has approved the request or 24 hours have elapsed since the request was submitted.\n' +
+                '[Read more](https://github.com/UnicornSnuggler/Cerebro/wiki/Request-Commands).');
+
             context.reply({
                 allowedMentions: {
                     repliedUser: false

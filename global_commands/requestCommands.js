@@ -72,7 +72,7 @@ module.exports = {
                 if (scopeOption === 'all') {
                     requests = await RequestDao.RetrieveAllRequests(typeOption);
 
-                    if (!moderator) {
+                    if (requests.length > 0 && !moderator) {
                         requests = requests.filter(x => x.UserId === context.user.id || [FLAG_TYPES.approved, FLAG_TYPES.inProgress].includes(x.Flag));
                     }
                 }
@@ -89,7 +89,7 @@ module.exports = {
             else if (subCommand === 'new') {
                 await context.deferReply({ephemeral: true});
 
-                let requests = await RequestDao.RetrieveRequestsByUserId(context.user.id, typeOption);
+                let requests = await RequestDao.RetrieveRequestsByUserId(context.user.id, 'all');
                 
                 if (requests !== null) {
                     requests.sort((a, b) => { return b.Timestamp - a.Timestamp; });
@@ -105,7 +105,7 @@ module.exports = {
                         return;
                     }
                     else if (requests.filter(x => x.Type === typeOption && x.Flag === FLAG_TYPES.pendingReview && Date.now() - x.Timestamp < DAY_MILLIS).length > 0) {
-                        let replyEmbed = CreateEmbed('You cannot make another request until your previously pending request is approved or has been pending for 24 hours.', COLORS.Justice);
+                        let replyEmbed = CreateEmbed('You cannot make another request until your previously submitted request is approved or has been pending for 24 hours.', COLORS.Justice);
 
                         await context.editReply({
                             embeds: [replyEmbed],
@@ -161,7 +161,7 @@ module.exports = {
 
             let replyEmbed = CreateEmbed('Something went wrong... Check the logs to find out more.');
 
-            await context.editReply({
+            await context.followUp({
                 embeds: [replyEmbed],
                 ephemeral: true
             });
