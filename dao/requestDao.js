@@ -6,6 +6,23 @@ class RequestDao {
     constructor() { }
 
     static store = CreateDocumentStore(DeriveDatabase(RequestEntity.DATABASE_SUFFIX)).initialize();
+
+    static async DeleteRequestById(requestId) {
+        const session = this.store.openSession();
+
+        try {
+            let document = await session.load(requestId);
+            
+            document.Deleted = true;
+
+            await session.saveChanges();
+
+            console.log(`Marked request '${requestId}' as deleted...`);
+        }
+        catch (exception) {
+            console.log(exception);
+        }
+    }
     
     static async RetrieveAllRequests(type) {
         const session = this.store.openSession();
@@ -79,10 +96,33 @@ class RequestDao {
             await session.store(requestEntity, id);
             await session.saveChanges();
     
-            console.log(`Stored '${id}' into the database!`);
+            console.log(`Stored request '${id}' into the database!`);
+
+            return id;
         }
         catch (exception) {
-            console.log(e);
+            console.log(exception);
+        }
+    }
+
+    static async UpdateRequestFlagById(requestId, newFlag, reasoning) {
+        const session = this.store.openSession();
+
+        try {
+            let document = await session.load(requestId);
+            
+            document.Flag = newFlag;
+
+            if (reasoning) {
+                document.Reasoning = reasoning;
+            }
+
+            await session.saveChanges();
+
+            console.log(`Marked request '${requestId}' as '${newFlag}'...`);
+        }
+        catch (exception) {
+            console.log(exception);
         }
     }
 }

@@ -84,7 +84,7 @@ class LogDao {
             console.log(`Stored '${id}' into the database!`);
         }
         catch (exception) {
-            console.log(e);
+            console.log(exception);
         }
     }
 }
