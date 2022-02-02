@@ -44,12 +44,15 @@ exports.BuildCardResultsEmbed = async function(results, scale, timeframe) {
     embed.setColor(COLORS["Basic"]);
     embed.setTitle(`${CapitalizedTitleElement(scale)} ${CapitalizedTitleElement(timeframe)} Card Statistics`);
 
+    let summary = null;
     let resultEntries = [];
 
     if (results) {
         let ids = results.map(x => x.CardId).filter(function(value, index, self) {
             return self.indexOf(value) === index;
         });
+
+        summary = `**${ids.length}** unique card${ids.length > 1 ? 's have' : ' has'} been queried a combined total of **${results.length}** time${results.length > 1 ? 's' : ''}.`;
 
         let cards = await CardDao.RetrieveByIdList(ids);
 
@@ -71,14 +74,14 @@ exports.BuildCardResultsEmbed = async function(results, scale, timeframe) {
             else description = `${card.Classification} ${description}`;
 
             resultEntries.push({
-                description: `[${card.Name}](${imagePath}) ${card.Official ? '' : 'Unofficial '}${description}`,
+                description: `[${card.Name}](${imagePath}) ${card.Official ? '' : 'Unofficial '}${description} — ${matches.length} Queries`,
                 count: matches.length,
                 timestamp: timestamp
             });
         }
     }
 
-    embed.setDescription(DeriveEmbedDescription(resultEntries));
+    embed.setDescription(DeriveEmbedDescription(resultEntries, summary));
 
     return embed;
 }
@@ -89,6 +92,7 @@ exports.BuildPackResultsEmbed = async function(results, scale, timeframe) {
     embed.setColor(COLORS["Basic"]);
     embed.setTitle(`${CapitalizedTitleElement(scale)} ${CapitalizedTitleElement(timeframe)} Pack Statistics`);
 
+    let summary = null;
     let resultEntries = [];
 
     if (results) {
@@ -96,20 +100,22 @@ exports.BuildPackResultsEmbed = async function(results, scale, timeframe) {
             return value && self.indexOf(value) === index;
         });
 
+        summary = `**${ids.length}** unique pack${ids.length > 1 ? 's have' : ' has'} been queried a combined total of **${results.length}** time${results.length > 1 ? 's' : ''}.`;
+
         for (let id of ids) {
             let pack = PackDao.PACKS.find(x => x.Id === id);
             let matches = results.filter(x => x.PackId === id);
             let timestamp = matches.sort((a, b) => b.Timestamp - a.Timestamp)[0].Timestamp;
 
             resultEntries.push({
-                description: `**${pack.Name}** (${pack.Official ? '' : 'Unofficial '}${pack.Type})`,
+                description: `**${pack.Name}** (${pack.Official ? '' : 'Unofficial '}${pack.Type}) — ${matches.length} Queries`,
                 count: matches.length,
                 timestamp: timestamp
             });
         }
     }
 
-    embed.setDescription(DeriveEmbedDescription(resultEntries));
+    embed.setDescription(DeriveEmbedDescription(resultEntries, summary));
 
     return embed;
 }
@@ -120,6 +126,7 @@ exports.BuildSetResultsEmbed = async function(results, scale, timeframe) {
     embed.setColor(COLORS["Basic"]);
     embed.setTitle(`${CapitalizedTitleElement(scale)} ${CapitalizedTitleElement(timeframe)} Set Statistics`);
 
+    let summary = null;
     let resultEntries = [];
 
     if (results) {
@@ -127,20 +134,22 @@ exports.BuildSetResultsEmbed = async function(results, scale, timeframe) {
             return value && self.indexOf(value) === index;
         });
 
+        summary = `**${ids.length}** unique set${ids.length > 1 ? 's have' : ' has'} been queried a combined total of **${results.length}** time${results.length > 1 ? 's' : ''}.`;
+
         for (let id of ids) {
             let set = SetDao.SETS.find(x => x.Id === id);
             let matches = results.filter(x => x.SetId === id);
             let timestamp = matches.sort((a, b) => b.Timestamp - a.Timestamp)[0].Timestamp;
 
             resultEntries.push({
-                description: `**${set.Name}** (${set.Official ? '' : 'Unofficial '}${set.Type})`,
+                description: `**${set.Name}** (${set.Official ? '' : 'Unofficial '}${set.Type}) — ${matches.length} Queries`,
                 count: matches.length,
                 timestamp: timestamp
             });
         }
     }
 
-    embed.setDescription(DeriveEmbedDescription(resultEntries));
+    embed.setDescription(DeriveEmbedDescription(resultEntries, summary));
 
     return embed;
 }
@@ -151,6 +160,7 @@ exports.BuildUserResultsEmbed = async function(results, scale, timeframe) {
     embed.setColor(COLORS["Basic"]);
     embed.setTitle(`${CapitalizedTitleElement(scale)} ${CapitalizedTitleElement(timeframe)} User Statistics`);
 
+    let summary = null;
     let resultEntries = [];
 
     if (results) {
@@ -158,24 +168,26 @@ exports.BuildUserResultsEmbed = async function(results, scale, timeframe) {
             return value && self.indexOf(value) === index;
         });
 
+        summary = `**${ids.length}** unique user${ids.length > 1 ? 's have' : ' has'} interacted a combined total of **${results.length}** time${results.length > 1 ? 's' : ''}.`;
+
         for (let id of ids) {
             let matches = results.filter(x => x.UserId === id);
             let timestamp = matches.sort((a, b) => b.Timestamp - a.Timestamp)[0].Timestamp;
 
             resultEntries.push({
-                description: `<@${id}> — ${matches.length} Queries`,
+                description: `<@${id}> — ${matches.length} Interactions`,
                 count: matches.length,
                 timestamp: timestamp
             });
         }
     }
 
-    embed.setDescription(DeriveEmbedDescription(resultEntries));
+    embed.setDescription(DeriveEmbedDescription(resultEntries, summary));
 
     return embed;
 }
 
-const DeriveEmbedDescription = function(resultEntries) {
+const DeriveEmbedDescription = function(resultEntries, summary) {
     let popularityArray = [];
     let recentArray = [];
     
@@ -188,7 +200,7 @@ const DeriveEmbedDescription = function(resultEntries) {
         return b.timestamp - a.timestamp;
     }).slice(0, 10).forEach(entry => recentArray.push(`${recentArray.length + 1}. ${entry.description}`));
 
-    return `**Most Popular**\n${popularityArray.length > 0 ? popularityArray.join('\n') : 'No data to show...'}\n\n**Most Recent**\n${recentArray.length > 0 ? recentArray.join('\n') : 'No data to show...'}`;
+    return `${summary ? `${summary}\n\n` : ''}**Most Popular**\n${popularityArray.length > 0 ? popularityArray.join('\n') : 'No data to show...'}\n\n**Most Recent**\n${recentArray.length > 0 ? recentArray.join('\n') : 'No data to show...'}`;
 }
 
 exports.LogCardResult = async function(context, card) {
