@@ -523,7 +523,7 @@ exports.SendRequestEmbed = async function(context, request, moderator, owner) {
     let id = request.Id.substring(24);
     let flagKey = Object.keys(FLAG_TYPES).find(key => FLAG_TYPES[key] === request.Flag);
 
-    let description = (!owner ? `\n**Author**: <@${request.UserId}>` : '') +
+    let description = `**Author**: <@${request.UserId}>` +
         `\n**Type**: ${CapitalizedTitleElement(request.Type)} Request` +
         (request.Stability ? `\n**Stability**: ${request.Stability}` : '') +
         (request.Link ? `\n**Link**: ${request.Link}` : '') +
