@@ -569,10 +569,12 @@ exports.SendRequestEmbed = async function(context, request, moderator, owner) {
             .setStyle('DANGER'));
     }
 
-    defaultRow.addComponents(new MessageButton()
-        .setCustomId('clearComponents')
-        .setLabel('Clear Buttons')
-        .setStyle('DANGER'));
+    if (adminRow.components.length > 0 || moderatorRow.components > 0) {
+        defaultRow.addComponents(new MessageButton()
+            .setCustomId('clearComponents')
+            .setLabel('Clear Buttons')
+            .setStyle('DANGER'));
+    }
 
     [adminRow, moderatorRow, defaultRow].forEach(x => {
         if (x.components.length > 0) components.push(x);
