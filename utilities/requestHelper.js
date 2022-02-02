@@ -6,7 +6,7 @@ const { BuildEmbed } = require('../utilities/ruleHelper');
 const { INTERACT_TIMEOUT, INTERACT_APOLOGY, TIMEOUT_APOLOGY, COLORS, WIZARD } = require("../constants");
 const { CreateEmbed, RemoveComponents } = require("./messageHelper");
 const { RequestDao } = require('../dao/requestDao');
-const { CapitalizedTitleElement } = require('./stringHelper');
+const { CapitalizedTitleElement, QuoteText } = require('./stringHelper');
 const { ConfigurationDao } = require('../dao/configurationDao');
 const { GetUser, DirectMessageUser } = require('./userHelper');
 
@@ -202,7 +202,7 @@ const TrashRequest = async function(context, request, newFlag, inputConfirmation
 
     let id = request.Id.substring(24);
 
-    let prompt = inputConfirmation ? `Your reason is as follows:\n\n> ${inputConfirmation}\n\nIs this what you want to submit?` : `Please enter the reason that request \`${id}\` is being marked as **${newFlag}**.`;
+    let prompt = inputConfirmation ? `Your reason is as follows:\n\n${QuoteText(inputConfirmation)}\n\nIs this what you want to submit?` : `Please enter the reason that request \`${id}\` is being marked as **${newFlag}**.`;
 
     let embed = CreateEmbed(prompt, COLORS.Basic);
 
@@ -378,7 +378,7 @@ const ProcessRequest = exports.ProcessRequest = async function(context, requestE
         .setLabel('Cancel')
         .setStyle('DANGER'));
 
-    let prompt = type === QUESTION_TYPES.userInput && inputConfirmation ? `Your input is as follows:\n\n> ${inputConfirmation}\n\nIs this what you want to submit?` : currentQuestion.question;
+    let prompt = type === QUESTION_TYPES.userInput && inputConfirmation ? `Your input is as follows:\n\n${QuoteText(inputConfirmation)}\n\nIs this what you want to submit?` : currentQuestion.question;
 
     let embed = CreateEmbed(prompt, COLORS.Basic);
 
@@ -549,7 +549,7 @@ exports.SendRequestEmbed = async function(context, request, moderator, owner) {
         `\n**Type**: ${CapitalizedTitleElement(request.Type)} Request` +
         (request.Stability ? `\n**Stability**: ${request.Stability}` : '') +
         (request.Link ? `\n**Link**: ${request.Link}` : '') +
-        (request.Description ? `\n\n**Description**:\n> ${request.Description}` : '') +
+        (request.Description ? `\n\n**Description**:\n${QuoteText(request.Description)}` : '') +
         `\n\n**Status**: ${FLAG_EMOJIS[flagKey]} ${request.Flag}` +
         (request.Reasoning ? `\n**Reasoning**:\n> ${request.Reasoning}` : '');
 
