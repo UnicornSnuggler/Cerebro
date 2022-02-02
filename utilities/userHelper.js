@@ -10,7 +10,7 @@ exports.DirectMessageUser = async function(user, message) {
         });
     }
     catch (exception) {
-        console.log(`Could not send a direct message to ${user.username}...`);
+        console.log(`Could not send a direct message to '${user.username}' (${user.id})...`);
     }
 }
 
@@ -21,6 +21,6 @@ exports.GetUser = async function(context, userId) {
         return user ? user : null;
     }
     catch (exception) {
-        console.log(exception);
+        console.log(`Could not find '${user.username}' (${user.id})...`);
     }
 }
