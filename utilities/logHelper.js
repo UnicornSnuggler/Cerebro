@@ -10,6 +10,7 @@ const { RuleResultLogEntity } = require('../models/ruleResultLogEntity');
 const { GetPrintingByArtificialId, BuildCardImagePath } = require('./cardHelper');
 const { COLORS } = require('../constants');
 const { CapitalizedTitleElement } = require('./stringHelper');
+const { CreateEmbed } = require('./messageHelper');
 
 const BuildBaseEntity = function(context, collection) {
     let userId = context.user ? context.user.id : context.author.id;
@@ -190,26 +191,48 @@ const DeriveEmbedDescription = function(resultEntries) {
     return `**Most Popular**\n${popularityArray.length > 0 ? popularityArray.join('\n') : 'No data to show...'}\n\n**Most Recent**\n${recentArray.length > 0 ? recentArray.join('\n') : 'No data to show...'}`;
 }
 
-exports.LogCardResult = function(context, card) {
+exports.LogCardResult = async function(context, card) {
     let collection = `all${CardResultLogEntity.COLLECTION}`;
     let firstPrinting = GetPrintingByArtificialId(card, card.Id);
     let entity = BuildBaseOrganizedEntity(context, collection, firstPrinting.PackId, firstPrinting.SetId);
 
     entity.CardId = card.Id;
 
-    LogDao.StoreLogEntity(entity);
+    try {
+        await LogDao.StoreLogEntity(entity);
+    }
+    catch (e) {
+        console.log(e);
+
+        let replyEmbed = CreateEmbed('Something went wrong... Check the logs to find out more.');
+
+        await context.channel.send({
+            embeds: [replyEmbed]
+        });
+    }
 }
 
-exports.LogCollectionResult = function(context, collectionEntity, type) {
+exports.LogCollectionResult = async function(context, collectionEntity, type) {
     let collection = `all${CollectionResultLogEntity.COLLECTION}`;
     let packId = type === 'pack' ? collectionEntity.Id : null;
     let setId = type === 'set' ? collectionEntity.Id : null;
     let entity = BuildBaseOrganizedEntity(context, collection, packId, setId);
 
-    LogDao.StoreLogEntity(entity);
+    try {
+        await LogDao.StoreLogEntity(entity);
+    }
+    catch (e) {
+        console.log(e);
+
+        let replyEmbed = CreateEmbed('Something went wrong... Check the logs to find out more.');
+
+        await context.channel.send({
+            embeds: [replyEmbed]
+        });
+    }
 }
 
-exports.LogCommand = function(context, command, options) {
+exports.LogCommand = async function(context, command, options) {
     let collection = `all${CommandLogEntity.COLLECTION}`;
     let entity = BuildBaseEntity(context, collection);
 
@@ -217,14 +240,36 @@ exports.LogCommand = function(context, command, options) {
     entity.Options = options;
     entity.Shorthand = context.type != 'APPLICATION_COMMAND';
 
-    LogDao.StoreLogEntity(entity);
+    try {
+        await LogDao.StoreLogEntity(entity);
+    }
+    catch (e) {
+        console.log(e);
+
+        let replyEmbed = CreateEmbed('Something went wrong... Check the logs to find out more.');
+
+        await context.channel.send({
+            embeds: [replyEmbed]
+        });
+    }
 }
 
-exports.LogRuleResult = function(context, rule) {
+exports.LogRuleResult = async function(context, rule) {
     let collection = `all${RuleResultLogEntity.COLLECTION}`;
     let entity = BuildBaseEntity(context, collection);
 
     entity.RuleId = rule.Id;
 
-    LogDao.StoreLogEntity(entity);
+    try {
+        await LogDao.StoreLogEntity(entity);
+    }
+    catch (e) {
+        console.log(e);
+
+        let replyEmbed = CreateEmbed('Something went wrong... Check the logs to find out more.');
+
+        await context.channel.send({
+            embeds: [replyEmbed]
+        });
+    }
 }

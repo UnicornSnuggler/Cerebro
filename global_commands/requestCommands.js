@@ -72,7 +72,7 @@ module.exports = {
                 if (scopeOption === 'all') {
                     requests = await RequestDao.RetrieveAllRequests(typeOption);
 
-                    if (requests.length > 0 && !moderator) {
+                    if (requests && requests.length > 0 && !moderator) {
                         requests = requests.filter(x => x.UserId === context.user.id || [FLAG_TYPES.approved, FLAG_TYPES.inProgress].includes(x.Flag));
                     }
                 }
@@ -161,9 +161,8 @@ module.exports = {
 
             let replyEmbed = CreateEmbed('Something went wrong... Check the logs to find out more.');
 
-            await context.followUp({
-                embeds: [replyEmbed],
-                ephemeral: true
+            await context.channel.send({
+                embeds: [replyEmbed]
             });
         }
     }

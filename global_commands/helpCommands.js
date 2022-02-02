@@ -56,7 +56,12 @@ module.exports = {
         }
         catch (e) {
             console.log(e);
-            SendContentAsEmbed(context, 'Something went wrong... Check the logs to find out more.');
+
+            let replyEmbed = CreateEmbed('Something went wrong... Check the logs to find out more.');
+
+            await context.channel.send({
+                embeds: [replyEmbed]
+            });
         }
     }
 }

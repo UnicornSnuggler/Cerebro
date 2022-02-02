@@ -92,38 +92,28 @@ class RequestDao {
         const session = this.store.openSession();
         let id = v4();
 
-        try {
-            await session.store(requestEntity, id);
-            await session.saveChanges();
-    
-            console.log(`Stored request '${id}' into the database!`);
+        await session.store(requestEntity, id);
+        await session.saveChanges();
 
-            return id;
-        }
-        catch (exception) {
-            console.log(exception);
-        }
+        console.log(`Stored request '${id}' into the database!`);
+
+        return id;
     }
 
     static async UpdateRequestFlagById(requestId, newFlag, reasoning) {
         const session = this.store.openSession();
 
-        try {
-            let document = await session.load(requestId);
-            
-            document.Flag = newFlag;
+        let document = await session.load(requestId);
+        
+        document.Flag = newFlag;
 
-            if (reasoning) {
-                document.Reasoning = reasoning;
-            }
-
-            await session.saveChanges();
-
-            console.log(`Marked request '${requestId}' as '${newFlag}'...`);
+        if (reasoning) {
+            document.Reasoning = reasoning;
         }
-        catch (exception) {
-            console.log(exception);
-        }
+
+        await session.saveChanges();
+
+        console.log(`Marked request '${requestId}' as '${newFlag}'...`);
     }
 }
 

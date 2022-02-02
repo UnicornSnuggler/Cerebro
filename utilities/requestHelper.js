@@ -285,22 +285,33 @@ const TrashRequest = async function(context, request, newFlag, inputConfirmation
 }
 
 const UpdateRequestFlag = async function(context, request, newFlag, reasoning = null) {
-    await RequestDao.UpdateRequestFlagById(request.Id, newFlag, reasoning);
+    try {
+        await RequestDao.UpdateRequestFlagById(request.Id, newFlag, reasoning);
+    
+        let id = request.Id.substring(24);
+    
+        let embed = CreateEmbed(`Request \`${id}\` has been marked as **${newFlag}**!`, COLORS.Basic);
+    
+        context.followUp({
+            embeds: [embed]
+        });
+    
+        MessageModerators(context, `${context.user} has marked request \`${id}\` as **${newFlag}**!`);
+    
+        let user = await GetUser(context, request.UserId);
+    
+        if (user && user !== context.user) {
+            DirectMessageUser(user, `Request \`${id}\` has been marked as **${newFlag}**!`);
+        }
+    }
+    catch (e) {
+        console.log(e);
 
-    let id = request.Id.substring(24);
+        let replyEmbed = CreateEmbed('Something went wrong... Check the logs to find out more.');
 
-    let embed = CreateEmbed(`Request \`${id}\` has been marked as **${newFlag}**!`, COLORS.Basic);
-
-    context.followUp({
-        embeds: [embed]
-    });
-
-    MessageModerators(context, `${context.user} has marked request \`${id}\` as **${newFlag}**!`);
-
-    let user = await GetUser(context, request.UserId);
-
-    if (user && user !== context.user) {
-        DirectMessageUser(user, `Request \`${id}\` has been marked as **${newFlag}**!`);
+        await context.channel.send({
+            embeds: [replyEmbed]
+        });
     }
 }
 
@@ -328,13 +339,24 @@ const ProcessRequest = exports.ProcessRequest = async function(context, requestE
     let buttonRow = new MessageActionRow();
 
     if (type === QUESTION_TYPES.completion) {
-        let id = await SubmitRequest(context, requestEntity);
-        
-        let embed = CreateEmbed(`Thank you for your submission! Your request ID is \`${id.substring(24)}\`.\n\nYou'll receive a notification when the status of your request changes, but you can review the status of your request at any time using the command \`/request review id:${id.substring(24)}\`!`, COLORS.Basic);
-
-        dmChannel.send({
-            embeds: [embed]
-        });
+        try {
+            let id = await SubmitRequest(context, requestEntity);
+            
+            let embed = CreateEmbed(`Thank you for your submission! Your request ID is \`${id.substring(24)}\`.\n\nYou'll receive a notification when the status of your request changes, but you can review the status of your request at any time using the command \`/request review id:${id.substring(24)}\`!`, COLORS.Basic);
+    
+            dmChannel.send({
+                embeds: [embed]
+            });
+        }
+        catch (e) {
+            console.log(e);
+    
+            let replyEmbed = CreateEmbed('Something went wrong... Check the logs to find out more.');
+    
+            await context.channel.send({
+                embeds: [replyEmbed]
+            });
+        }
 
         return;
     }
@@ -653,11 +675,16 @@ exports.SendRequestEmbed = async function(context, request, moderator, owner) {
 }
 
 const SubmitRequest = async function(context, requestEntity) {
-    let id = await RequestDao.StoreRequestEntity(requestEntity);
+    try {
+        let id = await RequestDao.StoreRequestEntity(requestEntity);
 
-    MessageModerators(context, `<@${requestEntity.UserId}> has submitted a new ${requestEntity.Type} request! The ID is \`${id.substring(24)}\`.`);
-
-    return id;
+        MessageModerators(context, `<@${requestEntity.UserId}> has submitted a new ${requestEntity.Type} request! The ID is \`${id.substring(24)}\`.`);
+        
+        return id;
+    }
+    catch (e) {
+        throw(e);
+    }
 }
 
 const MessageModerators = async function(context, message) {

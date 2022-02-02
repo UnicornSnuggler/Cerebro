@@ -77,15 +77,10 @@ class LogDao {
         const session = this.store.openSession();
         let id = v4();
 
-        try {
-            await session.store(logEntity, id);
-            await session.saveChanges();
-    
-            console.log(`Stored '${id}' into the database!`);
-        }
-        catch (exception) {
-            console.log(exception);
-        }
+        await session.store(logEntity, id);
+        await session.saveChanges();
+
+        console.log(`Stored '${id}' into the database!`);
     }
 }
 
