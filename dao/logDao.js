@@ -1,4 +1,5 @@
 const { v4 } = require('uuid');
+const { WIZARD, ACOLYTE } = require('../constants');
 const { BaseLogEntity } = require('../models/baseLogEntity');
 const { CardResultLogEntity } = require('../models/cardResultLogEntity');
 const { CollectionResultLogEntity } = require('../models/collectionResultLogEntity');
@@ -71,7 +72,7 @@ class LogDao {
     }
 
     static async StoreLogEntity(logEntity) {
-        if (logEntity.UserId === '132708937584607233') return;
+        if ([WIZARD, ACOLYTE].includes(logEntity.UserId)) return;
 
         const session = this.store.openSession();
         let id = v4();
@@ -83,7 +84,7 @@ class LogDao {
             console.log(`Stored '${id}' into the database!`);
         }
         catch (exception) {
-            console.log(e);
+            console.log(exception);
         }
     }
 }

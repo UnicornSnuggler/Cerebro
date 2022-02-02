@@ -47,7 +47,6 @@ const cardOfTheDay = exports.cardOfTheDay = async function(guild, channels, role
                     ping = ping.replace('\*\*Card of the Day\*\*', `<@&${role}>`);
                 }
 
-
                 if (permissions.has('CREATE_PUBLIC_THREADS')) {
                     channel.send({
                         embeds: [baseEmbed]

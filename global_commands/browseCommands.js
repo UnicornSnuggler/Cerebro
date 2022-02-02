@@ -101,20 +101,20 @@ module.exports = {
                         .setName('set')
                         .setDescription('Browse all of the cards in an official set.')
                         .addStringOption(option => option.setName('name').setDescription('The name of the set being queried.').setRequired(true))))
-            .addSubcommandGroup(subcommand =>
-                subcommand
-                    .setName('unofficial')
-                    .setDescription('Browse all of the cards in an unofficial collection.')
-                    .addSubcommand(subsubcommand => 
-                        subsubcommand
-                            .setName('pack')
-                            .setDescription('Browse all of the cards in an unofficial pack.')
-                            .addStringOption(option => option.setName('name').setDescription('The name of the pack being queried.').setRequired(true)))
-                    .addSubcommand(subsubcommand => 
-                        subsubcommand
-                            .setName('set')
-                            .setDescription('Browse all of the cards in an unofficial set.')
-                            .addStringOption(option => option.setName('name').setDescription('The name of the set being queried.').setRequired(true)))),
+        .addSubcommandGroup(subcommand =>
+            subcommand
+                .setName('unofficial')
+                .setDescription('Browse all of the cards in an unofficial collection.')
+                .addSubcommand(subsubcommand => 
+                    subsubcommand
+                        .setName('pack')
+                        .setDescription('Browse all of the cards in an unofficial pack.')
+                        .addStringOption(option => option.setName('name').setDescription('The name of the pack being queried.').setRequired(true)))
+                .addSubcommand(subsubcommand => 
+                    subsubcommand
+                        .setName('set')
+                        .setDescription('Browse all of the cards in an unofficial set.')
+                        .addStringOption(option => option.setName('name').setDescription('The name of the set being queried.').setRequired(true)))),
     async execute(context) {
         if (!Authorized(context)) return;
         
