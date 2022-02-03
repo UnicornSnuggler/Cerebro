@@ -269,7 +269,7 @@ module.exports = {
 
                 heroResults.sort((a, b) => a.hero.Name > b.hero.Name ? 1 : -1);
 
-                let content = '**D**:> Executing challenge mode subroutine...' +
+                let content = '**D**:> Executing [CLOBBERIN\'] challenge subroutine...' +
                     '\n**D**:> Performing threat analysis...' +
                     `${scenarioResults.map(x => `\n**D**:> *Threat ${scenarioResults.indexOf(x) + 1}* — **${x.scenario.Name}**${x.modulars.length > 0 ? `, bearing ${CreateString(x.modulars.map(x => x.Name), '**')}` : ''}.`).join('')}` +
                     '\n**D**:> Computing viable responders...' +
