@@ -255,6 +255,8 @@ module.exports = {
                         }
                     });
 
+                    modularExclusions = modularExclusions.concat(scenarioResult.modulars.map(x => x.Id));
+
                     let heroResult = GenerateHero(unofficial, heroResults.map(x => x.hero.Id), heroResults.filter(x => x.aspects.length === 1).map(x => x.aspects[0]));
 
                     heroResults.push(heroResult);
@@ -269,7 +271,7 @@ module.exports = {
 
                 let content = '**D**:> Executing challenge mode subroutine...' +
                     '\n**D**:> Performing threat analysis...' +
-                    `${scenarioResults.map(x => `\n**D**:> Threat ${scenarioResults.indexOf(x) + 1} — **${x.scenario.Name}**, bearing ${CreateString(x.modulars.map(x => x.Name), '**')}...`).join('')}` +
+                    `${scenarioResults.map(x => `\n**D**:> *Threat ${scenarioResults.indexOf(x) + 1}* — **${x.scenario.Name}**${x.modulars.length > 0 ? `, bearing ${CreateString(x.modulars.map(x => x.Name), '**')}` : ''}.`).join('')}` +
                     '\n**D**:> Computing viable responders...' +
                     `\n**D**:> Available heroes include ${CreateString(heroResults.map(x => x.hero.Name), '**')}!` +
                     '\n**D**:> Challenge mode subroutine executed! Good luck!' +
