@@ -7,17 +7,32 @@ const { ChooseRandomElements, CreateString } = require('../utilities/arrayHelper
 const { LogCommand } = require('../utilities/logHelper');
 const { CreateEmbed, Authorized } = require('../utilities/messageHelper');
 
-const GenerateScenario = function(unofficial = false, glitches = true) {
-    let scenarioChoices = SetDao.SETS.filter(x => (unofficial || x.Official) && x.CanSimulate && x.Type === 'Villain Set' && !PackDao.PACKS.find(y => y.Id === x.PackId).Incomplete);
+const GenerateScenario = function(unofficial = false, scenarioExclusions = null, modularExclusions = null, glitches = true) {
+    let scenarioChoices = SetDao.SETS.filter(x => 
+        (unofficial || x.Official) && 
+        (!scenarioExclusions || !scenarioExclusions.includes(x.Id)) && 
+        x.CanSimulate && 
+        x.Type === 'Villain Set' && 
+        !PackDao.PACKS.find(y => y.Id === x.PackId).Incomplete
+    );
+
     let randomScenario = ChooseRandomElements(scenarioChoices, 1)[0];
     
     let allModulars = randomScenario.Requires ? SetDao.SETS.filter(x => randomScenario.Requires.includes(x.Id)) : [];
 
     if (randomScenario.Modulars) {
-        let modularChoices = SetDao.SETS.filter(x => x.CanSimulate && x.Type === 'Modular Set' && (!randomScenario.Requires || !randomScenario.Requires.includes(x.Id)) && !PackDao.PACKS.find(y => y.Id === x.PackId).Incomplete);
+        let modularChoices = SetDao.SETS.filter(x => 
+            (unofficial || x.Official) && 
+            (!modularExclusions || !modularExclusions.includes(x.Id)) && 
+            x.CanSimulate && 
+            x.Type === 'Modular Set' && 
+            (!randomScenario.Requires || !randomScenario.Requires.includes(x.Id)) && 
+            !PackDao.PACKS.find(y => y.Id === x.PackId).Incomplete
+        );
+        
         let randomModulars = ChooseRandomElements(modularChoices, randomScenario.Modulars);
     
-        allModulars = allModulars ? allModulars.concat(randomModulars) : randomModulars;
+        allModulars = allModulars.concat(randomModulars);
     }
 
     allModulars.sort((a, b) => a.Name > b.Name ? 1 : -1);
@@ -156,11 +171,11 @@ module.exports = {
             if (subCommand === 'mission') {
                 let result = GenerateScenario(unofficial);
 
-                let content = '**DR**:> Rendering combat simulation...' +
-                    `\n**DR**:> Loading **${result.scenario.Name}** protocol...` +
-                    (result.modulars.length > 0 ? `\n**DR**:> Importing ${CreateString(result.modulars.map(x => x.Name), '**')} hazard${result.modulars.length > 1 ? 's' : ''}...` : '') +
-                    '\n**DR**:> Combat simulation rendered! Commence training!' +
-                    (result.contributors.length > 0 ? `\n**DR**:> Consult ${CreateString(result.contributors)} for mission details...` : '');
+                let content = '**D**:> Rendering combat simulation...' +
+                    `\n**D**:> Loading **${result.scenario.Name}** protocol...` +
+                    (result.modulars.length > 0 ? `\n**D**:> Importing ${CreateString(result.modulars.map(x => x.Name), '**')} hazard${result.modulars.length > 1 ? 's' : ''}...` : '') +
+                    '\n**D**:> Combat simulation rendered! Commence training!' +
+                    (result.contributors.length > 0 ? `\n**D**:> Consult ${CreateString(result.contributors)} for mission details...` : '');
 
                 let replyEmbed = CreateEmbed(content, COLORS.Encounter);
     
@@ -171,11 +186,11 @@ module.exports = {
             else if (subCommand === 'hero') {
                 let result = GenerateHero(unofficial);
 
-                let content = '**DR**:> Processing bio-signature...' +
-                    `\n**DR**:> Identity verified!` +
-                    `\n**DR**:> Welcome back, **${result.hero.Name}**!` +
-                    `\n**DR**:> Training requested in the field${result.aspects.length > 1 ? 's' : ''} of ${CreateString(result.aspects, '**')}...` +
-                    (result.contributors.length > 0 ? `\n**DR**:> Consult ${CreateString(result.contributors)} for mission details...` : '');
+                let content = '**D**:> Processing bio-signature...' +
+                    `\n**D**:> Identity verified!` +
+                    `\n**D**:> Welcome back, **${result.hero.Name}**!` +
+                    `\n**D**:> Training requested in the field${result.aspects.length > 1 ? 's' : ''} of ${CreateString(result.aspects, '**')}...` +
+                    (result.contributors.length > 0 ? `\n**D**:> Consult ${CreateString(result.contributors)} for mission details...` : '');
 
                 let replyEmbed = CreateEmbed(content, COLORS.Hero);
     
@@ -210,15 +225,57 @@ module.exports = {
                     });
                 }
 
-                let content = '**DR**:> Initializing team training exercise...' +
-                    `\n**DR**:> Loading **${scenarioResult.scenario.Name}** protocol...` +
-                    (scenarioResult.modulars.length > 0 ? `\n**DR**:> Importing ${CreateString(scenarioResult.modulars.map(x => x.Name), '**')} hazard${scenarioResult.modulars.length > 1 ? 's' : ''}...` : '') +
-                    '\n**DR**:> Compiling team data...' +
-                    `${heroResults.map(x => `\n**DR**:> Assigning **${x.hero.Name}** to the team, specializing in ${CreateString(x.aspects, '**')}...`).join('')}` +
-                    '\n**DR**:> Team training exercise initialized!' +
-                    (contributors.length > 0 ? `\n**DR**:> Consult ${CreateString(contributors)} for mission details...` : '');
+                let content = '**D**:> Initializing team training exercise...' +
+                    `\n**D**:> Loading **${scenarioResult.scenario.Name}** protocol...` +
+                    (scenarioResult.modulars.length > 0 ? `\n**D**:> Importing ${CreateString(scenarioResult.modulars.map(x => x.Name), '**')} hazard${scenarioResult.modulars.length > 1 ? 's' : ''}...` : '') +
+                    '\n**D**:> Compiling team data...' +
+                    `${heroResults.map(x => `\n**D**:> Assigning **${x.hero.Name}** to the team, specializing in ${CreateString(x.aspects, '**')}...`).join('')}` +
+                    '\n**D**:> Team training exercise initialized!' +
+                    (contributors.length > 0 ? `\n**D**:> Consult ${CreateString(contributors)} for mission details...` : '');
 
                 let replyEmbed = CreateEmbed(content, COLORS.Justice);
+    
+                await context.reply({
+                   embeds:[replyEmbed]
+                });
+            }
+            else if (subCommand === 'challenge') {
+                let scenarioResults = [];
+                let modularExclusions = [];
+                let heroResults = [];
+                let contributors = [];
+
+                for (let i = 0; i < 4; i++) {
+                    let scenarioResult = GenerateScenario(unofficial, scenarioResults.map(x => x.scenario.Id), modularExclusions);
+
+                    scenarioResults.push(scenarioResult);
+                    scenarioResult.contributors.forEach(x => {
+                        if (!contributors.includes(x)) {
+                            contributors.push(x);
+                        }
+                    });
+
+                    let heroResult = GenerateHero(unofficial, heroResults.map(x => x.hero.Id), heroResults.filter(x => x.aspects.length === 1).map(x => x.aspects[0]));
+
+                    heroResults.push(heroResult);
+                    heroResult.contributors.forEach(x => {
+                        if (!contributors.includes(x)) {
+                            contributors.push(x);
+                        }
+                    });
+                }
+
+                heroResults.sort((a, b) => a.hero.Name > b.hero.Name ? 1 : -1);
+
+                let content = '**D**:> Executing challenge mode subroutine...' +
+                    '\n**D**:> Performing threat analysis...' +
+                    `${scenarioResults.map(x => `\n**D**:> Threat ${scenarioResults.indexOf(x) + 1} — **${x.scenario.Name}**, bearing ${CreateString(x.modulars.map(x => x.Name), '**')}...`).join('')}` +
+                    '\n**D**:> Computing viable responders...' +
+                    `\n**D**:> Available heroes include ${CreateString(heroResults.map(x => x.hero.Name), '**')}!` +
+                    '\n**D**:> Challenge mode subroutine executed! Good luck!' +
+                    (contributors.length > 0 ? `\n**D**:> Consult ${CreateString(contributors)} for mission details...` : '');
+
+                let replyEmbed = CreateEmbed(content, COLORS.Aggression);
     
                 await context.reply({
                    embeds:[replyEmbed]
