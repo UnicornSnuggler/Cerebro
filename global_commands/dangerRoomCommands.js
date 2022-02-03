@@ -27,10 +27,32 @@ const GenerateScenario = function(unofficial = false, goodies = true) {
         modularText = CreateString(allModulars.map(x => x.Name), '**');
     }
 
+    let contributors = [];
+    let contributorText = null;
+
+    if (unofficial) {
+        if (randomScenario.AuthorId) {
+            contributors.push(`<@${randomScenario.AuthorId}>`);
+        }
+    
+        if (allModulars) {
+            for (let modular of allModulars) {
+                if (modular.AuthorId && !contributors.includes(`<@${modular.AuthorId}>`)) {
+                    contributors.push(`<@${modular.AuthorId}>`);
+                }
+            }
+        }
+
+        if (contributors.length > 0) {
+            contributorText = CreateString(contributors);
+        }
+    }
+
     return '**DR**:> Rendering combat simulation...' +
         `\n**DR**:> Initiating **${randomScenario.Name}** protocol...` +
         (modularText ? `\n**DR**:> Importing ${modularText} hazard${allModulars.length > 1 ? 's' : ''}...` : '') +
-        '\n**DR**:> Combat simulation rendered! Commence training!';
+        '\n**DR**:> Combat simulation rendered! Commence training!' +
+        (contributorText ? `\n**DR**:> Consult ${contributorText} for mission details...` : '');
 }
 
 const GenerateHero = function(unofficial = false, goodies = true) {
@@ -155,6 +177,32 @@ module.exports = {
             else if (subCommand === 'hero') {
                 let hero = GenerateHero(unofficial);
                 let replyEmbed = CreateEmbed(hero, COLORS.Hero);
+    
+                await context.reply({
+                   embeds:[replyEmbed]
+                });
+            }
+            else if (subCommand === 'team-up') {
+                if (heroesOption < 1 || heroesOption > 4) {
+                    let replyEmbed = CreateEmbed(`You must specify a number of heroes between 1 and 4...`);
+                    
+                    await context.reply({
+                        embeds:[replyEmbed],
+                        ephemeral: true
+                    });
+    
+                    return;
+                }
+
+                let descriptionEntries = [];
+
+                descriptionEntries.push(GenerateScenario(unofficial));
+
+                for (let i = 0; i < heroesOption; i++) {
+                    descriptionEntries.push(GenerateHero(unofficial));
+                }
+
+                let replyEmbed = CreateEmbed(descriptionEntries.join('\n**DR**:> ----------------\n'), COLORS.Justice);
     
                 await context.reply({
                    embeds:[replyEmbed]
