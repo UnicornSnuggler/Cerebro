@@ -95,7 +95,7 @@ module.exports = {
         
         try {
             let subCommand = context.options.getSubcommand();
-            let heroesOption = context.options.getString('heroes');
+            let heroesOption = context.options.getInteger('heroes');
             let command = `/danger-room`;
 
             new Promise(() => LogCommand(context, command, null));
