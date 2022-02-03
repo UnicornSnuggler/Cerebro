@@ -243,8 +243,10 @@ module.exports = {
             let type = typeOption ? typeOption.toLowerCase() : null;
 
             if (origin !== 'official' && context.guildId) {
-                if (ConfigurationDao.CONFIGURATION.UnofficialRestrictions[context.guildId] && !ConfigurationDao.CONFIGURATION.UnofficialRestrictions[context.guildId].includes(context.channelId)) {
-                    SendContentAsEmbed(context, `Unofficial content queries are restricted to the following channels:${ConfigurationDao.CONFIGURATION.UnofficialRestrictions[context.guildId].map(x => `\n<#${x}>`).join('')}`, null, true);
+                let restrictions = ConfigurationDao.CONFIGURATION.UnofficialRestrictions[context.guildId];
+
+                if (restrictions && !restrictions.includes(context.channelId)) {
+                    SendContentAsEmbed(context, `Unofficial content queries are restricted to the following channel${restrictions.length > 1 ? 's' : ''}:${restrictions.map(x => `\n<#${x}>`).join('')}`, null, true);
                     return;
                 }
             }

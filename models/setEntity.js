@@ -5,6 +5,12 @@ class SetEntity extends BaseCollectionEntity {
 
     constructor (document) {
         super(document);
+
+        this.CanSimulate = document.CanSimulate;
+        this.Deviation = document.Deviation;
+        this.Modulars = document.Modulars;
+        this.PackId = document.PackId;
+        this.Requires = document.Requires;
     }
 }
 
