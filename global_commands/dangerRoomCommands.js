@@ -55,9 +55,13 @@ const GenerateScenario = function(unofficial = false, goodies = true) {
         (contributorText ? `\n**DR**:> Consult ${contributorText} for mission details...` : '');
 }
 
-const GenerateHero = function(unofficial = false, goodies = true) {
-    let heroChoices = SetDao.SETS.filter(x => (unofficial || x.Official) && x.CanSimulate && x.Type === 'Hero Set' && !PackDao.PACKS.find(y => y.Id === x.PackId).Incomplete);
+const GenerateHero = function(unofficial = false, exclusions = null, goodies = true) {
+    let heroChoices = SetDao.SETS.filter(x => (unofficial || x.Official) && (!exclusions || !exclusions.includes(x.Id)) && x.CanSimulate && x.Type === 'Hero Set' && !PackDao.PACKS.find(y => y.Id === x.PackId).Incomplete);
     let randomHero = ChooseRandomElements(heroChoices, 1)[0];
+
+    if (exclusions) {
+        exclusions.push(randomHero.Id);
+    }
 
     let aspects = ['Aggression', 'Justice', 'Leadership', 'Protection'];
 
@@ -194,12 +198,13 @@ module.exports = {
                     return;
                 }
 
+                let exclusions = [];
                 let descriptionEntries = [];
 
                 descriptionEntries.push(GenerateScenario(unofficial));
 
                 for (let i = 0; i < heroesOption; i++) {
-                    descriptionEntries.push(GenerateHero(unofficial));
+                    descriptionEntries.push(GenerateHero(unofficial, exclusions));
                 }
 
                 let replyEmbed = CreateEmbed(descriptionEntries.join('\n**DR**:> ----------------\n'), COLORS.Justice);
