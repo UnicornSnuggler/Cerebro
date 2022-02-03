@@ -1,9 +1,9 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { COLORS } = require('../constants');
+const { COLORS, MASOCHIST } = require('../constants');
 const { ConfigurationDao } = require('../dao/configurationDao');
 const { PackDao } = require('../dao/packDao');
 const { SetDao } = require('../dao/setDao');
-const { ChooseRandomElements } = require('../utilities/arrayHelper');
+const { ChooseRandomElements, CreateString } = require('../utilities/arrayHelper');
 const { LogCommand } = require('../utilities/logHelper');
 const { CreateEmbed, Authorized } = require('../utilities/messageHelper');
 
@@ -22,25 +22,69 @@ const GenerateScenario = function(unofficial = false, goodies = true) {
     }
 
     if (allModulars) {
-        allModulars = allModulars.sort((a, b) => a.Name > b.Name ? 1 : -1);
+        allModulars.sort((a, b) => a.Name > b.Name ? 1 : -1);
 
-        switch(allModulars.length) {
-            case 1:
-                modularText = `**${allModulars[0].Name}**`;
+        modularText = CreateString(allModulars.map(x => x.Name), '**');
+    }
+
+    return '**DR**:> Rendering combat simulation...' +
+        `\n**DR**:> Initiating **${randomScenario.Name}** protocol...` +
+        (modularText ? `\n**DR**:> Importing ${modularText} hazard${allModulars.length > 1 ? 's' : ''}...` : '') +
+        '\n**DR**:> Combat simulation rendered! Commence training!';
+}
+
+const GenerateHero = function(unofficial = false, goodies = true) {
+    let heroChoices = SetDao.SETS.filter(x => (unofficial || x.Official) && x.CanSimulate && x.Type === 'Hero Set' && !PackDao.PACKS.find(y => y.Id === x.PackId).Incomplete);
+    let randomHero = ChooseRandomElements(heroChoices, 1)[0];
+
+    let aspects = ['Aggression', 'Justice', 'Leadership', 'Protection'];
+
+    if (unofficial) {
+        aspects.push('Determination');
+    }
+
+    let aspectChoices = 1;
+
+    if (randomHero.Deviation) {
+        switch (randomHero.Name) {
+            case 'Adam Warlock':
+                aspectChoices = 4;
                 break;
-            case 2:
-                modularText = `**${allModulars[0].Name}** and **${allModulars[1].Name}**`;
+            case 'Spider-Woman':
+                aspectChoices = 2;
                 break;
             default:
-                modularText = allModulars.map(x => allModulars.indexOf(x) === allModulars.length - 1 ? `and **${x.Name}**` : `**${x.Name}**`).join(', ');
                 break;
         }
     }
 
-    return '**DR**:> Rendering combat simulation...\n' +
-        `**DR**:> Initiating **${randomScenario.Name}** protocol...` +
-        (modularText ? `\n**DR**:> Importing ${modularText} hazard${allModulars.length > 1 ? 's' : ''}...` : '') +
-        '\n**DR**:> Combat simulation rendered! Commence training!';
+    let randomAspects = ChooseRandomElements(aspects, aspectChoices);
+    randomAspects.sort((a, b) => a > b ? 1 : -1);
+
+    let aspectText = CreateString(randomAspects, '**');
+
+    let contributors = [];
+    let contributorText = null;
+
+    if (unofficial) {
+        if (randomHero.AuthorId) {
+            contributors.push(`<@${randomHero.AuthorId}>`);
+        }
+    
+        if (randomAspects.includes('Determination') && randomHero.AuthorId !== MASOCHIST) {
+            contributors.push(`<@${MASOCHIST}>`);
+        }
+
+        if (contributors.length > 0) {
+            contributorText = CreateString(contributors);
+        }
+    }
+
+    return '**DR**:> Processing bio-signature...' +
+        `\n**DR**:> Identity verified!` +
+        `\n**DR**:> Welcome back, **${randomHero.Name}**!` +
+        `\n**DR**:> Training requested in the field${randomAspects.length > 1 ? 's' : ''} of ${aspectText}...` +
+        (contributorText ? `\n**DR**:> Consult ${contributorText} for mission details...` : '');
 }
 
 module.exports = {
@@ -103,6 +147,14 @@ module.exports = {
             if (subCommand === 'mission') {
                 let mission = GenerateScenario(unofficial);
                 let replyEmbed = CreateEmbed(mission, COLORS.Encounter);
+    
+                await context.reply({
+                   embeds:[replyEmbed]
+                });
+            }
+            else if (subCommand === 'hero') {
+                let hero = GenerateHero(unofficial);
+                let replyEmbed = CreateEmbed(hero, COLORS.Hero);
     
                 await context.reply({
                    embeds:[replyEmbed]
