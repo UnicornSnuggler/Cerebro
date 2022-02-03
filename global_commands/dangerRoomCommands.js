@@ -3,30 +3,55 @@ const { COLORS, MASOCHIST } = require('../constants');
 const { ConfigurationDao } = require('../dao/configurationDao');
 const { PackDao } = require('../dao/packDao');
 const { SetDao } = require('../dao/setDao');
-const { ChooseRandomElements, CreateString } = require('../utilities/arrayHelper');
+const { ChooseRandomElements, CreateStringFromArray } = require('../utilities/arrayHelper');
 const { LogCommand } = require('../utilities/logHelper');
 const { CreateEmbed, Authorized } = require('../utilities/messageHelper');
+const { SuperscriptNumber } = require('../utilities/stringHelper');
+
+const ContributionString = function(contributions) {
+    let result = contributions.length > 0 ? '\n' : '';
+
+    for (let i = 0; i < contributions.length; i++) {
+        let contribution = contributions[i];
+        result += `\n${SuperscriptNumber(i + 1)} **${contribution.packName}** by <@${contribution.authorId}>`;
+    }
+
+    return result;
+}
+
+const TagUnofficial = function(contributions, packId) {
+    let result = '';
+    let index = contributions.findIndex(x => x.packId === packId);
+
+    if (index !== -1) {
+        result = ` ${SuperscriptNumber(index + 1)}`;
+    }
+
+    return result;
+}
 
 const GenerateScenario = function(unofficial = false, scenarioExclusions = null, modularExclusions = null, glitches = true) {
-    let scenarioChoices = SetDao.SETS.filter(x => 
-        (unofficial || x.Official) && 
-        (!scenarioExclusions || !scenarioExclusions.includes(x.Id)) && 
-        x.CanSimulate && 
-        x.Type === 'Villain Set' && 
+    let scenarioChoices = SetDao.SETS.filter(x =>
+        (unofficial || x.Official) &&
+        (!scenarioExclusions || !scenarioExclusions.includes(x.Id)) &&
+        x.CanSimulate &&
+        x.Type === 'Villain Set' &&
         !PackDao.PACKS.find(y => y.Id === x.PackId).Incomplete
     );
 
     let randomScenario = ChooseRandomElements(scenarioChoices, 1)[0];
+
+    let pack = PackDao.PACKS.find(x => x.Id === randomScenario.PackId);
     
     let allModulars = randomScenario.Requires ? SetDao.SETS.filter(x => randomScenario.Requires.includes(x.Id)) : [];
 
     if (randomScenario.Modulars) {
-        let modularChoices = SetDao.SETS.filter(x => 
-            (unofficial || x.Official) && 
-            (!modularExclusions || !modularExclusions.includes(x.Id)) && 
-            x.CanSimulate && 
-            x.Type === 'Modular Set' && 
-            (!randomScenario.Requires || !randomScenario.Requires.includes(x.Id)) && 
+        let modularChoices = SetDao.SETS.filter(x =>
+            (unofficial || x.Official) &&
+            (!modularExclusions || !modularExclusions.includes(x.Id)) &&
+            x.CanSimulate &&
+            x.Type === 'Modular Set' &&
+            (!randomScenario.Requires || !randomScenario.Requires.includes(x.Id)) &&
             !PackDao.PACKS.find(y => y.Id === x.PackId).Incomplete
         );
         
@@ -37,17 +62,27 @@ const GenerateScenario = function(unofficial = false, scenarioExclusions = null,
 
     allModulars.sort((a, b) => a.Name > b.Name ? 1 : -1);
 
-    let contributors = [];
+    let contributions = [];
 
     if (unofficial) {
         if (randomScenario.AuthorId) {
-            contributors.push(`<@${randomScenario.AuthorId}>`);
+            contributions.push({
+                authorId: randomScenario.AuthorId,
+                packName: `${pack.Name} ${pack.Type}`,
+                packId: pack.Id
+            });
         }
     
         if (allModulars.length > 0) {
             for (let modular of allModulars) {
-                if (modular.AuthorId && !contributors.includes(`<@${modular.AuthorId}>`)) {
-                    contributors.push(`<@${modular.AuthorId}>`);
+                if (modular.AuthorId && !contributions.includes(x => x.AuthorId === modular.AuthorId && x.PackId === modular.PackId)) {
+                    let modularPack = PackDao.PACKS.find(x => x.Id === modular.PackId);
+
+                    contributions.push({
+                        authorId: randomScenario.AuthorId,
+                        packName: `${modularPack.Name} ${modularPack.Type}`,
+                        packId: modularPack.Id
+                    });
                 }
             }
         }
@@ -56,13 +91,22 @@ const GenerateScenario = function(unofficial = false, scenarioExclusions = null,
     return {
         scenario: randomScenario,
         modulars: allModulars,
-        contributors: contributors
+        contributions: contributions
     };
 }
 
 const GenerateHero = function(unofficial = false, heroExclusions = null, aspectExclusions = null, glitches = true) {
-    let heroChoices = SetDao.SETS.filter(x => (unofficial || x.Official) && (!heroExclusions || !heroExclusions.includes(x.Id)) && x.CanSimulate && x.Type === 'Hero Set' && !PackDao.PACKS.find(y => y.Id === x.PackId).Incomplete);
+    let heroChoices = SetDao.SETS.filter(x =>
+        (unofficial || x.Official) &&
+        (!heroExclusions || !heroExclusions.includes(x.Id)) &&
+        x.CanSimulate &&
+        x.Type === 'Hero Set' &&
+        !PackDao.PACKS.find(y => y.Id === x.PackId).Incomplete
+    );
+
     let randomHero = ChooseRandomElements(heroChoices, 1)[0];
+
+    let pack = PackDao.PACKS.find(x => x.Id === randomHero.PackId);
 
     let aspectChoices = 1;
 
@@ -92,22 +136,30 @@ const GenerateHero = function(unofficial = false, heroExclusions = null, aspectE
     let randomAspects = ChooseRandomElements(aspects, aspectChoices);
     randomAspects.sort((a, b) => a > b ? 1 : -1);
 
-    let contributors = [];
+    let contributions = [];
 
     if (unofficial) {
         if (randomHero.AuthorId) {
-            contributors.push(`<@${randomHero.AuthorId}>`);
+            contributions.push({
+                authorId: randomHero.AuthorId,
+                packName: `${pack.Name} ${pack.Type}`,
+                packId: pack.Id
+            });
         }
     
-        if (randomAspects.includes('Determination') && randomHero.AuthorId !== MASOCHIST) {
-            contributors.push(`<@${MASOCHIST}>`);
+        if (randomAspects.includes('Determination')) {
+            contributions.push({
+                authorId: MASOCHIST,
+                packName: 'Determination Supplements',
+                packId: 'Determination'
+            });
         }
     }
 
     return {
         hero: randomHero,
         aspects: randomAspects,
-        contributors: contributors
+        contributions: contributions
     };
 }
 
@@ -172,10 +224,10 @@ module.exports = {
                 let result = GenerateScenario(unofficial);
 
                 let content = '**D**:> Rendering combat simulation...' +
-                    `\n**D**:> Loading **${result.scenario.Name}** protocol...` +
-                    (result.modulars.length > 0 ? `\n**D**:> Importing ${CreateString(result.modulars.map(x => x.Name), '**')} hazard${result.modulars.length > 1 ? 's' : ''}...` : '') +
+                    `\n**D**:> Loading **${result.scenario.Name}**${TagUnofficial(result.contributions, result.scenario.PackId)} protocol...` +
+                    (result.modulars.length > 0 ? `\n**D**:> Importing ${CreateStringFromArray(result.modulars.map(x => `**${x.Name}**${TagUnofficial(result.contributions, x.PackId)}`))} hazard${result.modulars.length > 1 ? 's' : ''}...` : '') +
                     '\n**D**:> Combat simulation rendered! Commence training!' +
-                    (result.contributors.length > 0 ? `\n**D**:> Consult ${CreateString(result.contributors)} for mission details...` : '');
+                    ContributionString(result.contributions);
 
                 let replyEmbed = CreateEmbed(content, COLORS.Encounter);
     
@@ -188,9 +240,9 @@ module.exports = {
 
                 let content = '**D**:> Processing bio-signature...' +
                     `\n**D**:> Identity verified!` +
-                    `\n**D**:> Welcome back, **${result.hero.Name}**!` +
-                    `\n**D**:> Training requested in the field${result.aspects.length > 1 ? 's' : ''} of ${CreateString(result.aspects, '**')}...` +
-                    (result.contributors.length > 0 ? `\n**D**:> Consult ${CreateString(result.contributors)} for mission details...` : '');
+                    `\n**D**:> Welcome back, **${result.hero.Name}**${TagUnofficial(result.contributions, result.hero.PackId)}!` +
+                    `\n**D**:> Training requested in the field${result.aspects.length > 1 ? 's' : ''} of ${CreateStringFromArray(result.aspects.map(x => `**${x}**${x === 'Determination' ? TagUnofficial(result.contributions, x) : ''}`))}...` +
+                    ContributionString(result.contributions);
 
                 let replyEmbed = CreateEmbed(content, COLORS.Hero);
     
@@ -212,26 +264,26 @@ module.exports = {
 
                 let scenarioResult = GenerateScenario(unofficial);
                 let heroResults = [];
-                let contributors = scenarioResult.contributors.length > 0 ? scenarioResult.contributors : [];
+                let contributions = scenarioResult.contributions.length > 0 ? scenarioResult.contributions : [];
 
                 for (let i = 0; i < heroesOption; i++) {
                     let heroResult = GenerateHero(unofficial, heroResults.map(x => x.hero.Id), heroResults.filter(x => x.aspects.length === 1).map(x => x.aspects[0]));
 
                     heroResults.push(heroResult);
-                    heroResult.contributors.forEach(x => {
-                        if (!contributors.includes(x)) {
-                            contributors.push(x);
+                    heroResult.contributions.forEach(x => {
+                        if (!contributions.includes(x)) {
+                            contributions.push(x);
                         }
                     });
                 }
 
                 let content = '**D**:> Initializing team training exercise...' +
-                    `\n**D**:> Loading **${scenarioResult.scenario.Name}** protocol...` +
-                    (scenarioResult.modulars.length > 0 ? `\n**D**:> Importing ${CreateString(scenarioResult.modulars.map(x => x.Name), '**')} hazard${scenarioResult.modulars.length > 1 ? 's' : ''}...` : '') +
+                    `\n**D**:> Loading **${scenarioResult.scenario.Name}**${TagUnofficial(contributions, scenarioResult.scenario.PackId)} protocol...` +
+                    (scenarioResult.modulars.length > 0 ? `\n**D**:> Importing ${CreateStringFromArray(scenarioResult.modulars.map(x => `**${x.Name}**${TagUnofficial(contributions, x.PackId)}`))} hazard${scenarioResult.modulars.length > 1 ? 's' : ''}...` : '') +
                     '\n**D**:> Compiling team data...' +
-                    `${heroResults.map(x => `\n**D**:> Assigning **${x.hero.Name}** to the team, specializing in ${CreateString(x.aspects, '**')}...`).join('')}` +
+                    `${heroResults.map(x => `\n**D**:> Assigning **${x.hero.Name}**${TagUnofficial(contributions, x.hero.PackId)} to the team, specializing in ${CreateStringFromArray(x.aspects.map(x => `**${x}**${x === 'Determination' ? TagUnofficial(contributions, x) : ''}`))}...`).join('')}` +
                     '\n**D**:> Team training exercise initialized!' +
-                    (contributors.length > 0 ? `\n**D**:> Consult ${CreateString(contributors)} for mission details...` : '');
+                    ContributionString(contributions);
 
                 let replyEmbed = CreateEmbed(content, COLORS.Justice);
     
@@ -243,39 +295,44 @@ module.exports = {
                 let scenarioResults = [];
                 let modularExclusions = [];
                 let heroResults = [];
-                let contributors = [];
+                let contributions = [];
 
                 for (let i = 0; i < 4; i++) {
                     let scenarioResult = GenerateScenario(unofficial, scenarioResults.map(x => x.scenario.Id), modularExclusions);
 
                     scenarioResults.push(scenarioResult);
-                    scenarioResult.contributors.forEach(x => {
-                        if (!contributors.includes(x)) {
-                            contributors.push(x);
+                    scenarioResult.contributions.forEach(x => {
+                        if (!contributions.includes(x)) {
+                            contributions.push(x);
                         }
                     });
 
                     modularExclusions = modularExclusions.concat(scenarioResult.modulars.map(x => x.Id));
+                }
 
-                    let heroResult = GenerateHero(unofficial, heroResults.map(x => x.hero.Id), heroResults.filter(x => x.aspects.length === 1).map(x => x.aspects[0]));
+                for (let i = 0; i < 4; i++) {
+                    let heroResult = GenerateHero(unofficial, heroResults.map(x => x.hero.Id), ['Determination']);
 
                     heroResults.push(heroResult);
-                    heroResult.contributors.forEach(x => {
-                        if (!contributors.includes(x)) {
-                            contributors.push(x);
-                        }
-                    });
                 }
 
                 heroResults.sort((a, b) => a.hero.Name > b.hero.Name ? 1 : -1);
 
+                for (let heroResult of heroResults) {
+                    heroResult.contributions.forEach(x => {
+                        if (!contributions.includes(x)) {
+                            contributions.push(x);
+                        }
+                    });
+                }
+
                 let content = '**D**:> Executing [CLOBBERIN\'] challenge subroutine...' +
                     '\n**D**:> Performing threat analysis...' +
-                    `${scenarioResults.map(x => `\n**D**:> *Threat ${scenarioResults.indexOf(x) + 1}* — **${x.scenario.Name}**${x.modulars.length > 0 ? `, bearing ${CreateString(x.modulars.map(x => x.Name), '**')}` : ''}.`).join('')}` +
+                    `${scenarioResults.map(x => `\n**D**:> *Threat ${scenarioResults.indexOf(x) + 1}* — **${x.scenario.Name}**${TagUnofficial(contributions, x.scenario.PackId)}${x.modulars.length > 0 ? `, bearing ${CreateStringFromArray(x.modulars.map(x => `**${x.Name}**${TagUnofficial(contributions, x.PackId)}`))}` : ''}.`).join('')}` +
                     '\n**D**:> Computing viable responders...' +
-                    `\n**D**:> Available heroes include ${CreateString(heroResults.map(x => x.hero.Name), '**')}!` +
+                    `\n**D**:> Available heroes include ${CreateStringFromArray(heroResults.map(x => `**${x.hero.Name}**${TagUnofficial(contributions, x.hero.PackId)}`))}!` +
                     '\n**D**:> Challenge mode subroutine executed! Good luck!' +
-                    (contributors.length > 0 ? `\n**D**:> Consult ${CreateString(contributors)} for mission details...` : '');
+                    ContributionString(contributions);
 
                 let replyEmbed = CreateEmbed(content, COLORS.Aggression);
     

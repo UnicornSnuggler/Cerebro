@@ -12,20 +12,20 @@ exports.ChooseRandomElements = function(array, number) {
     return choices;
 }
 
-exports.CreateString = function(array, wrapper = '', delimiter = ', ') {
+exports.CreateStringFromArray = function(array, delimiter = ', ') {
     let output = null;
 
     switch(array.length) {
         case 0:
             break;
         case 1:
-            output = `${wrapper}${array[0]}${wrapper}`;
+            output = array[0];
             break;
         case 2:
-            output = `${wrapper}${array[0]}${wrapper} and ${wrapper}${array[1]}${wrapper}`;
+            output = `${array[0]} and ${array[1]}`;
             break;
         default:
-            output = array.map(x => array.indexOf(x) === array.length - 1 ? `and ${wrapper}${x}${wrapper}` : `${wrapper}${x}${wrapper}`).join(delimiter);
+            output = array.map(x => array.indexOf(x) === array.length - 1 ? `and ${x}` : `${x}`).join(delimiter);
             break;
     }
 
