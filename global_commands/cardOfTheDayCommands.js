@@ -13,7 +13,7 @@ module.exports = {
                 .setDescription('Specify the ID of a particular guild in which to emit a Card of the Day.')
                 .setRequired(false)),
     async execute(context) {
-        if (!Authorized(context)) return;
+        if (!Authorized(context, true)) return;
 
         let guildId = context.options.getString('guild');
         

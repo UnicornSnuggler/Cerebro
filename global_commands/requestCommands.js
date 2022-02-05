@@ -72,8 +72,13 @@ module.exports = {
                 if (scopeOption === 'all') {
                     requests = await RequestDao.RetrieveAllRequests(typeOption);
 
-                    if (requests && requests.length > 0 && !moderator) {
-                        requests = requests.filter(x => x.UserId === context.user.id || [FLAG_TYPES.approved, FLAG_TYPES.inProgress].includes(x.Flag));
+                    if (requests && requests.length > 0) {
+                        if (!moderator) {
+                            requests = requests.filter(x => x.UserId === context.user.id || [FLAG_TYPES.approved, FLAG_TYPES.inProgress].includes(x.Flag));
+                        }
+                        else {
+                            requests = requests.filter(x => x.UserId === context.user.id || [FLAG_TYPES.pendingReview, FLAG_TYPES.approved, FLAG_TYPES.inProgress].includes(x.Flag));
+                        }
                     }
                 }
                 else {
@@ -83,7 +88,8 @@ module.exports = {
                 const embed = BuildRequestListEmbed(requests, typeOption, scopeOption);
 
                 await context.reply({
-                    embeds: [embed]
+                    embeds: [embed],
+                    ephemeral: moderator || scopeOption !== 'all'
                 });
             }
             else if (subCommand === 'new') {

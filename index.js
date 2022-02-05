@@ -8,7 +8,7 @@ const { RuleDao } = require('./dao/ruleDao');
 const { SetDao } = require('./dao/setDao');
 const { ArtificialInteraction } = require('./models/artificialInteraction');
 const { SendContentAsEmbed } = require('./utilities/messageHelper');
-const { DAY_MILLIS } = require('./constants')
+const { DAY_MILLIS, SECOND_MILLIS } = require('./constants')
 const fs = require('fs');
 const { cardOfTheDayLoop } = require('./utilities/cardOfTheDayHelper');
 const { ConfigurationDao } = require('./dao/configurationDao');
@@ -23,12 +23,12 @@ for (const globalCommandFile of globalCommandFiles) {
     client.commands.set(globalCommand.data.name, globalCommand);
 }
 
-const guildCommandFiles = fs.readdirSync('./guild_commands').filter(file => file.endsWith('.js'));
+// const guildCommandFiles = fs.readdirSync('./guild_commands').filter(file => file.endsWith('.js'));
 
-for (const guildCommandFile of guildCommandFiles) {
-    const guildCommand = require(`./guild_commands/${guildCommandFile}`);
-    client.commands.set(guildCommand.data.name, guildCommand);
-}
+// for (const guildCommandFile of guildCommandFiles) {
+//     const guildCommand = require(`./guild_commands/${guildCommandFile}`);
+//     client.commands.set(guildCommand.data.name, guildCommand);
+// }
 
 function millisUntilEight() {
     let now = new Date();
@@ -36,7 +36,7 @@ function millisUntilEight() {
 
     if (millis < 0) millis += DAY_MILLIS;
 
-    console.log(`There are ${millis/1000} seconds until the first 'Card of the Day' message...`);
+    console.log(`There are ${millis/SECOND_MILLIS} seconds until the first 'Card of the Day' message...`);
     
     return millis;
 }

@@ -7,7 +7,7 @@ const { SetDao } = require('../dao/setDao');
 const { Imbibe } = require('../utilities/cardHelper');
 const { LogCommand, LogCollectionResult } = require('../utilities/logHelper');
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed, Authorized } = require('../utilities/messageHelper');
-const { LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT } = require('../constants');
+const { LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT, SECOND_MILLIS } = require('../constants');
 
 const SelectBox = async function(context, collectionEntities, type) {
     let selector = new MessageSelectMenu()
@@ -39,7 +39,7 @@ const SelectBox = async function(context, collectionEntities, type) {
     let promise = SendContentAsEmbed(context, prompt, [components]);
     
     promise.then((message) => {
-        let collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: SELECT_TIMEOUT * 1000 });
+        let collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: SELECT_TIMEOUT * SECOND_MILLIS });
 
         collector.on('collect', async i => {
             let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;

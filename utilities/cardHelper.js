@@ -5,7 +5,7 @@ const { ConfigurationDao } = require('../dao/configurationDao');
 const { CreateEmbed, RemoveComponents, SendMessageWithOptions } = require('../utilities/messageHelper');
 const { Summary } = require('./printingHelper');
 const { FormatSymbols, FormatText, SpoilerIfIncomplete, QuoteText, ItalicizeText } = require('./stringHelper');
-const { RELEASED_EMOJI, COLORS, ID_LENGTH, INTERACT_APOLOGY, LOAD_APOLOGY, UNRELEASED_EMOJI, SYMBOLS, INTERACT_TIMEOUT, TINKERER_EMOJI, WARNING_EMOJI, REVIEWING_EMOJI } = require('../constants');
+const { RELEASED_EMOJI, COLORS, ID_LENGTH, INTERACT_APOLOGY, LOAD_APOLOGY, UNRELEASED_EMOJI, SYMBOLS, INTERACT_TIMEOUT, TINKERER_EMOJI, WARNING_EMOJI, REVIEWING_EMOJI, SECOND_MILLIS } = require('../constants');
 const { NavigationCollection } = require('../models/navigationCollection');
 const { SetDao } = require('../dao/setDao');
 
@@ -395,7 +395,7 @@ const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, current
     else promise = SendMessageWithOptions(context, messageOptions, !spoilerOverride && spoilerToggle);
         
     promise.then((message) => {
-        const collector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: INTERACT_TIMEOUT * 1000 });
+        const collector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: INTERACT_TIMEOUT * SECOND_MILLIS });
 
         collector.on('collect', i => {
             let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;

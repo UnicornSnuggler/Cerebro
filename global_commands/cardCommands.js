@@ -5,7 +5,7 @@ const { SetDao } = require('../dao/setDao');
 const { FindUniqueArts, GetPrintingByArtificialId, Imbibe, BuildCollectionFromBatch, ResourceConverter } = require('../utilities/cardHelper');
 const { LogCardResult, LogCommand } = require('../utilities/logHelper');
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed, Authorized } = require('../utilities/messageHelper');
-const { SYMBOLS, LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT } = require('../constants');
+const { SYMBOLS, LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT, SECOND_MILLIS } = require('../constants');
 const { ConfigurationDao } = require('../dao/configurationDao');
 
 const SelectBox = async function(context, cards) {
@@ -61,7 +61,7 @@ const SelectBox = async function(context, cards) {
     let promise = SendContentAsEmbed(context, prompt, [selectMenuRow, buttonRow]);
     
     promise.then((message) => {
-        let collector = message.createMessageComponentCollector({ time: SELECT_TIMEOUT * 1000 });
+        let collector = message.createMessageComponentCollector({ time: SELECT_TIMEOUT * SECOND_MILLIS });
 
         collector.on('collect', async i => {
             let userId = context.user ? context.user.id : context.author.id;
