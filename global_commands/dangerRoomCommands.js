@@ -79,7 +79,7 @@ const GenerateScenario = function(unofficial = false, scenarioExclusions = null,
                     let modularPack = PackDao.PACKS.find(x => x.Id === modular.PackId);
 
                     contributions.push({
-                        authorId: randomScenario.AuthorId,
+                        authorId: modular.AuthorId,
                         packName: `${modularPack.Name} ${modularPack.Type}`,
                         packId: modularPack.Id
                     });
