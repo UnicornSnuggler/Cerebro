@@ -1,7 +1,20 @@
 const { MessageEmbed } = require("discord.js");
-const { COLORS } = require("../constants");
+const { COLORS, PRODUCTION_BOT, WIZARD, ACOLYTE } = require("../constants");
+const { ConfigurationDao } = require("../dao/configurationDao");
 
-exports.Authorized = function(context) {
+exports.Authorized = function(context, adminLocked = false) {
+    let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
+
+    if (adminLocked && userId !== WIZARD) {
+        SendContentAsEmbed(context, "Only the bot administrator can use this command!", null, true);
+        return false;
+    }
+    
+    if (context.client.id != PRODUCTION_BOT && !ConfigurationDao.CONFIGURATION.Donors.concat([WIZARD, ACOLYTE]).includes(userId)) {
+        SendContentAsEmbed(context, "You do not possess beta access!", null, true);
+        return false;
+    }
+
     if (context.guildId) {
         let permissions = context.client.guilds.cache.get(context.guildId).me.permissionsIn(context.channelId);
 

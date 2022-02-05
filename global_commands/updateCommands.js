@@ -25,7 +25,7 @@ module.exports = {
                 .addChoice('Rules', 'rules')
                 .addChoice('Sets', 'sets')),
     async execute(context) {
-        if (!Authorized(context)) return;
+        if (!Authorized(context, true)) return;
         
         try {
             switch (context.options.getString('list')) {

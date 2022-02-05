@@ -1,9 +1,5 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
-const { MessageActionRow, MessageSelectMenu, MessageButton, Formatters, Util, MessageEmbed } = require('discord.js');
-const { RuleDao } = require('../dao/ruleDao');
-const { LogCommand, LogRuleResult } = require('../utilities/logHelper');
-const { BuildEmbed } = require('../utilities/ruleHelper');
-const { INTERACT_TIMEOUT, INTERACT_APOLOGY, TIMEOUT_APOLOGY, COLORS, WIZARD } = require("../constants");
+const { MessageActionRow, MessageButton, MessageEmbed } = require('discord.js');
+const { INTERACT_APOLOGY, TIMEOUT_APOLOGY, COLORS, WIZARD, PROMPT_TIMEOUT, MINUTE_MILLIS } = require("../constants");
 const { CreateEmbed, RemoveComponents } = require("./messageHelper");
 const { RequestDao } = require('../dao/requestDao');
 const { CapitalizedTitleElement, QuoteText } = require('./stringHelper');
@@ -216,10 +212,10 @@ const TrashRequest = async function(context, request, newFlag, inputConfirmation
     promise.then((message) => {
         let messageCollector = null;
 
-        const buttonCollector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: INTERACT_TIMEOUT * 1000 * 2 });
+        const buttonCollector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: PROMPT_TIMEOUT * MINUTE_MILLIS });
 
         if (!inputConfirmation) {
-            messageCollector = context.channel.createMessageCollector({ time: INTERACT_TIMEOUT * 1000 * 2 });
+            messageCollector = context.channel.createMessageCollector({ time: PROMPT_TIMEOUT * MINUTE_MILLIS });
 
             messageCollector.on('collect', i => {
                 let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
@@ -392,10 +388,10 @@ const ProcessRequest = exports.ProcessRequest = async function(context, requestE
     promise.then((message) => {
         let messageCollector = null;
 
-        const buttonCollector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: INTERACT_TIMEOUT * 1000 * 2 });
+        const buttonCollector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: PROMPT_TIMEOUT * MINUTE_MILLIS });
 
         if (type === QUESTION_TYPES.userInput && !inputConfirmation) {
-            messageCollector = dmChannel.createMessageCollector({ time: INTERACT_TIMEOUT * 1000 * 2 });
+            messageCollector = dmChannel.createMessageCollector({ time: PROMPT_TIMEOUT * MINUTE_MILLIS });
 
             messageCollector.on('collect', i => {
                 buttonCollector.stop(null);
@@ -495,7 +491,7 @@ const SendConfirmation = async function(context, request, prompt, operation) {
     });
 
     promise.then((message) => {
-        const buttonCollector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: INTERACT_TIMEOUT * 1000 * 2 });
+        const buttonCollector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: PROMPT_TIMEOUT * MINUTE_MILLIS });
 
         buttonCollector.on('collect', i => {
             i.deferUpdate()
@@ -605,12 +601,13 @@ exports.SendRequestEmbed = async function(context, request, moderator, owner) {
     let promise = context.reply({
         components: components,
         embeds: [embed],
-        fetchReply: true
+        fetchReply: true,
+        ephemeral: moderator
     });
 
     promise.then((message) => {
         if (components.length > 0) {
-            const buttonCollector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: INTERACT_TIMEOUT * 1000 * 2 });
+            const buttonCollector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: PROMPT_TIMEOUT * MINUTE_MILLIS });
     
             buttonCollector.on('collect', i => {
                 i.deferUpdate()
