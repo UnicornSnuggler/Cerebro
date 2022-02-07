@@ -27,6 +27,8 @@ exports.PROMPT_TIMEOUT = 5;
 
 exports.ID_LENGTH = 5;
 
+exports.GLITCH_CHANCE = 3;
+
 exports.OFFICIAL = 'official';
 exports.UNOFFICIAL = 'unofficial';
 

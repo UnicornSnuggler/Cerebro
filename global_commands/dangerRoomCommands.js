@@ -4,6 +4,7 @@ const { ConfigurationDao } = require('../dao/configurationDao');
 const { PackDao } = require('../dao/packDao');
 const { SetDao } = require('../dao/setDao');
 const { ChooseRandomElements, CreateStringFromArray } = require('../utilities/arrayHelper');
+const { RandomizeGlitches } = require('../utilities/dangerRoomHelper');
 const { LogCommand } = require('../utilities/logHelper');
 const { CreateEmbed, Authorized } = require('../utilities/messageHelper');
 const { SuperscriptNumber } = require('../utilities/stringHelper');
@@ -17,6 +18,10 @@ const ContributionString = function(contributions) {
     }
 
     return result;
+}
+
+const GlitchString = function(glitch) {
+    return `\n**D**:> **ERR${glitch.code}** — ${glitch.summary}! *(${glitch.description})*`;
 }
 
 const TagUnofficial = function(contributions, packId) {
@@ -129,7 +134,7 @@ const GenerateHero = function(unofficial = false, heroExclusions = null, aspectE
         aspects.push('Determination');
     }
 
-    if (aspectExclusions) {
+    if (aspectExclusions && aspectChoices === 1) {
         aspects = aspects.filter(x => !aspectExclusions.includes(x));
     }
 
@@ -221,13 +226,15 @@ module.exports = {
             new Promise(() => LogCommand(context, command, null));
             
             if (subCommand === 'mission') {
-                let result = GenerateScenario(unofficial);
+                let results = [GenerateScenario(unofficial)];
+                RandomizeGlitches(results, null);
 
                 let content = '**D**:> Rendering combat simulation...' +
-                    `\n**D**:> Loading **${result.scenario.Name}**${TagUnofficial(result.contributions, result.scenario.PackId)} protocol...` +
-                    (result.modulars.length > 0 ? `\n**D**:> Importing ${CreateStringFromArray(result.modulars.map(x => `**${x.Name}**${TagUnofficial(result.contributions, x.PackId)}`))} hazard${result.modulars.length > 1 ? 's' : ''}...` : '') +
+                    `\n**D**:> Loading **${results[0].scenario.Name}**${TagUnofficial(results[0].contributions, results[0].scenario.PackId)} protocol...` +
+                    (results[0].modulars.length > 0 ? `\n**D**:> Importing ${CreateStringFromArray(results[0].modulars.map(x => `**${x.Name}**${TagUnofficial(results[0].contributions, x.PackId)}`))} hazard${results[0].modulars.length > 1 ? 's' : ''}...` : '') +
+                    (results[0].glitch ? GlitchString(results[0].glitch) : '') +
                     '\n**D**:> Combat simulation rendered! Commence training!' +
-                    ContributionString(result.contributions);
+                    ContributionString(results[0].contributions);
 
                 let replyEmbed = CreateEmbed(content, COLORS.Encounter);
     
@@ -236,13 +243,15 @@ module.exports = {
                 });
             }
             else if (subCommand === 'hero') {
-                let result = GenerateHero(unofficial);
+                let results = [GenerateHero(unofficial)];
+                RandomizeGlitches(null, results);
 
                 let content = '**D**:> Processing bio-signature...' +
                     `\n**D**:> Identity verified!` +
-                    `\n**D**:> Welcome back, **${result.hero.Name}**${TagUnofficial(result.contributions, result.hero.PackId)}!` +
-                    `\n**D**:> Training requested in the field${result.aspects.length > 1 ? 's' : ''} of ${CreateStringFromArray(result.aspects.map(x => `**${x}**${x === 'Determination' ? TagUnofficial(result.contributions, x) : ''}`))}...` +
-                    ContributionString(result.contributions);
+                    `\n**D**:> Welcome back, **${results[0].hero.Name}**${TagUnofficial(results[0].contributions, results[0].hero.PackId)}!` +
+                    `\n**D**:> Training requested in the field${results[0].aspects.length > 1 ? 's' : ''} of ${CreateStringFromArray(results[0].aspects.map(x => `**${x}**${x === 'Determination' ? TagUnofficial(results[0].contributions, x) : ''}`))}...` +
+                    (results[0].glitch ? GlitchString(results[0].glitch) : '') +
+                    ContributionString(results[0].contributions);
 
                 let replyEmbed = CreateEmbed(content, COLORS.Hero);
     
@@ -262,9 +271,9 @@ module.exports = {
                     return;
                 }
 
-                let scenarioResult = GenerateScenario(unofficial);
+                let scenarioResults = [GenerateScenario(unofficial)];
                 let heroResults = [];
-                let contributions = scenarioResult.contributions.length > 0 ? scenarioResult.contributions : [];
+                let contributions = scenarioResults[0].contributions.length > 0 ? scenarioResults[0].contributions : [];
 
                 for (let i = 0; i < heroesOption; i++) {
                     let heroResult = GenerateHero(unofficial, heroResults.map(x => x.hero.Id), heroResults.filter(x => x.aspects.length === 1).map(x => x.aspects[0]));
@@ -277,11 +286,18 @@ module.exports = {
                     });
                 }
 
+                RandomizeGlitches(scenarioResults, heroResults);
+
                 let content = '**D**:> Initializing team training exercise...' +
-                    `\n**D**:> Loading **${scenarioResult.scenario.Name}**${TagUnofficial(contributions, scenarioResult.scenario.PackId)} protocol...` +
-                    (scenarioResult.modulars.length > 0 ? `\n**D**:> Importing ${CreateStringFromArray(scenarioResult.modulars.map(x => `**${x.Name}**${TagUnofficial(contributions, x.PackId)}`))} hazard${scenarioResult.modulars.length > 1 ? 's' : ''}...` : '') +
+                    `\n**D**:> Loading **${scenarioResults[0].scenario.Name}**${TagUnofficial(contributions, scenarioResults[0].scenario.PackId)} protocol...` +
+                    (scenarioResults[0].modulars.length > 0 ? `\n**D**:> Importing ${CreateStringFromArray(scenarioResults[0].modulars.map(x => `**${x.Name}**${TagUnofficial(contributions, x.PackId)}`))} hazard${scenarioResults[0].modulars.length > 1 ? 's' : ''}...` : '') +
+                    (scenarioResults[0].glitch ? GlitchString(scenarioResults[0].glitch) : '') +
                     '\n**D**:> Compiling team data...' +
-                    `${heroResults.map(x => `\n**D**:> Assigning **${x.hero.Name}**${TagUnofficial(contributions, x.hero.PackId)} to the team, specializing in ${CreateStringFromArray(x.aspects.map(x => `**${x}**${x === 'Determination' ? TagUnofficial(contributions, x) : ''}`))}...`).join('')}` +
+                    `${heroResults.map(x => 
+                        `\n**D**:> Assigning **${x.hero.Name}**${TagUnofficial(contributions, x.hero.PackId)} to the team, specializing in ` +
+                        `${CreateStringFromArray(x.aspects.map(y => `**${y}**${y === 'Determination' ? TagUnofficial(contributions, y) : ''}`))}...` +
+                        (x.glitch ? GlitchString(x.glitch) : '')
+                    ).join('')}` +
                     '\n**D**:> Team training exercise initialized!' +
                     ContributionString(contributions);
 
