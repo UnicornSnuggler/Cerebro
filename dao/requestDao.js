@@ -17,7 +17,7 @@ class RequestDao {
 
             await session.saveChanges();
 
-            console.log(`Marked request '${requestId}' as deleted...`);
+            console.log(`Marked request '${requestId}' as 'Deleted'...`);
         }
         catch (exception) {
             console.log(exception);

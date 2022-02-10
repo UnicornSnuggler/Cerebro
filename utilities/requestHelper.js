@@ -1,5 +1,5 @@
 const { MessageActionRow, MessageButton, MessageEmbed } = require('discord.js');
-const { INTERACT_APOLOGY, TIMEOUT_APOLOGY, COLORS, WIZARD, PROMPT_TIMEOUT, MINUTE_MILLIS } = require("../constants");
+const { INTERACT_APOLOGY, TIMEOUT_APOLOGY, COLORS, WIZARD, PROMPT_TIMEOUT, MINUTE_MILLIS, PRODUCTION_BOT } = require("../constants");
 const { CreateEmbed, RemoveComponents } = require("./messageHelper");
 const { RequestDao } = require('../dao/requestDao');
 const { CapitalizedTitleElement, QuoteText } = require('./stringHelper');
@@ -598,11 +598,10 @@ exports.SendRequestEmbed = async function(context, request, moderator, owner) {
         if (x.components.length > 0) components.push(x);
     });
 
-    let promise = context.reply({
+    let promise = context.user.send({
         components: components,
         embeds: [embed],
-        fetchReply: true,
-        ephemeral: moderator
+        fetchReply: true
     });
 
     promise.then((message) => {
@@ -621,21 +620,21 @@ exports.SendRequestEmbed = async function(context, request, moderator, owner) {
                                 break;
                             case 'delete':
                                 buttonCollector.stop(null);
-                                SendConfirmation(context, request, 'Are you sure you want to delete this request?', DeleteRequest);
+                                SendConfirmation(i, request, 'Are you sure you want to delete this request?', DeleteRequest);
                                 break;
                             case 'banished':
                                 buttonCollector.stop(null);
-                                SendConfirmation(context, request, `Are you sure you want to mark request \`${id}\` as **${FLAG_TYPES.banished}**?`, BanishRequest);
+                                SendConfirmation(i, request, `Are you sure you want to mark request \`${id}\` as **${FLAG_TYPES.banished}**?`, BanishRequest);
                                 break;
                             case 'denied':
                                 buttonCollector.stop(null);
-                                SendConfirmation(context, request, `Are you sure you want to mark request \`${id}\` as **${FLAG_TYPES.denied}**?`, DenyRequest);
+                                SendConfirmation(i, request, `Are you sure you want to mark request \`${id}\` as **${FLAG_TYPES.denied}**?`, DenyRequest);
                                 break;
                             case 'approved':
                             case 'complete':
                             case 'inProgress':
                                 buttonCollector.stop(null);
-                                await UpdateRequestFlag(context, request, FLAG_TYPES[i.customId]);
+                                await UpdateRequestFlag(i, request, FLAG_TYPES[i.customId]);
                                 break;
                             default:
                                 let embed = CreateEmbed('Not yet implemented!', COLORS.Basic);
@@ -685,13 +684,15 @@ const SubmitRequest = async function(context, requestEntity) {
 }
 
 const MessageModerators = async function(context, message) {
-    let moderators = ConfigurationDao.CONFIGURATION.Moderators;
-
-    for (let moderator of moderators) {
-        let user = await GetUser(context, moderator);
-
-        if (user && user !== context.user) {
-            DirectMessageUser(user, message);
+    if (context.client.user.id === PRODUCTION_BOT) {
+        let moderators = ConfigurationDao.CONFIGURATION.Moderators;
+    
+        for (let moderator of moderators) {
+            let user = await GetUser(context, moderator);
+    
+            if (user && user !== context.user) {
+                DirectMessageUser(user, message);
+            }
         }
     }
 }
