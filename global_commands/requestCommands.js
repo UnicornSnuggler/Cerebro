@@ -137,14 +137,17 @@ module.exports = {
                 });
             }
             else if (subCommand === 'review') {
+                await context.deferReply({ephemeral: true});
+
                 let requests = await RequestDao.RetrieveRequestById(idOption);
 
                 if (requests) {
                     if (requests.length > 1) {
                         let replyEmbed = CreateEmbed('Multiple requests with the provided ID were found...');
         
-                        await context.reply({
-                            embeds: [replyEmbed]
+                        await context.editReply({
+                            embeds: [replyEmbed],
+                            ephemeral: true
                         });
 
                         return;
@@ -152,12 +155,20 @@ module.exports = {
                     
                     let owner = requests[0].UserId === context.user.id;
                     await SendRequestEmbed(context, requests[0], moderator, owner);
+
+                    let replyEmbed = CreateEmbed(context.guildId ? 'Check your DMs!' : 'Subroutine initiated!');
+    
+                    await context.editReply({
+                        embeds: [replyEmbed],
+                        ephemeral: true
+                    });
                 }
                 else {
                     let replyEmbed = CreateEmbed('No request with the provided ID was found...');
     
-                    await context.reply({
-                        embeds: [replyEmbed]
+                    await context.editReply({
+                        embeds: [replyEmbed],
+                        ephemeral: true
                     });
                 }
             }

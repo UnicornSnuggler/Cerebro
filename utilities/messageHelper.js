@@ -10,7 +10,7 @@ exports.Authorized = function(context, adminLocked = false) {
         return false;
     }
     
-    if (context.client.user.id != PRODUCTION_BOT && !ConfigurationDao.CONFIGURATION.Donors.concat([WIZARD, ACOLYTE]).includes(userId)) {
+    if (context.client.user.id !== PRODUCTION_BOT && !ConfigurationDao.CONFIGURATION.Donors.concat([WIZARD, ACOLYTE]).includes(userId)) {
         SendContentAsEmbed(context, "You do not possess beta access!", null, true);
         return false;
     }
