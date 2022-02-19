@@ -16,10 +16,10 @@ exports.ReportError = async function(context, error) {
         let user = await GetUser(context, WIZARD);
         
         if (user && user !== context.user) {
-            DirectMessageUser(user, `An error has occurred!\n\n\`\`\`${error}\`\`\``);
+            DirectMessageUser(user, `An error has occurred!\n\n\`${error.name}\``);
         }
     }
-    catch (exception) {
-        console.log(`An error occurred while reporting an error...\n\n${exception}`);
+    catch (e) {
+        console.error(`An error occurred while reporting an error...\n\n${e}`);
     }
 }

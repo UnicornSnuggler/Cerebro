@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { MessageActionRow, MessageSelectMenu, MessageButton, MessageEmbed, MessageAttachment } = require('discord.js');
+const { MessageActionRow, MessageSelectMenu, MessageButton, MessageEmbed, MessageAttachment, Util, Formatters } = require('discord.js');
 const { CardDao } = require('../dao/cardDao');
 const { PackDao } = require('../dao/packDao');
 const { SetDao } = require('../dao/setDao');
@@ -376,6 +376,11 @@ module.exports = {
             let results = [];
 
             if (name) {
+                if (!name.match(/([a-z0-9])/gi)) {
+                    SendContentAsEmbed(context, `${Formatters.inlineCode(name)} is not a valid query...`);
+                    return;
+                }
+
                 results = await CardDao.RetrieveByName(name, origin);
 
                 if (results) {

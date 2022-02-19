@@ -11,7 +11,7 @@ exports.DirectMessageUser = async function(user, message) {
         });
     }
     catch (e) {
-        ReportError(context, e);
+        console.error(`An error occurred while attempting to direct message a user...\n\n${e}`);
     }
 }
 
@@ -22,6 +22,6 @@ exports.GetUser = async function(context, userId) {
         return user ? user : null;
     }
     catch (e) {
-        ReportError(context, e);
+        console.error(`An error occurred while attempting to retrieve a user...\n\n${e}`);
     }
 }
