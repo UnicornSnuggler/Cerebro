@@ -11,9 +11,9 @@ exports.COLORS = {
     Villain: 'BA00D6'
 };
 
-exports.IMAGE_WIDTH = 357.5;
-exports.IMAGE_HEIGHT = 517.5;
-exports.IMAGES_PER_ROW = 6;
+exports.IMAGE_WIDTH = 300;
+exports.IMAGE_HEIGHT = 423;
+exports.IMAGES_PER_ROW = 5;
 exports.MAX_ATTACHMENTS = 5;
 exports.MAX_IMAGES = this.MAX_ATTACHMENTS * this.IMAGES_PER_ROW;
 

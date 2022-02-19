@@ -9,6 +9,7 @@ const { CreateEmbed, RemoveComponents, SendContentAsEmbed, Authorized } = requir
 const { SYMBOLS, LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT, SECOND_MILLIS, COLORS, IMAGE_WIDTH, IMAGE_HEIGHT, IMAGES_PER_ROW, MAX_IMAGES, MAX_IMAGES_APOLOGY, MAX_ATTACHMENTS } = require('../constants');
 const { ConfigurationDao } = require('../dao/configurationDao');
 const Canvas = require('canvas');
+const Jimp = require('jimp');
 const { ReportError } = require('../utilities/errorHelper');
 
 const SelectBox = async function(context, cards) {
@@ -192,7 +193,19 @@ const QueueCompiledResult = function(context, cards, message = null) {
             for (let x = 0; x < row.length; x++) {
                 let promise = Canvas.loadImage(BuildCardImagePath(row[x], row[x].Id));
                 
-                promise.then(function(image) {
+                promise.then(async function(image) {
+                    if (image.width > image.height) {
+                        let subCanvas = Canvas.createCanvas(image.height, image.width);
+                        let subContext = subCanvas.getContext('2d');
+                        
+                        subContext.translate(image.height / 2, image.width / 2);
+                        subContext.rotate(270 * Math.PI / 180);
+                        subContext.drawImage(image, -image.width / 2, -image.height / 2);
+                        subContext.translate(-image.height / 2, -image.width / 2);
+
+                        image = subCanvas;
+                    }
+                    
                     let positionX = IMAGE_WIDTH * x;
                     let positionY = 0;
                     
@@ -211,17 +224,22 @@ const QueueCompiledResult = function(context, cards, message = null) {
             superPromises.push(superPromise);
         }
         
-        Promise.all(superPromises).then(function() {
-            attachments = attachments.sort((a, b) => a.name > b.name ? 1 : -1);
-            
-            let messageOptions = {
-                content: overload ? MAX_IMAGES_APOLOGY : null,
-                embeds: [],
-                files: attachments,
-                fetchReply: true
-            };
-            
-            message.edit(messageOptions);
+        Promise.all(superPromises).then(async function() {
+            try {
+                attachments = attachments.sort((a, b) => a.name > b.name ? 1 : -1);
+                
+                let messageOptions = {
+                    content: overload ? MAX_IMAGES_APOLOGY : null,
+                    embeds: [],
+                    files: attachments,
+                    fetchReply: true
+                };
+                
+                await message.edit(messageOptions);
+            }
+            catch (e) {
+                ReportError(context, e);
+            }
         });
     }
     catch(e) {

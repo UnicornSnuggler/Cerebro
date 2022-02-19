@@ -16,7 +16,7 @@ exports.ReportError = async function(context, error) {
         let user = await GetUser(context, WIZARD);
         
         if (user && user !== context.user) {
-            DirectMessageUser(user, `An error has occurred!\n\n${QuoteText(error)}`);
+            DirectMessageUser(user, `An error has occurred!\n\n\`\`\`${error}\`\`\``);
         }
     }
     catch (exception) {
