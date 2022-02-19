@@ -5,6 +5,7 @@ const { RequestDao } = require('../dao/requestDao');
 const { CapitalizedTitleElement, QuoteText } = require('./stringHelper');
 const { ConfigurationDao } = require('../dao/configurationDao');
 const { GetUser, DirectMessageUser } = require('./userHelper');
+const { ReportError } = require('./errorHelper');
 
 const STABILITY_TYPES = exports.STABILITY_TYPES = {
     stable: "Stable",
@@ -301,13 +302,7 @@ const UpdateRequestFlag = async function(context, request, newFlag, reasoning = 
         }
     }
     catch (e) {
-        console.log(e);
-
-        let replyEmbed = CreateEmbed('Something went wrong... Check the logs to find out more.');
-
-        await context.channel.send({
-            embeds: [replyEmbed]
-        });
+        ReportError(context, e);
     }
 }
 
@@ -330,34 +325,143 @@ const DeriveEmbedDescription = function(resultEntries, type) {
 }
 
 const ProcessRequest = exports.ProcessRequest = async function(context, requestEntity, dmChannel, user, questionSet, currentQuestionId = 0, inputConfirmation = null) {
-    let currentQuestion = questionSet[currentQuestionId];
-    let type = currentQuestion.type;
-    let buttonRow = new MessageActionRow();
+    try {
+        let currentQuestion = questionSet[currentQuestionId];
+        let type = currentQuestion.type;
+        let buttonRow = new MessageActionRow();
 
-    if (type === QUESTION_TYPES.completion) {
-        try {
+        if (type === QUESTION_TYPES.completion) {
             let id = await SubmitRequest(context, requestEntity);
             
             let embed = CreateEmbed(`Thank you for your submission! Your request ID is \`${id.substring(24)}\`.\n\nYou'll receive a notification when the status of your request changes, but you can review the status of your request at any time using the command \`/request review id:${id.substring(24)}\`!`, COLORS.Basic);
-    
+
             dmChannel.send({
                 embeds: [embed]
             });
+
+            return;
         }
-        catch (e) {
-            console.log(e);
-    
-            let replyEmbed = CreateEmbed('Something went wrong... Check the logs to find out more.');
-    
-            await context.channel.send({
-                embeds: [replyEmbed]
+
+        if ([QUESTION_TYPES.yesNoContinue, QUESTION_TYPES.yesNoFailure].includes(type) || (type === QUESTION_TYPES.userInput && inputConfirmation)) {
+            buttonRow.addComponents(new MessageButton()
+                .setCustomId('yes')
+                .setLabel(`Yes`)
+                .setStyle('SUCCESS'));
+
+            buttonRow.addComponents(new MessageButton()
+                .setCustomId('no')
+                .setLabel(`No`)
+                .setStyle('SECONDARY'));
+        }
+
+        buttonRow.addComponents(new MessageButton()
+            .setCustomId('cancel')
+            .setLabel('Cancel')
+            .setStyle('DANGER'));
+
+        let prompt = type === QUESTION_TYPES.userInput && inputConfirmation ? `Your input is as follows:\n\n${QuoteText(inputConfirmation)}\n\nIs this what you want to submit?` : currentQuestion.question;
+
+        let embed = CreateEmbed(prompt, COLORS.Basic);
+
+        let messageOptions = {
+            components: [buttonRow],
+            embeds: [embed]
+        };
+
+        let promise = dmChannel.send(messageOptions);
+            
+        promise.then((message) => {
+            let messageCollector = null;
+
+            const buttonCollector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: PROMPT_TIMEOUT * MINUTE_MILLIS });
+
+            if (type === QUESTION_TYPES.userInput && !inputConfirmation) {
+                messageCollector = dmChannel.createMessageCollector({ time: PROMPT_TIMEOUT * MINUTE_MILLIS });
+
+                messageCollector.on('collect', i => {
+                    buttonCollector.stop(null);
+                    ProcessRequest(context, requestEntity, dmChannel, user, questionSet, currentQuestionId, i.content);
+                });
+            }
+
+            buttonCollector.on('collect', i => {
+                i.deferUpdate()
+                .then(async () => {
+                    switch (i.customId) {
+                        case 'yes':
+                        case 'no':
+                            if (type === QUESTION_TYPES.yesNoFailure) {
+                                if (currentQuestion.desiredAnswer === i.customId) {
+                                    if (currentQuestion.fieldName) {
+                                        requestEntity[currentQuestion.fieldName] = currentQuestion.fieldValue;
+                                    }
+
+                                    ProcessRequest(context, requestEntity, dmChannel, user, questionSet, currentQuestionId + 1);
+                                    buttonCollector.stop(null);
+                                }
+                                else {
+                                    buttonCollector.stop(currentQuestion.conclusion);
+                                }
+                            }
+                            else if (type === QUESTION_TYPES.yesNoContinue) {
+                                if (currentQuestion.fieldName) {
+                                    requestEntity[currentQuestion.fieldName] = currentQuestion.fieldValue;
+                                }
+
+                                ProcessRequest(context, requestEntity, dmChannel, user, questionSet, currentQuestion[i.customId]);
+                                buttonCollector.stop(null);
+                            }
+                            else {
+                                if (i.customId === 'no') {
+                                    ProcessRequest(context, requestEntity, dmChannel, user, questionSet, currentQuestionId);
+                                    buttonCollector.stop(null);
+                                }
+                                else {
+                                    if (currentQuestion.fieldName) {
+                                        requestEntity[currentQuestion.fieldName] = inputConfirmation;
+                                    }
+
+                                    ProcessRequest(context, requestEntity, dmChannel, user, questionSet, currentQuestionId + 1);
+                                    buttonCollector.stop(null);
+                                }
+                            }
+                            break;
+                        case 'cancel':
+                            buttonCollector.stop('The request was canceled...');
+                            break;
+                        default:
+                            break;
+                    }
+                });
             });
-        }
 
-        return;
+            buttonCollector.on('end', (i, notification) => {
+                RemoveComponents(message, null);
+
+                if (notification) {
+                    let prompt = notification === 'time' ? TIMEOUT_APOLOGY : notification;
+                    let embed = CreateEmbed(prompt, COLORS.Basic);
+
+                    dmChannel.send({
+                        embeds: [embed]
+                    });
+                }
+
+                if (messageCollector) {
+                    messageCollector.stop();
+                }
+            });
+        });
     }
+    catch (e) {
+        ReportError(context, e);
+    }
+}
 
-    if ([QUESTION_TYPES.yesNoContinue, QUESTION_TYPES.yesNoFailure].includes(type) || (type === QUESTION_TYPES.userInput && inputConfirmation)) {
+const SendConfirmation = async function(context, request, prompt, operation) {
+    try {
+        let buttonRow = new MessageActionRow();
+
         buttonRow.addComponents(new MessageButton()
             .setCustomId('yes')
             .setLabel(`Yes`)
@@ -367,283 +471,30 @@ const ProcessRequest = exports.ProcessRequest = async function(context, requestE
             .setCustomId('no')
             .setLabel(`No`)
             .setStyle('SECONDARY'));
-    }
 
-    buttonRow.addComponents(new MessageButton()
-        .setCustomId('cancel')
-        .setLabel('Cancel')
-        .setStyle('DANGER'));
+        let embed = CreateEmbed(prompt, COLORS.Basic);
 
-    let prompt = type === QUESTION_TYPES.userInput && inputConfirmation ? `Your input is as follows:\n\n${QuoteText(inputConfirmation)}\n\nIs this what you want to submit?` : currentQuestion.question;
-
-    let embed = CreateEmbed(prompt, COLORS.Basic);
-
-    let messageOptions = {
-        components: [buttonRow],
-        embeds: [embed]
-    };
-
-    let promise = dmChannel.send(messageOptions);
-        
-    promise.then((message) => {
-        let messageCollector = null;
-
-        const buttonCollector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: PROMPT_TIMEOUT * MINUTE_MILLIS });
-
-        if (type === QUESTION_TYPES.userInput && !inputConfirmation) {
-            messageCollector = dmChannel.createMessageCollector({ time: PROMPT_TIMEOUT * MINUTE_MILLIS });
-
-            messageCollector.on('collect', i => {
-                buttonCollector.stop(null);
-                ProcessRequest(context, requestEntity, dmChannel, user, questionSet, currentQuestionId, i.content);
-            });
-        }
-
-        buttonCollector.on('collect', i => {
-            i.deferUpdate()
-            .then(async () => {
-                switch (i.customId) {
-                    case 'yes':
-                    case 'no':
-                        if (type === QUESTION_TYPES.yesNoFailure) {
-                            if (currentQuestion.desiredAnswer === i.customId) {
-                                if (currentQuestion.fieldName) {
-                                    requestEntity[currentQuestion.fieldName] = currentQuestion.fieldValue;
-                                }
-
-                                ProcessRequest(context, requestEntity, dmChannel, user, questionSet, currentQuestionId + 1);
-                                buttonCollector.stop(null);
-                            }
-                            else {
-                                buttonCollector.stop(currentQuestion.conclusion);
-                            }
-                        }
-                        else if (type === QUESTION_TYPES.yesNoContinue) {
-                            if (currentQuestion.fieldName) {
-                                requestEntity[currentQuestion.fieldName] = currentQuestion.fieldValue;
-                            }
-
-                            ProcessRequest(context, requestEntity, dmChannel, user, questionSet, currentQuestion[i.customId]);
-                            buttonCollector.stop(null);
-                        }
-                        else {
-                            if (i.customId === 'no') {
-                                ProcessRequest(context, requestEntity, dmChannel, user, questionSet, currentQuestionId);
-                                buttonCollector.stop(null);
-                            }
-                            else {
-                                if (currentQuestion.fieldName) {
-                                    requestEntity[currentQuestion.fieldName] = inputConfirmation;
-                                }
-
-                                ProcessRequest(context, requestEntity, dmChannel, user, questionSet, currentQuestionId + 1);
-                                buttonCollector.stop(null);
-                            }
-                        }
-                        break;
-                    case 'cancel':
-                        buttonCollector.stop('The request was canceled...');
-                        break;
-                    default:
-                        break;
-                }
-            });
+        let promise = context.followUp({
+            components: [buttonRow],
+            embeds: [embed],
+            fetchReply: true
         });
 
-        buttonCollector.on('end', (i, notification) => {
-            RemoveComponents(message, null);
-
-            if (notification) {
-                let prompt = notification === 'time' ? TIMEOUT_APOLOGY : notification;
-                let embed = CreateEmbed(prompt, COLORS.Basic);
-
-                dmChannel.send({
-                    embeds: [embed]
-                });
-            }
-
-            if (messageCollector) {
-                messageCollector.stop();
-            }
-        });
-    });
-}
-
-const SendConfirmation = async function(context, request, prompt, operation) {
-    let buttonRow = new MessageActionRow();
-
-    buttonRow.addComponents(new MessageButton()
-        .setCustomId('yes')
-        .setLabel(`Yes`)
-        .setStyle('SUCCESS'));
-
-    buttonRow.addComponents(new MessageButton()
-        .setCustomId('no')
-        .setLabel(`No`)
-        .setStyle('SECONDARY'));
-
-    let embed = CreateEmbed(prompt, COLORS.Basic);
-
-    let promise = context.followUp({
-        components: [buttonRow],
-        embeds: [embed],
-        fetchReply: true
-    });
-
-    promise.then((message) => {
-        const buttonCollector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: PROMPT_TIMEOUT * MINUTE_MILLIS });
-
-        buttonCollector.on('collect', i => {
-            i.deferUpdate()
-            .then(async () => {
-                let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
-
-                if (i.user.id === userId) {
-                    if (i.customId === 'yes') {
-                        buttonCollector.stop(null);
-                        operation(context, request);
-                    }
-                    else {
-                        buttonCollector.stop('The operation was canceled...');
-                    }
-                }
-                else {
-                    i.followUp({
-                        embeds: [CreateEmbed(INTERACT_APOLOGY, COLORS.Basic)],
-                        ephemeral: true
-                    });
-                }
-            });
-        });
-
-        buttonCollector.on('end', (i, notification) => {
-            RemoveComponents(message, null);
-
-            if (notification) {
-                let prompt = notification === 'time' ? TIMEOUT_APOLOGY : notification;
-                let embed = CreateEmbed(prompt, COLORS.Basic);
-
-                context.followUp({
-                    embeds: [embed]
-                });
-            }
-        });
-    });
-}
-
-exports.SendRequestEmbed = async function(context, request, moderator, owner) {
-    let adminRow = new MessageActionRow();
-    let moderatorRow = new MessageActionRow();
-    let defaultRow = new MessageActionRow();
-
-    let components = [];
-
-    let id = request.Id.substring(24);
-    let flagKey = Object.keys(FLAG_TYPES).find(key => FLAG_TYPES[key] === request.Flag);
-
-    let description = `**Author**: <@${request.UserId}>` +
-        `\n**Type**: ${CapitalizedTitleElement(request.Type)} Request` +
-        (request.Stability ? `\n**Stability**: ${request.Stability}` : '') +
-        (request.Link ? `\n**Link**: ${request.Link}` : '') +
-        (request.Description ? `\n\n**Description**:\n${QuoteText(request.Description)}` : '') +
-        `\n\n**Status**: ${FLAG_EMOJIS[flagKey]} ${request.Flag}` +
-        (request.Reasoning ? `\n**Reasoning**:\n> ${request.Reasoning}` : '');
-
-    let embed = CreateEmbed(description, COLORS.Basic, `${id} — ${request.Title}`);
-
-    if ((owner && [FLAG_TYPES.pendingReview, FLAG_TYPES.approved, FLAG_TYPES.complete].includes(request.Flag)) || context.user.id === WIZARD) {
-        adminRow.addComponents(new MessageButton()
-            .setCustomId('delete')
-            .setLabel('Delete')
-            .setStyle('DANGER'));
-    }
-
-    if (context.user.id === WIZARD) {
-        adminRow.addComponents(new MessageButton()
-            .setCustomId('inProgress')
-            .setLabel('In Progress')
-            .setStyle('PRIMARY'));
-
-        adminRow.addComponents(new MessageButton()
-            .setCustomId('complete')
-            .setLabel('Complete')
-            .setStyle('SUCCESS'));
-    }
-
-    if ((moderator && !owner) || context.user.id === WIZARD) {
-        moderatorRow.addComponents(new MessageButton()
-            .setCustomId('approved')
-            .setLabel(`Approve`)
-            .setStyle('SUCCESS'));
-
-        moderatorRow.addComponents(new MessageButton()
-            .setCustomId('denied')
-            .setLabel(`Deny`)
-            .setStyle('SECONDARY'));
-
-        moderatorRow.addComponents(new MessageButton()
-            .setCustomId('banished')
-            .setLabel('Banish')
-            .setStyle('DANGER'));
-    }
-
-    if (adminRow.components.length > 0 || moderatorRow.components > 0) {
-        defaultRow.addComponents(new MessageButton()
-            .setCustomId('clearComponents')
-            .setLabel('Clear Buttons')
-            .setStyle('DANGER'));
-    }
-
-    [adminRow, moderatorRow, defaultRow].forEach(x => {
-        if (x.components.length > 0) components.push(x);
-    });
-
-    let promise = context.user.send({
-        components: components,
-        embeds: [embed],
-        fetchReply: true
-    });
-
-    promise.then((message) => {
-        if (components.length > 0) {
+        promise.then((message) => {
             const buttonCollector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: PROMPT_TIMEOUT * MINUTE_MILLIS });
-    
+
             buttonCollector.on('collect', i => {
                 i.deferUpdate()
                 .then(async () => {
                     let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
-    
+
                     if (i.user.id === userId) {
-                        switch (i.customId) {
-                            case 'clearComponents':
-                                buttonCollector.stop(null);
-                                break;
-                            case 'delete':
-                                buttonCollector.stop(null);
-                                SendConfirmation(i, request, 'Are you sure you want to delete this request?', DeleteRequest);
-                                break;
-                            case 'banished':
-                                buttonCollector.stop(null);
-                                SendConfirmation(i, request, `Are you sure you want to mark request \`${id}\` as **${FLAG_TYPES.banished}**?`, BanishRequest);
-                                break;
-                            case 'denied':
-                                buttonCollector.stop(null);
-                                SendConfirmation(i, request, `Are you sure you want to mark request \`${id}\` as **${FLAG_TYPES.denied}**?`, DenyRequest);
-                                break;
-                            case 'approved':
-                            case 'complete':
-                            case 'inProgress':
-                                buttonCollector.stop(null);
-                                await UpdateRequestFlag(i, request, FLAG_TYPES[i.customId]);
-                                break;
-                            default:
-                                let embed = CreateEmbed('Not yet implemented!', COLORS.Basic);
-                
-                                i.followUp({
-                                    embeds: [embed],
-                                    ephemeral: true
-                                });
-                                break;
+                        if (i.customId === 'yes') {
+                            buttonCollector.stop(null);
+                            operation(context, request);
+                        }
+                        else {
+                            buttonCollector.stop('The operation was canceled...');
                         }
                     }
                     else {
@@ -654,20 +505,168 @@ exports.SendRequestEmbed = async function(context, request, moderator, owner) {
                     }
                 });
             });
-    
+
             buttonCollector.on('end', (i, notification) => {
                 RemoveComponents(message, null);
-    
-                if (notification && notification !== 'time') {
-                    let embed = CreateEmbed(notification, COLORS.Basic);
-    
+
+                if (notification) {
+                    let prompt = notification === 'time' ? TIMEOUT_APOLOGY : notification;
+                    let embed = CreateEmbed(prompt, COLORS.Basic);
+
                     context.followUp({
                         embeds: [embed]
                     });
                 }
             });
+        });
+    }
+    catch (e) {
+        ReportError(context, e);
+    }
+}
+
+exports.SendRequestEmbed = async function(context, request, moderator, owner) {
+    try {
+        let adminRow = new MessageActionRow();
+        let moderatorRow = new MessageActionRow();
+        let defaultRow = new MessageActionRow();
+
+        let components = [];
+
+        let id = request.Id.substring(24);
+        let flagKey = Object.keys(FLAG_TYPES).find(key => FLAG_TYPES[key] === request.Flag);
+
+        let description = `**Author**: <@${request.UserId}>` +
+            `\n**Type**: ${CapitalizedTitleElement(request.Type)} Request` +
+            (request.Stability ? `\n**Stability**: ${request.Stability}` : '') +
+            (request.Link ? `\n**Link**: ${request.Link}` : '') +
+            (request.Description ? `\n\n**Description**:\n${QuoteText(request.Description)}` : '') +
+            `\n\n**Status**: ${FLAG_EMOJIS[flagKey]} ${request.Flag}` +
+            (request.Reasoning ? `\n**Reasoning**:\n> ${request.Reasoning}` : '');
+
+        let embed = CreateEmbed(description, COLORS.Basic, `${id} — ${request.Title}`);
+
+        if ((owner && [FLAG_TYPES.pendingReview, FLAG_TYPES.approved, FLAG_TYPES.complete].includes(request.Flag)) || context.user.id === WIZARD) {
+            adminRow.addComponents(new MessageButton()
+                .setCustomId('delete')
+                .setLabel('Delete')
+                .setStyle('DANGER'));
         }
-    });
+
+        if (context.user.id === WIZARD) {
+            adminRow.addComponents(new MessageButton()
+                .setCustomId('inProgress')
+                .setLabel('In Progress')
+                .setStyle('PRIMARY'));
+
+            adminRow.addComponents(new MessageButton()
+                .setCustomId('complete')
+                .setLabel('Complete')
+                .setStyle('SUCCESS'));
+        }
+
+        if ((moderator && !owner) || context.user.id === WIZARD) {
+            moderatorRow.addComponents(new MessageButton()
+                .setCustomId('approved')
+                .setLabel(`Approve`)
+                .setStyle('SUCCESS'));
+
+            moderatorRow.addComponents(new MessageButton()
+                .setCustomId('denied')
+                .setLabel(`Deny`)
+                .setStyle('SECONDARY'));
+
+            moderatorRow.addComponents(new MessageButton()
+                .setCustomId('banished')
+                .setLabel('Banish')
+                .setStyle('DANGER'));
+        }
+
+        if (adminRow.components.length > 0 || moderatorRow.components > 0) {
+            defaultRow.addComponents(new MessageButton()
+                .setCustomId('clearComponents')
+                .setLabel('Clear Buttons')
+                .setStyle('DANGER'));
+        }
+
+        [adminRow, moderatorRow, defaultRow].forEach(x => {
+            if (x.components.length > 0) components.push(x);
+        });
+
+        let promise = context.user.send({
+            components: components,
+            embeds: [embed],
+            fetchReply: true
+        });
+
+        promise.then((message) => {
+            if (components.length > 0) {
+                const buttonCollector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: PROMPT_TIMEOUT * MINUTE_MILLIS });
+        
+                buttonCollector.on('collect', i => {
+                    i.deferUpdate()
+                    .then(async () => {
+                        let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
+        
+                        if (i.user.id === userId) {
+                            switch (i.customId) {
+                                case 'clearComponents':
+                                    buttonCollector.stop(null);
+                                    break;
+                                case 'delete':
+                                    buttonCollector.stop(null);
+                                    SendConfirmation(i, request, 'Are you sure you want to delete this request?', DeleteRequest);
+                                    break;
+                                case 'banished':
+                                    buttonCollector.stop(null);
+                                    SendConfirmation(i, request, `Are you sure you want to mark request \`${id}\` as **${FLAG_TYPES.banished}**?`, BanishRequest);
+                                    break;
+                                case 'denied':
+                                    buttonCollector.stop(null);
+                                    SendConfirmation(i, request, `Are you sure you want to mark request \`${id}\` as **${FLAG_TYPES.denied}**?`, DenyRequest);
+                                    break;
+                                case 'approved':
+                                case 'complete':
+                                case 'inProgress':
+                                    buttonCollector.stop(null);
+                                    await UpdateRequestFlag(i, request, FLAG_TYPES[i.customId]);
+                                    break;
+                                default:
+                                    let embed = CreateEmbed('Not yet implemented!', COLORS.Basic);
+                    
+                                    i.followUp({
+                                        embeds: [embed],
+                                        ephemeral: true
+                                    });
+                                    break;
+                            }
+                        }
+                        else {
+                            i.followUp({
+                                embeds: [CreateEmbed(INTERACT_APOLOGY, COLORS.Basic)],
+                                ephemeral: true
+                            });
+                        }
+                    });
+                });
+        
+                buttonCollector.on('end', (i, notification) => {
+                    RemoveComponents(message, null);
+        
+                    if (notification && notification !== 'time') {
+                        let embed = CreateEmbed(notification, COLORS.Basic);
+        
+                        context.followUp({
+                            embeds: [embed]
+                        });
+                    }
+                });
+            }
+        });
+    }
+    catch (e) {
+        ReportError(context, e);
+    }
 }
 
 const SubmitRequest = async function(context, requestEntity) {
@@ -679,20 +678,25 @@ const SubmitRequest = async function(context, requestEntity) {
         return id;
     }
     catch (e) {
-        throw(e);
+        ReportError(context, e);
     }
 }
 
 const MessageModerators = async function(context, message) {
-    if (context.client.user.id === PRODUCTION_BOT) {
-        let moderators = ConfigurationDao.CONFIGURATION.Moderators;
-    
-        for (let moderator of moderators) {
-            let user = await GetUser(context, moderator);
-    
-            if (user && user !== context.user) {
-                DirectMessageUser(user, message);
+    try {
+        if (context.client.user.id === PRODUCTION_BOT) {
+            let moderators = ConfigurationDao.CONFIGURATION.Moderators;
+        
+            for (let moderator of moderators) {
+                let user = await GetUser(context, moderator);
+        
+                if (user && user !== context.user) {
+                    DirectMessageUser(user, message);
+                }
             }
         }
+    }
+    catch (e) {
+        ReportError(context, e);
     }
 }

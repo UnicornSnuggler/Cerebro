@@ -9,6 +9,7 @@ const { ProcessRequest, DATA_QUESTIONS, FEATURE_QUESTIONS, BuildEntity, FLAG_TYP
 const { RequestEntity } = require('../models/requestEntity');
 const { RequestDao } = require('../dao/requestDao');
 const { ConfigurationDao } = require('../dao/configurationDao');
+const { ReportError } = require('../utilities/errorHelper');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -174,13 +175,7 @@ module.exports = {
             }
         }
         catch (e) {
-            console.log(e);
-
-            let replyEmbed = CreateEmbed('Something went wrong... Check the logs to find out more.');
-
-            await context.channel.send({
-                embeds: [replyEmbed]
-            });
+            ReportError(context, e);
         }
     }
 }

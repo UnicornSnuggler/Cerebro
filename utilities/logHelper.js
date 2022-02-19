@@ -11,6 +11,7 @@ const { GetPrintingByArtificialId, BuildCardImagePath } = require('./cardHelper'
 const { COLORS } = require('../constants');
 const { CapitalizedTitleElement } = require('./stringHelper');
 const { CreateEmbed } = require('./messageHelper');
+const { ReportError } = require('./errorHelper');
 
 const BuildBaseEntity = function(context, collection) {
     let userId = context.user ? context.user.id : context.author.id;
@@ -39,54 +40,59 @@ const BuildBaseOrganizedEntity = function(context, collection, packId, setId) {
 }
 
 exports.BuildCardResultsEmbed = async function(results, scale, timeframe) {
-    let embed = new MessageEmbed();
+    try {
+        let embed = new MessageEmbed();
 
-    embed.setColor(COLORS["Basic"]);
-    embed.setTitle(`${CapitalizedTitleElement(scale)} ${CapitalizedTitleElement(timeframe)} Card Statistics`);
+        embed.setColor(COLORS["Basic"]);
+        embed.setTitle(`${CapitalizedTitleElement(scale)} ${CapitalizedTitleElement(timeframe)} Card Statistics`);
 
-    let summary = null;
-    let resultEntries = [];
+        let summary = null;
+        let resultEntries = [];
 
-    if (results) {
-        let ids = results.map(x => x.CardId).filter(function(value, index, self) {
-            return self.indexOf(value) === index;
-        });
-
-        summary = `**${ids.length}** unique card${ids.length > 1 ? 's have' : ' has'} been queried a combined total of **${results.length}** time${results.length > 1 ? 's' : ''}.`;
-
-        let cards = await CardDao.RetrieveByIdList(ids);
-
-        for (let id of ids) {
-            let matches = results.filter(x => x.CardId === id);
-            let card = cards.find(x => x.Id === id);
-            let timestamp = matches.sort((a, b) => b.Timestamp - a.Timestamp)[0].Timestamp;
-            let imagePath = BuildCardImagePath(card, card.Id);
-            let description = card.Type;
-            
-            let setId = GetPrintingByArtificialId(card, card.Id).SetId ?? null;
-            
-            if (setId) {
-                let set = SetDao.SETS.find(x => x.Id === setId);
-
-                if (card.Classification === 'Hero' && !['Alter-Ego', 'Hero'].includes(card.Type)) description = `${set.Name} ${description}`;
-                else if (card.Classification === 'Encounter') description = `${description} (${set.Name})`;
-            }
-            else description = `${card.Classification} ${description}`;
-
-            resultEntries.push({
-                description: `[${card.Name}](${imagePath}) ${card.Official ? '' : 'Unofficial '}${description} — ${matches.length} Queries`,
-                count: matches.length,
-                timestamp: timestamp
+        if (results) {
+            let ids = results.map(x => x.CardId).filter(function(value, index, self) {
+                return self.indexOf(value) === index;
             });
+
+            summary = `**${ids.length}** unique card${ids.length > 1 ? 's have' : ' has'} been queried a combined total of **${results.length}** time${results.length > 1 ? 's' : ''}.`;
+
+            let cards = await CardDao.RetrieveByIdList(ids);
+
+            for (let id of ids) {
+                let matches = results.filter(x => x.CardId === id);
+                let card = cards.find(x => x.Id === id);
+                let timestamp = matches.sort((a, b) => b.Timestamp - a.Timestamp)[0].Timestamp;
+                let imagePath = BuildCardImagePath(card, card.Id);
+                let description = card.Type;
+                
+                let setId = GetPrintingByArtificialId(card, card.Id).SetId ?? null;
+                
+                if (setId) {
+                    let set = SetDao.SETS.find(x => x.Id === setId);
+
+                    if (card.Classification === 'Hero' && !['Alter-Ego', 'Hero'].includes(card.Type)) description = `${set.Name} ${description}`;
+                    else if (card.Classification === 'Encounter') description = `${description} (${set.Name})`;
+                }
+                else description = `${card.Classification} ${description}`;
+
+                resultEntries.push({
+                    description: `[${card.Name}](${imagePath}) ${card.Official ? '' : 'Unofficial '}${description} — ${matches.length} Queries`,
+                    count: matches.length,
+                    timestamp: timestamp
+                });
+            }
         }
+
+        embed.setDescription(DeriveEmbedDescription(resultEntries, summary));
+
+        return embed;
     }
-
-    embed.setDescription(DeriveEmbedDescription(resultEntries, summary));
-
-    return embed;
+    catch (e) {
+        ReportError(context, e);
+    }
 }
 
-exports.BuildPackResultsEmbed = async function(results, scale, timeframe) {
+exports.BuildPackResultsEmbed = function(results, scale, timeframe) {
     let embed = new MessageEmbed();
 
     embed.setColor(COLORS["Basic"]);
@@ -120,7 +126,7 @@ exports.BuildPackResultsEmbed = async function(results, scale, timeframe) {
     return embed;
 }
 
-exports.BuildSetResultsEmbed = async function(results, scale, timeframe) {
+exports.BuildSetResultsEmbed = function(results, scale, timeframe) {
     let embed = new MessageEmbed();
 
     embed.setColor(COLORS["Basic"]);
@@ -154,7 +160,7 @@ exports.BuildSetResultsEmbed = async function(results, scale, timeframe) {
     return embed;
 }
 
-exports.BuildUserResultsEmbed = async function(results, scale, timeframe) {
+exports.BuildUserResultsEmbed = function(results, scale, timeframe) {
     let embed = new MessageEmbed();
 
     embed.setColor(COLORS["Basic"]);
@@ -214,13 +220,7 @@ exports.LogCardResult = async function(context, card) {
         await LogDao.StoreLogEntity(entity);
     }
     catch (e) {
-        console.log(e);
-
-        let replyEmbed = CreateEmbed('Something went wrong... Check the logs to find out more.');
-
-        await context.channel.send({
-            embeds: [replyEmbed]
-        });
+        ReportError(context, e);
     }
 }
 
@@ -234,13 +234,7 @@ exports.LogCollectionResult = async function(context, collectionEntity, type) {
         await LogDao.StoreLogEntity(entity);
     }
     catch (e) {
-        console.log(e);
-
-        let replyEmbed = CreateEmbed('Something went wrong... Check the logs to find out more.');
-
-        await context.channel.send({
-            embeds: [replyEmbed]
-        });
+        ReportError(context, e);
     }
 }
 
@@ -256,13 +250,7 @@ exports.LogCommand = async function(context, command, options) {
         await LogDao.StoreLogEntity(entity);
     }
     catch (e) {
-        console.log(e);
-
-        let replyEmbed = CreateEmbed('Something went wrong... Check the logs to find out more.');
-
-        await context.channel.send({
-            embeds: [replyEmbed]
-        });
+        ReportError(context, e);
     }
 }
 
@@ -276,12 +264,6 @@ exports.LogRuleResult = async function(context, rule) {
         await LogDao.StoreLogEntity(entity);
     }
     catch (e) {
-        console.log(e);
-
-        let replyEmbed = CreateEmbed('Something went wrong... Check the logs to find out more.');
-
-        await context.channel.send({
-            embeds: [replyEmbed]
-        });
+        ReportError(context, e);
     }
 }

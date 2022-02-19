@@ -6,6 +6,7 @@ const { GroupDao } = require('../dao/groupDao');
 const { PackDao } = require('../dao/packDao');
 const { RuleDao } = require('../dao/ruleDao');
 const { SetDao } = require('../dao/setDao');
+const { ReportError } = require('../utilities/errorHelper');
 const { SendContentAsEmbed, Authorized } = require('../utilities/messageHelper');
 
 module.exports = {
@@ -71,8 +72,7 @@ module.exports = {
             }
         }
         catch (e) {
-            console.log(e);
-            SendContentAsEmbed(context, 'Something went wrong... Check the logs to find out more.');
+            ReportError(context, e);
         }
     }
 }

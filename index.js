@@ -7,7 +7,7 @@ const { PackDao } = require('./dao/packDao');
 const { RuleDao } = require('./dao/ruleDao');
 const { SetDao } = require('./dao/setDao');
 const { ArtificialInteraction } = require('./models/artificialInteraction');
-const { SendContentAsEmbed } = require('./utilities/messageHelper');
+const { SendContentAsEmbed, SendMessageWithOptions } = require('./utilities/messageHelper');
 const { DAY_MILLIS, SECOND_MILLIS } = require('./constants')
 const fs = require('fs');
 const { cardOfTheDayLoop } = require('./utilities/cardOfTheDayHelper');
@@ -88,12 +88,12 @@ const HandleMessages = function(message) {
         message.react('💕');
     }
 
-    let matches = message.content.match(/\{\{.+?\}\}/gi);
+    let officialCardMatches = message.content.match(/\{\{.+?\}\}/gi);
 
-    if (matches) {
+    if (officialCardMatches) {
         const command = client.commands.get('card');
         
-        for (let match of matches) {
+        for (let match of officialCardMatches) {
             message.options = new ArtificialInteraction(true, match.replace(/[{}]/gmi, ''));
 
             try {
@@ -107,12 +107,12 @@ const HandleMessages = function(message) {
         }
     }
 
-    matches = message.content.match(/<<.+?>>/gi);
+    let unofficialCardMatches = message.content.match(/<<.+?>>/gi);
 
-    if (matches) {
+    if (unofficialCardMatches) {
         const command = client.commands.get('card');
         
-        for (let match of matches) {
+        for (let match of unofficialCardMatches) {
             message.options = new ArtificialInteraction(false, match.replace(/[<>]/gmi, ''));
 
             try {
@@ -126,12 +126,12 @@ const HandleMessages = function(message) {
         }
     }
 
-    matches = message.content.match(/\(\(.+?\)\)/gi);
+    let officialRuleMatches = message.content.match(/\(\(.+?\)\)/gi);
 
-    if (matches) {
+    if (officialRuleMatches) {
         const command = client.commands.get('rule');
         
-        for (let match of matches) {
+        for (let match of officialRuleMatches) {
             message.options = new ArtificialInteraction(true, match.replace(/[()]/gmi, ''));
 
             try {

@@ -8,6 +8,7 @@ const { FormatSymbols, FormatText, SpoilerIfIncomplete, QuoteText, ItalicizeText
 const { RELEASED_EMOJI, COLORS, ID_LENGTH, INTERACT_APOLOGY, LOAD_APOLOGY, UNRELEASED_EMOJI, SYMBOLS, INTERACT_TIMEOUT, TINKERER_EMOJI, WARNING_EMOJI, REVIEWING_EMOJI, SECOND_MILLIS } = require('../constants');
 const { NavigationCollection } = require('../models/navigationCollection');
 const { SetDao } = require('../dao/setDao');
+const { ReportError } = require('./errorHelper');
 
 const BuildCardImagePath = exports.BuildCardImagePath = function(card, artStyle = card.Id) {
     return `${process.env.cardImagePrefix}${card.Official ? 'official/' : `unofficial/`}${artStyle}.jpg`;
@@ -303,200 +304,205 @@ exports.ShareGroups = function(thisCard, thatCard) {
 }
 
 const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, currentFace, currentElement, collection, rulesToggle, artToggle, message = null, spoilerToggle = false) {
-    let navigationRow = new MessageActionRow();
-    let toggleRow = new MessageActionRow();
+    try {
+        let navigationRow = new MessageActionRow();
+        let toggleRow = new MessageActionRow();
 
-    let spoilerOverride = (!context.guildId || (ConfigurationDao.CONFIGURATION.SpoilerExceptions[context.guildId] && ConfigurationDao.CONFIGURATION.SpoilerExceptions[context.guildId].includes(context.channelId)));
+        let spoilerOverride = (!context.guildId || (ConfigurationDao.CONFIGURATION.SpoilerExceptions[context.guildId] && ConfigurationDao.CONFIGURATION.SpoilerExceptions[context.guildId].includes(context.channelId)));
 
-    let artStyles = FindUniqueArts(card);
+        let artStyles = FindUniqueArts(card);
 
-    if (collection.elements.length > 0) {
-        let style = collection.tag === 'Card' ? 'SECONDARY' : 'PRIMARY';
+        if (collection.elements.length > 0) {
+            let style = collection.tag === 'Card' ? 'SECONDARY' : 'PRIMARY';
 
-        navigationRow.addComponents(new MessageButton()
-            .setCustomId('previousElement')
-            .setLabel(`Previous ${collection.tag}`)
-            .setStyle(style));
-        
-        navigationRow.addComponents(new MessageButton()
-            .setCustomId('nextElement')
-            .setLabel(`Next  ${collection.tag}`)
-            .setStyle(style));
-    }
+            navigationRow.addComponents(new MessageButton()
+                .setCustomId('previousElement')
+                .setLabel(`Previous ${collection.tag}`)
+                .setStyle(style));
+            
+            navigationRow.addComponents(new MessageButton()
+                .setCustomId('nextElement')
+                .setLabel(`Next  ${collection.tag}`)
+                .setStyle(style));
+        }
 
-    if (collection.faces.length > 1)
-        navigationRow.addComponents(new MessageButton()
-            .setCustomId('cycleFace')
-            .setLabel('Flip Card')
-            .setStyle('PRIMARY'));
+        if (collection.faces.length > 1)
+            navigationRow.addComponents(new MessageButton()
+                .setCustomId('cycleFace')
+                .setLabel('Flip Card')
+                .setStyle('PRIMARY'));
 
-    if (artStyles.length > 1)
-        navigationRow.addComponents(new MessageButton()
-            .setCustomId('cycleArt')
-            .setLabel('Change Art')
-            .setStyle('PRIMARY'));
+        if (artStyles.length > 1)
+            navigationRow.addComponents(new MessageButton()
+                .setCustomId('cycleArt')
+                .setLabel('Change Art')
+                .setStyle('PRIMARY'));
 
-    if (EvaluateRules(card))
+        if (EvaluateRules(card))
+            toggleRow.addComponents(new MessageButton()
+                .setCustomId('toggleRules')
+                .setLabel('Toggle Rules')
+                .setStyle('SECONDARY'));
+
+        if (!spoilerOverride && card.Incomplete)
+            toggleRow.addComponents(new MessageButton()
+                .setCustomId('toggleSpoiler')
+                .setLabel('Unveil Secretly')
+                .setStyle('SECONDARY'));
+
         toggleRow.addComponents(new MessageButton()
-            .setCustomId('toggleRules')
-            .setLabel('Toggle Rules')
-            .setStyle('SECONDARY'));
+            .setCustomId('toggleArt')
+            .setLabel('Toggle Art')
+            .setStyle('SUCCESS'));
 
-    if (!spoilerOverride && card.Incomplete)
         toggleRow.addComponents(new MessageButton()
-            .setCustomId('toggleSpoiler')
-            .setLabel('Unveil Secretly')
-            .setStyle('SECONDARY'));
+            .setCustomId('clearComponents')
+            .setLabel('Clear Buttons')
+            .setStyle('DANGER'));
 
-    toggleRow.addComponents(new MessageButton()
-        .setCustomId('toggleArt')
-        .setLabel('Toggle Art')
-        .setStyle('SUCCESS'));
+        let promise;
 
-    toggleRow.addComponents(new MessageButton()
-        .setCustomId('clearComponents')
-        .setLabel('Clear Buttons')
-        .setStyle('DANGER'));
+        let artificialId = artStyles[currentArtStyle];
 
-    let promise;
-
-    let artificialId = artStyles[currentArtStyle];
-
-    let components = [];
-    let embeds = [];
-    let files = [];
-    
-    for (let row of [navigationRow, toggleRow]) {
-        if (!spoilerToggle && row.components.length > 0) components.push(row);
-    }
-
-    if (!artToggle) {
-        if (!rulesToggle) embeds.push(BuildEmbed(card, artificialId, spoilerOverride || spoilerToggle));
-        else embeds.push(BuildRulesEmbed(card, artificialId, spoilerOverride || spoilerToggle));
-    }
-    else {
-        let printing = GetPrintingByArtificialId(card, artificialId);
-        let pack = PackDao.PACKS.find(x => x.Id === printing.PackId);
-
-        files.push({
-            attachment: BuildCardImagePath(card, artificialId),
-            name: `${(!spoilerOverride && (!spoilerToggle && (card.Incomplete || pack.Incomplete))) ? 'SPOILER_' : ''}${artificialId}.png`,
-            spoiler: (!spoilerOverride && (!spoilerToggle && (card.Incomplete || pack.Incomplete)))
-        });
-    }
-
-    let messageOptions = {
-        components: components,
-        embeds: embeds,
-        files: files
-    };
-
-    if (message) promise = message.edit(messageOptions);
-    else promise = SendMessageWithOptions(context, messageOptions, !spoilerOverride && spoilerToggle);
+        let components = [];
+        let embeds = [];
+        let files = [];
         
-    promise.then((message) => {
-        const collector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: INTERACT_TIMEOUT * SECOND_MILLIS });
+        for (let row of [navigationRow, toggleRow]) {
+            if (!spoilerToggle && row.components.length > 0) components.push(row);
+        }
 
-        collector.on('collect', i => {
-            let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
+        if (!artToggle) {
+            if (!rulesToggle) embeds.push(BuildEmbed(card, artificialId, spoilerOverride || spoilerToggle));
+            else embeds.push(BuildRulesEmbed(card, artificialId, spoilerOverride || spoilerToggle));
+        }
+        else {
+            let printing = GetPrintingByArtificialId(card, artificialId);
+            let pack = PackDao.PACKS.find(x => x.Id === printing.PackId);
 
-            if (i.customId === 'toggleSpoiler') {
-                Imbibe(i, card, currentArtStyle, currentFace, currentElement, collection, rulesToggle, artToggle, null, true);
-            }
-            else if (i.user.id === userId) {
-                if (i.customId != 'clearComponents') collector.stop('navigation');
+            files.push({
+                attachment: BuildCardImagePath(card, artificialId),
+                name: `${(!spoilerOverride && (!spoilerToggle && (card.Incomplete || pack.Incomplete))) ? 'SPOILER_' : ''}${artificialId}.jpg`,
+                spoiler: (!spoilerOverride && (!spoilerToggle && (card.Incomplete || pack.Incomplete)))
+            });
+        }
 
-                i.deferUpdate()
-                .then(async () => {
-                    let nextArtStyle = currentArtStyle;
-                    let nextCard = card;
-                    let nextFace = currentFace;
-                    let nextElement = currentElement;
-                    let nextCollection = collection;
-                    let nextRulesToggle = rulesToggle;
-                    let nextArtToggle = artToggle;
-                    let nextMessage = spoilerToggle ? null : message;
-                    let nextSpoilerToggle = spoilerToggle;
+        let messageOptions = {
+            components: components,
+            embeds: embeds,
+            files: files
+        };
 
-                    switch (i.customId) {
-                        case 'cycleArt':
-                            nextArtStyle = currentArtStyle + 1 >= artStyles.length ? 0 : currentArtStyle + 1;
+        if (message) promise = message.edit(messageOptions);
+        else promise = SendMessageWithOptions(context, messageOptions, !spoilerOverride && spoilerToggle);
+            
+        promise.then((message) => {
+            const collector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: INTERACT_TIMEOUT * SECOND_MILLIS });
 
-                            break;
-                        case 'cycleFace':
-                            nextArtStyle = 0;
-                            nextFace = currentFace + 1 >= nextCollection.faces.length ? 0 : currentFace + 1;
-                            nextCard = nextCollection.cards.find(x => x.Id === nextCollection.faces[nextFace]);
-                            nextRulesToggle = false;
-                            
-                            if (nextCollection.elements) nextElement = nextCollection.elements.findIndex(x => x.cardId === nextCard.Id);
+            collector.on('collect', i => {
+                let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
 
-                            break;
-                        case 'previousElement':
-                            nextArtStyle = 0;
-                            nextElement = currentElement - 1 >= 0 ? currentElement - 1 : nextCollection.elements.length - 1;
-                            nextCard = nextCollection.cards.find(x => x.Id === nextCollection.elements[nextElement].cardId);
-                            nextRulesToggle = false;
-                            
-                            if (nextCollection.elements[nextElement].faces) {
-                                nextCollection.faces = nextCollection.elements[nextElement].faces;
-                                nextFace = nextCollection.faces.findIndex(x => x === nextCard.Id);
-                            }
-                            else {
-                                nextCollection.faces = [];
-                                nextFace = -1;
-                            }
-                            
-                            break;
-                        case 'nextElement':
-                            nextArtStyle = 0;
-                            nextElement = currentElement + 1 >= nextCollection.elements.length ? 0 : currentElement + 1;
-                            nextCard = nextCollection.cards.find(x => x.Id === nextCollection.elements[nextElement].cardId);
-                            nextRulesToggle = false;
-                            
-                            if (nextCollection.elements[nextElement].faces) {
-                                nextCollection.faces = nextCollection.elements[nextElement].faces;
-                                nextFace = nextCollection.faces.findIndex(x => x === nextCard.Id);
-                            }
-                            else {
-                                nextCollection.faces = [];
-                                nextFace = -1;
-                            }
-                            
-                            break;
-                        case 'toggleRules':
-                            nextRulesToggle = !rulesToggle;
-                            nextArtToggle = false;
+                if (i.customId === 'toggleSpoiler') {
+                    Imbibe(i, card, currentArtStyle, currentFace, currentElement, collection, rulesToggle, artToggle, null, true);
+                }
+                else if (i.user.id === userId) {
+                    if (i.customId != 'clearComponents') collector.stop('navigation');
 
-                            break;
-                        case 'toggleArt':
-                            nextRulesToggle = false;
-                            nextArtToggle = !nextArtToggle;
+                    i.deferUpdate()
+                    .then(async () => {
+                        let nextArtStyle = currentArtStyle;
+                        let nextCard = card;
+                        let nextFace = currentFace;
+                        let nextElement = currentElement;
+                        let nextCollection = collection;
+                        let nextRulesToggle = rulesToggle;
+                        let nextArtToggle = artToggle;
+                        let nextMessage = spoilerToggle ? null : message;
+                        let nextSpoilerToggle = spoilerToggle;
 
-                            break;
-                        case 'clearComponents':
-                            collector.stop('cancellation');
-                            return;
-                        default:
-                            break;
-                    }
+                        switch (i.customId) {
+                            case 'cycleArt':
+                                nextArtStyle = currentArtStyle + 1 >= artStyles.length ? 0 : currentArtStyle + 1;
 
-                    Imbibe(context, nextCard, nextArtStyle, nextFace, nextElement, nextCollection, nextRulesToggle, nextArtToggle, nextMessage, nextSpoilerToggle);
-                });
-            }
-            else i.reply({embeds: [CreateEmbed(INTERACT_APOLOGY)], ephemeral: true});
+                                break;
+                            case 'cycleFace':
+                                nextArtStyle = 0;
+                                nextFace = currentFace + 1 >= nextCollection.faces.length ? 0 : currentFace + 1;
+                                nextCard = nextCollection.cards.find(x => x.Id === nextCollection.faces[nextFace]);
+                                nextRulesToggle = false;
+                                
+                                if (nextCollection.elements) nextElement = nextCollection.elements.findIndex(x => x.cardId === nextCard.Id);
+
+                                break;
+                            case 'previousElement':
+                                nextArtStyle = 0;
+                                nextElement = currentElement - 1 >= 0 ? currentElement - 1 : nextCollection.elements.length - 1;
+                                nextCard = nextCollection.cards.find(x => x.Id === nextCollection.elements[nextElement].cardId);
+                                nextRulesToggle = false;
+                                
+                                if (nextCollection.elements[nextElement].faces) {
+                                    nextCollection.faces = nextCollection.elements[nextElement].faces;
+                                    nextFace = nextCollection.faces.findIndex(x => x === nextCard.Id);
+                                }
+                                else {
+                                    nextCollection.faces = [];
+                                    nextFace = -1;
+                                }
+                                
+                                break;
+                            case 'nextElement':
+                                nextArtStyle = 0;
+                                nextElement = currentElement + 1 >= nextCollection.elements.length ? 0 : currentElement + 1;
+                                nextCard = nextCollection.cards.find(x => x.Id === nextCollection.elements[nextElement].cardId);
+                                nextRulesToggle = false;
+                                
+                                if (nextCollection.elements[nextElement].faces) {
+                                    nextCollection.faces = nextCollection.elements[nextElement].faces;
+                                    nextFace = nextCollection.faces.findIndex(x => x === nextCard.Id);
+                                }
+                                else {
+                                    nextCollection.faces = [];
+                                    nextFace = -1;
+                                }
+                                
+                                break;
+                            case 'toggleRules':
+                                nextRulesToggle = !rulesToggle;
+                                nextArtToggle = false;
+
+                                break;
+                            case 'toggleArt':
+                                nextRulesToggle = false;
+                                nextArtToggle = !nextArtToggle;
+
+                                break;
+                            case 'clearComponents':
+                                collector.stop('cancellation');
+                                return;
+                            default:
+                                break;
+                        }
+
+                        Imbibe(context, nextCard, nextArtStyle, nextFace, nextElement, nextCollection, nextRulesToggle, nextArtToggle, nextMessage, nextSpoilerToggle);
+                    });
+                }
+                else i.reply({embeds: [CreateEmbed(INTERACT_APOLOGY)], ephemeral: true});
+            });
+
+            collector.on('end', (i, reason) => {
+                if (!spoilerToggle) {
+                    let content = null;
+                    let removeFiles = true;
+
+                    if (reason === 'navigation') content = LOAD_APOLOGY;
+                    else removeFiles = !artToggle;
+                    
+                    RemoveComponents(message, content, removeFiles);
+                }
+            });
         });
-
-        collector.on('end', (i, reason) => {
-            if (!spoilerToggle) {
-                let content = null;
-                let removeFiles = true;
-
-                if (reason === 'navigation') content = LOAD_APOLOGY;
-                else removeFiles = !artToggle;
-                
-                RemoveComponents(message, content, removeFiles);
-            }
-        });
-    });
+    }
+    catch (e) {
+        ReportError(context, e);
+    }
 }

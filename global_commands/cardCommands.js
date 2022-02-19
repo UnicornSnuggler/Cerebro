@@ -1,135 +1,232 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { MessageActionRow, MessageSelectMenu, MessageButton } = require('discord.js');
+const { MessageActionRow, MessageSelectMenu, MessageButton, MessageEmbed, MessageAttachment } = require('discord.js');
 const { CardDao } = require('../dao/cardDao');
+const { PackDao } = require('../dao/packDao');
 const { SetDao } = require('../dao/setDao');
-const { FindUniqueArts, GetPrintingByArtificialId, Imbibe, BuildCollectionFromBatch, ResourceConverter } = require('../utilities/cardHelper');
+const { FindUniqueArts, GetPrintingByArtificialId, Imbibe, BuildCollectionFromBatch, ResourceConverter, BuildCardImagePath } = require('../utilities/cardHelper');
 const { LogCardResult, LogCommand } = require('../utilities/logHelper');
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed, Authorized } = require('../utilities/messageHelper');
-const { SYMBOLS, LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT, SECOND_MILLIS } = require('../constants');
+const { SYMBOLS, LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT, SECOND_MILLIS, COLORS, IMAGE_WIDTH, IMAGE_HEIGHT, IMAGES_PER_ROW, MAX_IMAGES, MAX_IMAGES_APOLOGY, MAX_ATTACHMENTS } = require('../constants');
 const { ConfigurationDao } = require('../dao/configurationDao');
+const Canvas = require('canvas');
+const { ReportError } = require('../utilities/errorHelper');
 
 const SelectBox = async function(context, cards) {
-    let selector = new MessageSelectMenu()
-        .setCustomId('selector')
-        .setPlaceholder('No card selected...');
+    try {
+        let selector = new MessageSelectMenu()
+            .setCustomId('selector')
+            .setPlaceholder('No card selected...');
 
-    let prompt = `${cards.length} results were found for the given query!`;
-    let items = cards;
+        let prompt = `${cards.length} results were found for the given query!`;
+        let items = cards;
 
-    if (cards.length > 25) {
-        items = cards.slice(0, 25);
-        prompt += ' Only the top 25 results could be shown.';
-    }
-
-    prompt += '\n\nPlease select from the following...';
-    
-    for (let card of items) {
-        let description = card.Type;
-        let setId = GetPrintingByArtificialId(card, card.Id).SetId ?? null;
-        
-        if (setId) {
-            let set = SetDao.SETS.find(x => x.Id === setId);
-
-            if (card.Classification === 'Hero' && !['Alter-Ego', 'Hero'].includes(card.Type)) description = `${set.Name} ${description}`;
-            else if (card.Classification === 'Encounter') description = `${description} (${set.Name})`;
+        if (cards.length > 25) {
+            items = cards.slice(0, 25);
+            prompt += ' Only the top 25 results could be shown.';
         }
-        else description = `${card.Classification} ${description}`;
+
+        prompt += '\n\nPlease select from the following...';
         
-        let emoji = null;
+        for (let card of items) {
+            let description = card.Type;
+            let setId = GetPrintingByArtificialId(card, card.Id).SetId ?? null;
+            
+            if (setId) {
+                let set = SetDao.SETS.find(x => x.Id === setId);
 
-        if (card.Resource) emoji = SYMBOLS[card.Resource];
+                if (card.Classification === 'Hero' && !['Alter-Ego', 'Hero'].includes(card.Type)) description = `${set.Name} ${description}`;
+                else if (card.Classification === 'Encounter') description = `${description} (${set.Name})`;
+            }
+            else description = `${card.Classification} ${description}`;
+            
+            let emoji = null;
 
-        selector.addOptions([{
-            label: `${card.Name}${card.Subname ? ` (${card.Subname})` : ''}`,
-            description: description,
-            emoji: emoji,
-            value: card.Id
-        }]);
-    }
+            if (card.Resource) emoji = SYMBOLS[card.Resource];
 
-    let selectMenuRow = new MessageActionRow().addComponents(selector);
-    let buttonRow = new MessageActionRow()
-        .addComponents(new MessageButton()
-            .setCustomId('browse')
-            .setLabel('Browse Results')
-            .setStyle('PRIMARY'))
-        .addComponents(new MessageButton()
-            .setCustomId('cancel')
-            .setLabel('Cancel Selection')
-            .setStyle('DANGER'));
+            selector.addOptions([{
+                label: `${card.Name}${card.Subname ? ` (${card.Subname})` : ''}`,
+                description: description,
+                emoji: emoji,
+                value: card.Id
+            }]);
+        }
 
-    let promise = SendContentAsEmbed(context, prompt, [selectMenuRow, buttonRow]);
-    
-    promise.then((message) => {
-        let collector = message.createMessageComponentCollector({ time: SELECT_TIMEOUT * SECOND_MILLIS });
+        let selectMenuRow = new MessageActionRow().addComponents(selector);
+        let buttonRow = new MessageActionRow()
+            .addComponents(new MessageButton()
+                .setCustomId('browse')
+                .setLabel('Browse Results')
+                .setStyle('PRIMARY'))
+            .addComponents(new MessageButton()
+                .setCustomId('showAll')
+                .setLabel('Show All')
+                .setStyle('PRIMARY'))
+            .addComponents(new MessageButton()
+                .setCustomId('cancel')
+                .setLabel('Cancel Selection')
+                .setStyle('DANGER'));
 
-        collector.on('collect', async i => {
-            let userId = context.user ? context.user.id : context.author.id;
+        let promise = SendContentAsEmbed(context, prompt, [selectMenuRow, buttonRow]);
+        
+        promise.then((message) => {
+            let collector = message.createMessageComponentCollector({ time: SELECT_TIMEOUT * SECOND_MILLIS });
 
-            if (i.user.id === userId) {
-                if (i.componentType === 'BUTTON') {
-                    if (i.customId === 'browse') {
+            collector.on('collect', async i => {
+                let userId = context.user ? context.user.id : context.author.id;
+
+                if (i.user.id === userId) {
+                    if (i.componentType === 'BUTTON') {
+                        if (i.customId === 'browse') {
+                            collector.stop('selection');
+            
+                            i.deferUpdate()
+                            .then(() => {
+                                QueueBatchResult(context, cards, message);
+                            });
+                        }
+                        if (i.customId === 'showAll') {
+                            collector.stop('selection');
+            
+                            i.deferUpdate()
+                            .then(() => {
+                                QueueCompiledResult(context, cards, message);
+                            });
+                        }
+                        else {
+                            collector.stop('cancel');
+                        }
+                    }
+                    else {
+                        let card = items.find(x => x.Id === i.values[0]);
+        
                         collector.stop('selection');
         
                         i.deferUpdate()
                         .then(() => {
-                            QueueBatchResult(context, cards, message);
+                            QueueCardResult(context, card, message);
                         });
-                    }
-                    else {
-                        collector.stop('cancel');
                     }
                 }
                 else {
-                    let card = items.find(x => x.Id === i.values[0]);
-    
-                    collector.stop('selection');
-    
-                    i.deferUpdate()
-                    .then(() => {
-                        QueueCardResult(context, card, message);
-                    });
+                    i.reply({embeds: [CreateEmbed(INTERACT_APOLOGY)], ephemeral: true})
                 }
-            }
-            else {
-                i.reply({embeds: [CreateEmbed(INTERACT_APOLOGY)], ephemeral: true})
-            }
-        });
+            });
 
-        collector.on('end', (i, reason) => {
-            let content;
+            collector.on('end', (i, reason) => {
+                let content;
 
-            if (reason === 'selection') content = LOAD_APOLOGY;
-            else if (reason === 'cancel') content = 'Selection was canceled...';
-            else content = 'The timeout was reached...';
-            
-            RemoveComponents(message, content);
+                if (reason === 'selection') content = LOAD_APOLOGY;
+                else if (reason === 'cancel') content = 'Selection was canceled...';
+                else content = 'The timeout was reached...';
+                
+                RemoveComponents(message, content);
+            });
         });
-    });
+    }
+    catch (e) {
+        ReportError(context, e);
+    }
 }
 
 const QueueCardResult = async function(context, card, message = null) {
-    new Promise(() => LogCardResult(context, card));
-
-    let collection = await CardDao.FindFacesAndElements(card);
-
-    let expandedCard = collection.cards.find(x => x.Id === card.Id);
-    let currentArtStyle = FindUniqueArts(card).indexOf(card.Id);
-    let currentFace = collection.faces.length > 0 ? collection.faces.findIndex(x => x === expandedCard.Id) : -1;
-    let currentStage = collection.elements.length > 0 ? collection.elements.findIndex(x => x.cardId === expandedCard.Id) : -1;
-
-    Imbibe(context, expandedCard, currentArtStyle, currentFace, currentStage, collection, false, false, message);
+    try {
+        new Promise(() => LogCardResult(context, card));
+        
+        let collection = await CardDao.FindFacesAndElements(card);
+        
+        let expandedCard = collection.cards.find(x => x.Id === card.Id);
+        let currentArtStyle = FindUniqueArts(card).indexOf(card.Id);
+        let currentFace = collection.faces.length > 0 ? collection.faces.findIndex(x => x === expandedCard.Id) : -1;
+        let currentStage = collection.elements.length > 0 ? collection.elements.findIndex(x => x.cardId === expandedCard.Id) : -1;
+        
+        Imbibe(context, expandedCard, currentArtStyle, currentFace, currentStage, collection, false, false, message);
+    }
+    catch (e) {
+        ReportError(context, e);
+    }
 }
 
-const QueueBatchResult = async function(context, batch, message = null) {
-    let collection = BuildCollectionFromBatch(batch);
+const QueueBatchResult = function(context, batch, message = null) {
+    try {
+        let collection = BuildCollectionFromBatch(batch);
 
-    let card = collection.cards[0];
-    let currentArtStyle = 0;
-    let currentFace = collection.faces.length > 0 ? 0 : -1;
-    let currentElement = 0;
+        let card = collection.cards[0];
+        let currentArtStyle = 0;
+        let currentFace = collection.faces.length > 0 ? 0 : -1;
+        let currentElement = 0;
 
-    Imbibe(context, card, currentArtStyle, currentFace, currentElement, collection, false, false, message);
+        Imbibe(context, card, currentArtStyle, currentFace, currentElement, collection, false, false, message);
+    }
+    catch (e) {
+        ReportError(context, e);
+    }
+}
+
+const QueueCompiledResult = function(context, cards, message = null) {
+    try {
+        let overload = false;
+        
+        if (cards.length > MAX_ATTACHMENTS * IMAGES_PER_ROW) {
+            overload = true;
+            
+            cards = cards.slice(0, MAX_ATTACHMENTS * IMAGES_PER_ROW);
+        }
+        
+        let rows = [];
+        let attachments = [];
+        let superPromises = [];
+        
+        for (let i = 0; i < cards.length; i += IMAGES_PER_ROW) {
+            rows.push(cards.slice(i, i + IMAGES_PER_ROW < cards.length ? i + IMAGES_PER_ROW : cards.length));
+        }
+        
+        for (let row of rows) {
+            let promises = [];
+            
+            let width = IMAGE_WIDTH * row.length;
+            let height = IMAGE_HEIGHT;
+            
+            let canvas = Canvas.createCanvas(width, height);
+            let canvasContext = canvas.getContext('2d');
+            
+            for (let x = 0; x < row.length; x++) {
+                let promise = Canvas.loadImage(BuildCardImagePath(row[x], row[x].Id));
+                
+                promise.then(function(image) {
+                    let positionX = IMAGE_WIDTH * x;
+                    let positionY = 0;
+                    
+                    canvasContext.drawImage(image, positionX, positionY, IMAGE_WIDTH, IMAGE_HEIGHT);
+                });
+                
+                promises.push(promise);
+            }
+            
+            let superPromise = Promise.all(promises);
+            
+            superPromise.then(function() {
+                attachments.push(new MessageAttachment(canvas.toBuffer(), `Row ${rows.indexOf(row)}.png`));
+            });
+            
+            superPromises.push(superPromise);
+        }
+        
+        Promise.all(superPromises).then(function() {
+            attachments = attachments.sort((a, b) => a.name > b.name ? 1 : -1);
+            
+            let messageOptions = {
+                content: overload ? MAX_IMAGES_APOLOGY : null,
+                embeds: [],
+                files: attachments,
+                fetchReply: true
+            };
+            
+            message.edit(messageOptions);
+        });
+    }
+    catch(e) {
+        ReportError(context, e);
+    }
 }
 
 module.exports = {
@@ -289,13 +386,7 @@ module.exports = {
             else if (results.length > 1) SelectBox(context, results);
         }
         catch (e) {
-            console.log(e);
-
-            let replyEmbed = CreateEmbed('Something went wrong... Check the logs to find out more.');
-
-            await context.channel.send({
-                embeds: [replyEmbed]
-            });
+            ReportError(context, e);
         }
     }
 }

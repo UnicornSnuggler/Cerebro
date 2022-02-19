@@ -11,6 +11,12 @@ exports.COLORS = {
     Villain: 'BA00D6'
 };
 
+exports.IMAGE_WIDTH = 357.5;
+exports.IMAGE_HEIGHT = 517.5;
+exports.IMAGES_PER_ROW = 6;
+exports.MAX_ATTACHMENTS = 5;
+exports.MAX_IMAGES = this.MAX_ATTACHMENTS * this.IMAGES_PER_ROW;
+
 exports.WIZARD = '132708937584607233';
 exports.ACOLYTE = '906244686476345344';
 exports.MASOCHIST = '583884764084305920';
@@ -36,6 +42,7 @@ exports.DM_APOLOGY = 'Sorry, but you can\'t view server statistics in a direct m
 exports.INTERACT_APOLOGY = 'Sorry, but you can\'t interact with another user\'s messages...';
 exports.LOAD_APOLOGY = 'Please wait while result details are being retrieved. Art rendering will likely result in longer load times.';
 exports.TIMEOUT_APOLOGY = 'The interaction timeout was reached...';
+exports.MAX_IMAGES_APOLOGY = `*(No more than ${this.MAX_IMAGES} images can be displayed at a time... Your response has been trimmed accordingly.)*`;
 
 exports.RELEASED_EMOJI = '<:affirmative:939594005317025832>';
 exports.REVIEWING_EMOJI = ':mag:';

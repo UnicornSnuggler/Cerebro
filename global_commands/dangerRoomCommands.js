@@ -5,6 +5,7 @@ const { PackDao } = require('../dao/packDao');
 const { SetDao } = require('../dao/setDao');
 const { ChooseRandomElements, CreateStringFromArray } = require('../utilities/arrayHelper');
 const { RandomizeGlitches } = require('../utilities/dangerRoomHelper');
+const { ReportError } = require('../utilities/errorHelper');
 const { LogCommand } = require('../utilities/logHelper');
 const { CreateEmbed, Authorized } = require('../utilities/messageHelper');
 const { SuperscriptNumber } = require('../utilities/stringHelper');
@@ -194,31 +195,31 @@ module.exports = {
                 .setDescription('Simulate the ultimate training exercise.')),
     async execute(context) {
         if (!Authorized(context)) return;
-
-        let unofficial = false;
-
-        if (context.guildId) {
-            let restrictions = ConfigurationDao.CONFIGURATION.DangerRoomRestrictions[context.guildId];
-
-            if (restrictions && !restrictions.includes(context.channelId)) {
-                let replyEmbed = CreateEmbed(`Danger Room requests are restricted to the following channel${restrictions.length > 1 ? 's' : ''}:${restrictions.map(x => `\n<#${x}>`).join('')}`);
-                
-                await context.reply({
-                    embeds:[replyEmbed],
-                    ephemeral: true
-                });
-
-                return;
-            }
-
-            let whitelist = ConfigurationDao.CONFIGURATION.DangerRoomUnofficialWhitelist[context.guildId];
-
-            if (whitelist && whitelist.includes(context.channelId)) {
-                unofficial = true;
-            }
-        }
         
         try {
+            let unofficial = false;
+
+            if (context.guildId) {
+                let restrictions = ConfigurationDao.CONFIGURATION.DangerRoomRestrictions[context.guildId];
+
+                if (restrictions && !restrictions.includes(context.channelId)) {
+                    let replyEmbed = CreateEmbed(`Danger Room requests are restricted to the following channel${restrictions.length > 1 ? 's' : ''}:${restrictions.map(x => `\n<#${x}>`).join('')}`);
+                    
+                    await context.reply({
+                        embeds:[replyEmbed],
+                        ephemeral: true
+                    });
+
+                    return;
+                }
+
+                let whitelist = ConfigurationDao.CONFIGURATION.DangerRoomUnofficialWhitelist[context.guildId];
+
+                if (whitelist && whitelist.includes(context.channelId)) {
+                    unofficial = true;
+                }
+            }
+
             let subCommand = context.options.getSubcommand();
             let heroesOption = context.options.getInteger('heroes');
             let command = `/danger-room`;
@@ -365,13 +366,7 @@ module.exports = {
             }
         }
         catch (e) {
-            console.log(e);
-
-            let replyEmbed = CreateEmbed('Something went wrong... Check the logs to find out more.');
-
-            await context.channel.send({
-                embeds: [replyEmbed]
-            });
+            ReportError(context, e);
         }
     }
 }

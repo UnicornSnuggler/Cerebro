@@ -5,83 +5,89 @@ const { LogCommand, LogRuleResult } = require('../utilities/logHelper');
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed, SendMessageWithOptions, Authorized } = require('../utilities/messageHelper');
 const { BuildEmbed } = require('../utilities/ruleHelper');
 const { SYMBOLS, INTERACT_APOLOGY, LOAD_APOLOGY, SELECT_TIMEOUT, TIMEOUT_APOLOGY, SECOND_MILLIS } = require('../constants');
+const { ReportError } = require('../utilities/errorHelper');
 
-const SelectBox = async function(context, rules) {
-    let selector = new MessageSelectMenu()
-        .setCustomId('selector')
-        .setPlaceholder('No rule selected...');
+    const SelectBox = async function(context, rules) {
+        try {
+        let selector = new MessageSelectMenu()
+            .setCustomId('selector')
+            .setPlaceholder('No rule selected...');
 
-    let prompt = `${rules.length} results were found for the given query!`;
+        let prompt = `${rules.length} results were found for the given query!`;
 
-    if (rules.length > 25) {
-        rules = rules.slice(0, 25);
-        prompt += ' Only the top 25 results could be shown below.';
-    }
-
-    prompt += '\n\nPlease select from the following...';
-    
-    for (let rule of rules) {
-        let emoji = null;
-        let emojiMatch = rule.Title.match(/ \((\{[a-z]\})\)/i);
-
-        let title = rule.Title;
-        let description = rule.Reference ?? null;
-
-        if (emojiMatch) {
-            emoji = SYMBOLS[emojiMatch[1]];
-
-            title = title.replace(emojiMatch[0], '');
-            if (description) description = description.replace(emojiMatch[0], '');
+        if (rules.length > 25) {
+            rules = rules.slice(0, 25);
+            prompt += ' Only the top 25 results could be shown below.';
         }
+
+        prompt += '\n\nPlease select from the following...';
         
-        selector.addOptions([{
-            description: description ? `${description.substring(0, 50)}...` : '',
-            emoji: emoji,
-            label: title,
-            value: rule.Id
-        }]);
-    }
+        for (let rule of rules) {
+            let emoji = null;
+            let emojiMatch = rule.Title.match(/ \((\{[a-z]\})\)/i);
 
-    let components = new MessageActionRow().addComponents(selector);
+            let title = rule.Title;
+            let description = rule.Reference ?? null;
 
-    promise = SendContentAsEmbed(context, prompt, [components]);
-    
-    promise.then((message) => {
-        const collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: SELECT_TIMEOUT * SECOND_MILLIS });
+            if (emojiMatch) {
+                emoji = SYMBOLS[emojiMatch[1]];
 
-        collector.on('collect', async i => {
-            let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
-
-            if (i.user.id === userId) {
-                let rule = rules.find(x => x.Id === i.values[0]);
-
-                new Promise(() => LogRuleResult(i, rule));
-    
-                collector.stop('selection');
-    
-                i.deferUpdate()
-                    .then(() => {
-                        let embed = BuildEmbed(rule);
-        
-                        let messageOptions = {
-                            components: [],
-                            embeds: [embed]
-                        };
-        
-                        message.edit(messageOptions);
-                    });
+                title = title.replace(emojiMatch[0], '');
+                if (description) description = description.replace(emojiMatch[0], '');
             }
-            else i.reply({embeds: [CreateEmbed(INTERACT_APOLOGY)], ephemeral: true})
-        });
-
-        collector.on('end', (i, reason) => {
-            let content = TIMEOUT_APOLOGY;
-
-            if (reason === 'selection') content = LOAD_APOLOGY;
             
-            RemoveComponents(message, content);
+            selector.addOptions([{
+                description: description ? `${description.substring(0, 50)}...` : '',
+                emoji: emoji,
+                label: title,
+                value: rule.Id
+            }]);
+        }
+
+        let components = new MessageActionRow().addComponents(selector);
+
+        promise = SendContentAsEmbed(context, prompt, [components]);
+        
+        promise.then((message) => {
+            const collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: SELECT_TIMEOUT * SECOND_MILLIS });
+
+            collector.on('collect', async i => {
+                let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
+
+                if (i.user.id === userId) {
+                    let rule = rules.find(x => x.Id === i.values[0]);
+
+                    new Promise(() => LogRuleResult(i, rule));
+        
+                    collector.stop('selection');
+        
+                    i.deferUpdate()
+                        .then(() => {
+                            let embed = BuildEmbed(rule);
+            
+                            let messageOptions = {
+                                components: [],
+                                embeds: [embed]
+                            };
+            
+                            message.edit(messageOptions);
+                        });
+                }
+                else i.reply({embeds: [CreateEmbed(INTERACT_APOLOGY)], ephemeral: true})
+            });
+
+            collector.on('end', (i, reason) => {
+                let content = TIMEOUT_APOLOGY;
+
+                if (reason === 'selection') content = LOAD_APOLOGY;
+                
+                RemoveComponents(message, content);
+            });
         });
-    });
+    }
+    catch (e) {
+        ReportError(context, e);
+    }
 }
 
 module.exports = {
@@ -124,13 +130,7 @@ module.exports = {
             else if (results.length > 1) SelectBox(context, results);
         }
         catch (e) {
-            console.log(e);
-
-            let replyEmbed = CreateEmbed('Something went wrong... Check the logs to find out more.');
-
-            await context.channel.send({
-                embeds: [replyEmbed]
-            });
+            ReportError(context, e);
         }
     }
 }
