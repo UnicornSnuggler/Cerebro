@@ -1,6 +1,5 @@
 const { RuleEntity } = require('../models/ruleEntity');
 const { CreateDocumentStore, DeriveDatabase } = require('../utilities/documentStoreHelper');
-const { OFFICIAL, UNOFFICIAL } = require('../constants');
 
 class RuleDao {
     constructor() { }

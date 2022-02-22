@@ -5,7 +5,7 @@ const { CommandLogEntity } = require('../models/commandLogEntity');
 const { RuleResultLogEntity } = require('../models/ruleResultLogEntity');
 const { LogDao } = require('../dao/logDao');
 const { BuildCardResultsEmbed, BuildSetResultsEmbed, BuildPackResultsEmbed, BuildUserResultsEmbed } = require('../utilities/logHelper');
-const { SendContentAsEmbed, SendMessageWithOptions, CreateEmbed, Authorized } = require('../utilities/messageHelper');
+const { SendMessageWithOptions, CreateEmbed, Authorized } = require('../utilities/messageHelper');
 const { DM_APOLOGY } = require('../constants');
 const { ReportError } = require('../utilities/errorHelper');
 

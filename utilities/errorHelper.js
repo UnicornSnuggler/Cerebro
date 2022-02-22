@@ -1,6 +1,5 @@
 const { WIZARD } = require("../constants");
 const { CreateEmbed } = require("./messageHelper");
-const { QuoteText } = require("./stringHelper");
 const { DirectMessageUser, GetUser } = require("./userHelper");
 
 exports.ReportError = async function(context, error) {

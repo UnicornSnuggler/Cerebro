@@ -1,5 +1,4 @@
 const { COLORS } = require("../constants");
-const { ReportError } = require("./errorHelper");
 const { CreateEmbed } = require("./messageHelper");
 
 exports.DirectMessageUser = async function(user, message) {            

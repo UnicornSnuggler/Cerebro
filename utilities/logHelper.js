@@ -10,7 +10,6 @@ const { RuleResultLogEntity } = require('../models/ruleResultLogEntity');
 const { GetPrintingByArtificialId, BuildCardImagePath } = require('./cardHelper');
 const { COLORS } = require('../constants');
 const { CapitalizedTitleElement } = require('./stringHelper');
-const { CreateEmbed } = require('./messageHelper');
 const { ReportError } = require('./errorHelper');
 
 const BuildBaseEntity = function(context, collection) {
