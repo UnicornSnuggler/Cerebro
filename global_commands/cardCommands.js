@@ -1,135 +1,136 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { MessageActionRow, MessageSelectMenu, MessageButton } = require('discord.js');
+const { MessageActionRow, MessageButton, Formatters } = require('discord.js');
 const { CardDao } = require('../dao/cardDao');
-const { SetDao } = require('../dao/setDao');
-const { FindUniqueArts, GetPrintingByArtificialId, Imbibe, BuildCollectionFromBatch, ResourceConverter } = require('../utilities/cardHelper');
+const { FindUniqueArts, Imbibe, BuildCollectionFromBatch, ResourceConverter, CreateSelectBox, QueueCompiledResult } = require('../utilities/cardHelper');
 const { LogCardResult, LogCommand } = require('../utilities/logHelper');
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed, Authorized } = require('../utilities/messageHelper');
-const { SYMBOLS, LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT, SECOND_MILLIS } = require('../constants');
+const { LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT, SECOND_MILLIS, DEFAULT_ART_TOGGLE } = require('../constants');
 const { ConfigurationDao } = require('../dao/configurationDao');
+const { ReportError } = require('../utilities/errorHelper');
 
 const SelectBox = async function(context, cards) {
-    let selector = new MessageSelectMenu()
-        .setCustomId('selector')
-        .setPlaceholder('No card selected...');
+    try {
+        let prompt = `${cards.length} results were found for the given query!`;
+        let items = cards;
 
-    let prompt = `${cards.length} results were found for the given query!`;
-    let items = cards;
-
-    if (cards.length > 25) {
-        items = cards.slice(0, 25);
-        prompt += ' Only the top 25 results could be shown.';
-    }
-
-    prompt += '\n\nPlease select from the following...';
-    
-    for (let card of items) {
-        let description = card.Type;
-        let setId = GetPrintingByArtificialId(card, card.Id).SetId ?? null;
-        
-        if (setId) {
-            let set = SetDao.SETS.find(x => x.Id === setId);
-
-            if (card.Classification === 'Hero' && !['Alter-Ego', 'Hero'].includes(card.Type)) description = `${set.Name} ${description}`;
-            else if (card.Classification === 'Encounter') description = `${description} (${set.Name})`;
+        if (cards.length > 25) {
+            items = cards.slice(0, 25);
+            prompt += ' Only the top 25 results could be shown.';
         }
-        else description = `${card.Classification} ${description}`;
+
+        prompt += '\n\nPlease select from the following...';
+
+        let selector = CreateSelectBox(items);
+
+        let selectMenuRow = new MessageActionRow().addComponents(selector);
+        let buttonRow = new MessageActionRow()
+            .addComponents(new MessageButton()
+                .setCustomId('browse')
+                .setLabel('Browse Results')
+                .setStyle('PRIMARY'))
+            .addComponents(new MessageButton()
+                .setCustomId('showAll')
+                .setLabel('Show All')
+                .setStyle('PRIMARY'))
+            .addComponents(new MessageButton()
+                .setCustomId('cancel')
+                .setLabel('Cancel Selection')
+                .setStyle('DANGER'));
+
+        let promise = SendContentAsEmbed(context, prompt, [selectMenuRow, buttonRow]);
         
-        let emoji = null;
+        promise.then((message) => {
+            let collector = message.createMessageComponentCollector({ time: SELECT_TIMEOUT * SECOND_MILLIS });
 
-        if (card.Resource) emoji = SYMBOLS[card.Resource];
+            collector.on('collect', async i => {
+                let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
 
-        selector.addOptions([{
-            label: `${card.Name}${card.Subname ? ` (${card.Subname})` : ''}`,
-            description: description,
-            emoji: emoji,
-            value: card.Id
-        }]);
-    }
-
-    let selectMenuRow = new MessageActionRow().addComponents(selector);
-    let buttonRow = new MessageActionRow()
-        .addComponents(new MessageButton()
-            .setCustomId('browse')
-            .setLabel('Browse Results')
-            .setStyle('PRIMARY'))
-        .addComponents(new MessageButton()
-            .setCustomId('cancel')
-            .setLabel('Cancel Selection')
-            .setStyle('DANGER'));
-
-    let promise = SendContentAsEmbed(context, prompt, [selectMenuRow, buttonRow]);
-    
-    promise.then((message) => {
-        let collector = message.createMessageComponentCollector({ time: SELECT_TIMEOUT * SECOND_MILLIS });
-
-        collector.on('collect', async i => {
-            let userId = context.user ? context.user.id : context.author.id;
-
-            if (i.user.id === userId) {
-                if (i.componentType === 'BUTTON') {
-                    if (i.customId === 'browse') {
+                if (i.user.id === userId) {
+                    if (i.componentType === 'BUTTON') {
+                        if (i.customId === 'browse') {
+                            collector.stop('selection');
+            
+                            i.deferUpdate()
+                            .then(() => {
+                                QueueBatchResult(context, cards, message);
+                            });
+                        }
+                        if (i.customId === 'showAll') {
+                            collector.stop('selection');
+            
+                            i.deferUpdate()
+                            .then(() => {
+                                QueueCompiledResult(context, cards, message);
+                            });
+                        }
+                        else {
+                            collector.stop('cancel');
+                        }
+                    }
+                    else {
+                        let card = items.find(x => x.Id === i.values[0]);
+        
                         collector.stop('selection');
         
                         i.deferUpdate()
                         .then(() => {
-                            QueueBatchResult(context, cards, message);
+                            QueueCardResult(context, card, message);
                         });
-                    }
-                    else {
-                        collector.stop('cancel');
                     }
                 }
                 else {
-                    let card = items.find(x => x.Id === i.values[0]);
-    
-                    collector.stop('selection');
-    
-                    i.deferUpdate()
-                    .then(() => {
-                        QueueCardResult(context, card, message);
-                    });
+                    i.reply({embeds: [CreateEmbed(INTERACT_APOLOGY)], ephemeral: true})
                 }
-            }
-            else {
-                i.reply({embeds: [CreateEmbed(INTERACT_APOLOGY)], ephemeral: true})
-            }
-        });
+            });
 
-        collector.on('end', (i, reason) => {
-            let content;
+            collector.on('end', (i, reason) => {
+                let content;
 
-            if (reason === 'selection') content = LOAD_APOLOGY;
-            else if (reason === 'cancel') content = 'Selection was canceled...';
-            else content = 'The timeout was reached...';
-            
-            RemoveComponents(message, content);
+                if (reason === 'selection') content = LOAD_APOLOGY;
+                else if (reason === 'cancel') content = 'Selection was canceled...';
+                else content = 'The timeout was reached...';
+                
+                RemoveComponents(message, content);
+            });
         });
-    });
+    }
+    catch (e) {
+        ReportError(context, e);
+    }
 }
 
 const QueueCardResult = async function(context, card, message = null) {
-    new Promise(() => LogCardResult(context, card));
-
-    let collection = await CardDao.FindFacesAndElements(card);
-
-    let expandedCard = collection.cards.find(x => x.Id === card.Id);
-    let currentArtStyle = FindUniqueArts(card).indexOf(card.Id);
-    let currentFace = collection.faces.length > 0 ? collection.faces.findIndex(x => x === expandedCard.Id) : -1;
-    let currentStage = collection.elements.length > 0 ? collection.elements.findIndex(x => x.cardId === expandedCard.Id) : -1;
-
-    Imbibe(context, expandedCard, currentArtStyle, currentFace, currentStage, collection, false, false, message);
+    try {
+        new Promise(() => LogCardResult(context, card));
+        
+        let collection = await CardDao.FindFacesAndElements(card);
+        
+        let expandedCard = collection.cards.find(x => x.Id === card.Id);
+        let currentArtStyle = FindUniqueArts(card).indexOf(card.Id);
+        let currentFace = collection.faces.length > 0 ? collection.faces.findIndex(x => x === expandedCard.Id) : -1;
+        let currentStage = collection.elements.length > 0 ? collection.elements.findIndex(x => x.cardId === expandedCard.Id) : -1;
+        
+        Imbibe(context, expandedCard, currentArtStyle, currentFace, currentStage, collection, false, DEFAULT_ART_TOGGLE, message);
+    }
+    catch (e) {
+        ReportError(context, e);
+    }
 }
 
-const QueueBatchResult = async function(context, batch, message = null) {
-    let collection = BuildCollectionFromBatch(batch);
+const QueueBatchResult = function(context, batch, message = null) {
+    try {
+        let collection = BuildCollectionFromBatch(batch);
 
-    let card = collection.cards[0];
-    let currentArtStyle = 0;
-    let currentFace = collection.faces.length > 0 ? 0 : -1;
-    let currentElement = 0;
+        let card = collection.cards[0];
+        let currentArtStyle = 0;
+        let currentFace = collection.faces.length > 0 ? 0 : -1;
+        let currentElement = 0;
 
-    Imbibe(context, card, currentArtStyle, currentFace, currentElement, collection, false, false, message);
+        Imbibe(context, card, currentArtStyle, currentFace, currentElement, collection, false, DEFAULT_ART_TOGGLE, message);
+    }
+    catch (e) {
+        ReportError(context, e);
+    }
 }
 
 module.exports = {
@@ -261,6 +262,11 @@ module.exports = {
             let results = [];
 
             if (name) {
+                if (!name.match(/([a-z0-9])/gi)) {
+                    SendContentAsEmbed(context, `${Formatters.inlineCode(name)} is not a valid query...`);
+                    return;
+                }
+
                 results = await CardDao.RetrieveByName(name, origin);
 
                 if (results) {
@@ -289,13 +295,7 @@ module.exports = {
             else if (results.length > 1) SelectBox(context, results);
         }
         catch (e) {
-            console.log(e);
-
-            let replyEmbed = CreateEmbed('Something went wrong... Check the logs to find out more.');
-
-            await context.channel.send({
-                embeds: [replyEmbed]
-            });
+            ReportError(context, e);
         }
     }
 }

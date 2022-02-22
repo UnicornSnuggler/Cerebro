@@ -7,80 +7,91 @@ const { SetDao } = require('../dao/setDao');
 const { Imbibe } = require('../utilities/cardHelper');
 const { LogCommand, LogCollectionResult } = require('../utilities/logHelper');
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed, Authorized } = require('../utilities/messageHelper');
-const { LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT, SECOND_MILLIS } = require('../constants');
+const { LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT, SECOND_MILLIS, DEFAULT_ART_TOGGLE } = require('../constants');
+const { ReportError } = require('../utilities/errorHelper');
 
 const SelectBox = async function(context, collectionEntities, type) {
-    let selector = new MessageSelectMenu()
-        .setCustomId('selector')
-        .setPlaceholder(`No ${type} selected...`);
+    try {
+        let selector = new MessageSelectMenu()
+            .setCustomId('selector')
+            .setPlaceholder(`No ${type} selected...`);
 
-    let prompt = `${collectionEntities.length} results were found for the given query!`;
+        let prompt = `${collectionEntities.length} results were found for the given query!`;
 
-    if (collectionEntities.length > 25) {
-        collectionEntities = collectionEntities.slice(0, 25);
-        prompt += ' Only the top 25 results could be shown.';
-    }
+        if (collectionEntities.length > 25) {
+            collectionEntities = collectionEntities.slice(0, 25);
+            prompt += ' Only the top 25 results could be shown.';
+        }
 
-    prompt += '\n\nPlease select from the following...';
-    
-    for (let collectionEntity of collectionEntities) {
-        let author = AuthorDao.AUTHORS.find(x => x.Id === collectionEntity.AuthorId);
-        let description = `${collectionEntity.Type}${!collectionEntity.Official ? ` by ${author.Name}` : ''}`;
+        prompt += '\n\nPlease select from the following...';
+        
+        for (let collectionEntity of collectionEntities) {
+            let author = AuthorDao.AUTHORS.find(x => x.Id === collectionEntity.AuthorId);
+            let description = `${collectionEntity.Type}${!collectionEntity.Official ? ` by ${author.Name}` : ''}`;
 
-        selector.addOptions([{
-            label: collectionEntity.Name,
-            description: description,
-            value: collectionEntity.Id
-        }]);
-    }
+            selector.addOptions([{
+                label: collectionEntity.Name,
+                description: description,
+                value: collectionEntity.Id
+            }]);
+        }
 
-    let components = new MessageActionRow().addComponents(selector);
+        let components = new MessageActionRow().addComponents(selector);
 
-    let promise = SendContentAsEmbed(context, prompt, [components]);
-    
-    promise.then((message) => {
-        let collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: SELECT_TIMEOUT * SECOND_MILLIS });
+        let promise = SendContentAsEmbed(context, prompt, [components]);
+        
+        promise.then((message) => {
+            let collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: SELECT_TIMEOUT * SECOND_MILLIS });
 
-        collector.on('collect', async i => {
-            let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
+            collector.on('collect', async i => {
+                let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
 
-            if (i.user.id === userId) {
-                let collectionEntity = collectionEntities.find(x => x.Id === i.values[0]);
+                if (i.user.id === userId) {
+                    let collectionEntity = collectionEntities.find(x => x.Id === i.values[0]);
 
-                collector.stop('selection');
+                    collector.stop('selection');
 
-                i.deferUpdate()
-                .then(() => {
-                    QueueCollectionResult(context, collectionEntity, type, message);
-                });
-            }
-            else {
-                i.reply({embeds: [CreateEmbed(INTERACT_APOLOGY)], ephemeral: true})
-            }
+                    i.deferUpdate()
+                    .then(() => {
+                        QueueCollectionResult(context, collectionEntity, type, message);
+                    });
+                }
+                else {
+                    i.reply({embeds: [CreateEmbed(INTERACT_APOLOGY)], ephemeral: true})
+                }
+            });
+
+            collector.on('end', (i, reason) => {
+                let content = 'The timeout was reached...';
+
+                if (reason === 'selection') content = LOAD_APOLOGY;
+                
+                RemoveComponents(message, content);
+            });
         });
-
-        collector.on('end', (i, reason) => {
-            let content = 'The timeout was reached...';
-
-            if (reason === 'selection') content = LOAD_APOLOGY;
-            
-            RemoveComponents(message, content);
-        });
-    });
+    }
+    catch (e) {
+        ReportError(context, e);
+    }
 }
 
 const QueueCollectionResult = async function(context, collectionEntity, type, message = null) {
-    new Promise(() => LogCollectionResult(context, collectionEntity, type));
+    try {
+        new Promise(() => LogCollectionResult(context, collectionEntity, type));
 
-    type = type.charAt(0).toUpperCase() + type.slice(1);
-    let collection = await CardDao.RetrieveByCollection(collectionEntity, type);
+        type = type.charAt(0).toUpperCase() + type.slice(1);
+        let collection = await CardDao.RetrieveByCollection(collectionEntity, type);
 
-    let card = collection.cards[0];
-    let currentArtStyle = 0;
-    let currentFace = collection.faces.length > 0 ? 0 : -1;
-    let currentElement = 0;
+        let card = collection.cards[0];
+        let currentArtStyle = 0;
+        let currentFace = collection.faces.length > 0 ? 0 : -1;
+        let currentElement = 0;
 
-    Imbibe(context, card, currentArtStyle, currentFace, currentElement, collection, false, false, message);
+        Imbibe(context, card, currentArtStyle, currentFace, currentElement, collection, false, DEFAULT_ART_TOGGLE, message);
+    }
+    catch (e) {
+        ReportError(context, e);
+    }
 }
 
 module.exports = {
@@ -118,11 +129,11 @@ module.exports = {
     async execute(context) {
         if (!Authorized(context)) return;
         
-        let subCommand = context.options.getSubcommand();
-        let subCommandGroup = context.options.getSubcommandGroup();
-        let command = `/browse ${subCommandGroup} ${subCommand}`;
-
         try {
+            let subCommand = context.options.getSubcommand();
+            let subCommandGroup = context.options.getSubcommandGroup();
+            let command = `/browse ${subCommandGroup} ${subCommand}`;
+
             let query = context.options.getString('name');
 
             new Promise(() => LogCommand(context, command, query));
@@ -157,13 +168,7 @@ module.exports = {
             else if (results.length === 1) QueueCollectionResult(context, results[0], subCommand);
         }
         catch (e) {
-            console.log(e);
-
-            let replyEmbed = CreateEmbed('Something went wrong... Check the logs to find out more.');
-
-            await context.channel.send({
-                embeds: [replyEmbed]
-            });
+            ReportError(context, e);
         }
     }
 }

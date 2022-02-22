@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { ConfigurationDao } = require('../dao/configurationDao');
 const { cardOfTheDayLoop, cardOfTheDay } = require('../utilities/cardOfTheDayHelper');
+const { ReportError } = require('../utilities/errorHelper');
 const { SendContentAsEmbed, Authorized } = require('../utilities/messageHelper');
 
 module.exports = {
@@ -15,9 +16,9 @@ module.exports = {
     async execute(context) {
         if (!Authorized(context, true)) return;
 
-        let guildId = context.options.getString('guild');
-        
         try {
+            let guildId = context.options.getString('guild');
+        
             if (!guildId) {
                 cardOfTheDayLoop(context.client);
 
@@ -38,8 +39,7 @@ module.exports = {
             }
         }
         catch (e) {
-            console.log(e);
-            SendContentAsEmbed(context, 'Something went wrong... Check the logs to find out more.');
+            ReportError(context, e);
         }
     }
 }

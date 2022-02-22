@@ -1,14 +1,11 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { MessageActionRow, MessageSelectMenu } = require('discord.js');
-const { RuleDao } = require('../dao/ruleDao');
-const { LogCommand, LogRuleResult } = require('../utilities/logHelper');
-const { CreateEmbed, RemoveComponents, SendContentAsEmbed, SendMessageWithOptions, Authorized } = require('../utilities/messageHelper');
-const { BuildEmbed } = require('../utilities/ruleHelper');
-const { SYMBOLS, INTERACT_APOLOGY, LOAD_APOLOGY, SELECT_TIMEOUT, DAY_MILLIS, COLORS } = require('../constants');
-const { ProcessRequest, DATA_QUESTIONS, FEATURE_QUESTIONS, BuildEntity, FLAG_TYPES, BuildRequestListEmbed, BuildRequestEmbed, SendRequestEmbed } = require('../utilities/requestHelper');
-const { RequestEntity } = require('../models/requestEntity');
+const { LogCommand } = require('../utilities/logHelper');
+const { CreateEmbed, Authorized } = require('../utilities/messageHelper');
+const { DAY_MILLIS, COLORS } = require('../constants');
+const { ProcessRequest, DATA_QUESTIONS, FEATURE_QUESTIONS, BuildEntity, FLAG_TYPES, BuildRequestListEmbed, SendRequestEmbed } = require('../utilities/requestHelper');
 const { RequestDao } = require('../dao/requestDao');
 const { ConfigurationDao } = require('../dao/configurationDao');
+const { ReportError } = require('../utilities/errorHelper');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -174,13 +171,7 @@ module.exports = {
             }
         }
         catch (e) {
-            console.log(e);
-
-            let replyEmbed = CreateEmbed('Something went wrong... Check the logs to find out more.');
-
-            await context.channel.send({
-                embeds: [replyEmbed]
-            });
+            ReportError(context, e);
         }
     }
 }

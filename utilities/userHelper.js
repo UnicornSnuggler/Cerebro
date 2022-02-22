@@ -9,8 +9,8 @@ exports.DirectMessageUser = async function(user, message) {
             embeds: [embed]
         });
     }
-    catch (exception) {
-        console.log(`Could not send a direct message to '${user.username}' (${user.id})...`);
+    catch (e) {
+        console.error(`An error occurred while attempting to direct message a user...\n\n${e}`);
     }
 }
 
@@ -20,7 +20,7 @@ exports.GetUser = async function(context, userId) {
 
         return user ? user : null;
     }
-    catch (exception) {
-        console.log(`Could not find '${user.username}' (${user.id})...`);
+    catch (e) {
+        console.error(`An error occurred while attempting to retrieve a user...\n\n${e}`);
     }
 }
