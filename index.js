@@ -56,8 +56,51 @@ client.on('ready', async () => {
     }, millisUntilEight());
 });
 
-client.on('messageCreate', message => {
-    HandleMessages(message);
+client.on('messageCreate', context => {
+    if (context.author.bot) return;
+
+    if (context.mentions.users.find(x => x === client.user)) {
+        context.react('💕');
+    }
+
+    let queries = [];
+
+    let matches = context.content.match(/({{.+?}}|<<.+?>>)/gi);
+
+    if (matches) {
+        for (let match of matches) {
+            queries.push({
+                match: match.replace(/[<>{}]/gmi, ''),
+                official: new RegExp(/{{.+?}}/gi).test(match)
+            });
+        }
+    }
+
+    if (queries.length > 1) {
+        PromptForConsolidation(context, queries);
+    }
+    else {
+        HandleCardQueries(context, queries);
+    }
+
+    let officialRuleMatches = context.content.match(/\(\(.+?\)\)/gi);
+
+    if (officialRuleMatches) {
+        const command = client.commands.get('rule');
+        
+        for (let match of officialRuleMatches) {
+            context.options = new ArtificialInteraction(true, match.replace(/[()]/gmi, ''));
+
+            try {
+                command.execute(context);
+            }
+            catch (error) {
+                console.error(error);
+                
+                SendContentAsEmbed(context, 'There was an error while executing this command!', true);
+            }
+        }
+    }
 });
 
 client.on('interactionCreate', interaction => {
@@ -77,7 +120,7 @@ client.on('interactionCreate', interaction => {
     }
 });
 
-const PromptForConsolidation = async function(context, officialCardMatches, unofficialCardMatches) {
+const PromptForConsolidation = async function(context, matches) {
     let components = new MessageActionRow()
         .addComponents(new MessageButton()
             .setCustomId('separate')
@@ -104,12 +147,12 @@ const PromptForConsolidation = async function(context, officialCardMatches, unof
                 if (i.customId === 'separate') {
                     collector.stop('selection');
 
-                    HandleCardQueries(context, officialCardMatches, unofficialCardMatches);
+                    HandleCardQueries(context, matches);
                 }
                 if (i.customId === 'together') {
                     collector.stop('selection');
 
-                    HandleBatchQuery(context, officialCardMatches, unofficialCardMatches);
+                    HandleBatchQuery(context, matches);
                 }
                 else {
                     collector.stop('cancel');
@@ -135,68 +178,34 @@ const PromptForConsolidation = async function(context, officialCardMatches, unof
     });
 }
 
-const HandleCardQueries = async function(context, officialCardMatches, unofficialCardMatches) {
-    if (officialCardMatches) {
-        const command = client.commands.get('card');
-        
-        for (let match of officialCardMatches) {
-            context.options = new ArtificialInteraction(true, match.replace(/[{}]/gmi, ''));
+const HandleCardQueries = async function(context, queries) {
+    const command = client.commands.get('card');
 
-            try {
-                command.execute(context);
-            }
-            catch (error) {
-                console.error(error);
-                
-                SendContentAsEmbed(context, 'There was an error while executing this command!', true);
-            }
+    for (let query of queries) {
+        context.options = new ArtificialInteraction(query.official, query.match);
+
+        try {
+            command.execute(context);
         }
-    }
-
-    if (unofficialCardMatches) {
-        const command = client.commands.get('card');
-        
-        for (let match of unofficialCardMatches) {
-            context.options = new ArtificialInteraction(false, match.replace(/[<>]/gmi, ''));
-
-            try {
-                command.execute(context);
-            }
-            catch (error) {
-                console.error(error);
-                
-                SendContentAsEmbed(context, 'There was an error while executing this command!', true);
-            }
+        catch (error) {
+            console.error(error);
+            
+            SendContentAsEmbed(context, 'There was an error while executing this command!', true);
         }
     }
 }
 
-const HandleBatchQuery = async function(context, officialCardMatches, unofficialCardMatches) {
+const HandleBatchQuery = async function(context, queries) {
     let cards = [];
 
-    if (officialCardMatches) {
-        for (let query of officialCardMatches) {
-            let results = await ExecuteCardQuery(context, query);
-    
-            if (results) {
-                cards = cards.concat(results);
-            }
-            else {
-                return;
-            }
-        }
-    }
+    for (let query of queries) {
+        let results = await ExecuteCardQuery(context, query.match, query.official);
 
-    if (unofficialCardMatches) {
-        for (let query of unofficialCardMatches) {
-            let results = await ExecuteCardQuery(context, query, false);
-    
-            if (results) {
-                cards = cards.concat(results);
-            }
-            else {
-                return;
-            }
+        if (results) {
+            cards = cards.concat(results);
+        }
+        else {
+            return;
         }
     }
 
@@ -207,9 +216,7 @@ const HandleBatchQuery = async function(context, officialCardMatches, unofficial
     }
 }
 
-const ExecuteCardQuery = async function(context, query, official = true) {
-    query = query.replace(/[<>{}]/gmi, '');
-    
+const ExecuteCardQuery = async function(context, query, official = true) {    
     if (!query.match(/([a-z0-9])/gi)) {
         SendContentAsEmbed(context, `${Formatters.inlineCode(query)} is not a valid query...`);
         return null;
@@ -289,43 +296,6 @@ const SelectBox = async function(context, cards) {
     }
     catch (e) {
         ReportError(context, e);
-    }
-}
-
-const HandleMessages = async function(context) {
-    if (context.author.bot) return;
-
-    if (context.mentions.users.find(x => x === client.user)) {
-        context.react('💕');
-    }
-
-    let officialCardMatches = context.content.match(/\{\{.+?\}\}/gi);
-    let unofficialCardMatches = context.content.match(/<<.+?>>/gi);
-
-    if ((officialCardMatches && officialCardMatches.length) + (unofficialCardMatches && unofficialCardMatches.length) > 1) {
-        PromptForConsolidation(context, officialCardMatches, unofficialCardMatches);
-    }
-    else {
-        HandleCardQueries(context, officialCardMatches, unofficialCardMatches);
-    }
-
-    let officialRuleMatches = context.content.match(/\(\(.+?\)\)/gi);
-
-    if (officialRuleMatches) {
-        const command = client.commands.get('rule');
-        
-        for (let match of officialRuleMatches) {
-            context.options = new ArtificialInteraction(true, match.replace(/[()]/gmi, ''));
-
-            try {
-                command.execute(context);
-            }
-            catch (error) {
-                console.error(error);
-                
-                SendContentAsEmbed(context, 'There was an error while executing this command!', true);
-            }
-        }
     }
 }
 
