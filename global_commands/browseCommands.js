@@ -7,7 +7,7 @@ const { SetDao } = require('../dao/setDao');
 const { Imbibe } = require('../utilities/cardHelper');
 const { LogCommand, LogCollectionResult } = require('../utilities/logHelper');
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed, Authorized } = require('../utilities/messageHelper');
-const { LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT, SECOND_MILLIS } = require('../constants');
+const { LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT, SECOND_MILLIS, DEFAULT_ART_TOGGLE } = require('../constants');
 const { ReportError } = require('../utilities/errorHelper');
 
 const SelectBox = async function(context, collectionEntities, type) {
@@ -87,7 +87,7 @@ const QueueCollectionResult = async function(context, collectionEntity, type, me
         let currentFace = collection.faces.length > 0 ? 0 : -1;
         let currentElement = 0;
 
-        Imbibe(context, card, currentArtStyle, currentFace, currentElement, collection, false, false, message);
+        Imbibe(context, card, currentArtStyle, currentFace, currentElement, collection, false, DEFAULT_ART_TOGGLE, message);
     }
     catch (e) {
         ReportError(context, e);

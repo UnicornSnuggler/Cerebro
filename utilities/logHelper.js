@@ -14,7 +14,7 @@ const { CreateEmbed } = require('./messageHelper');
 const { ReportError } = require('./errorHelper');
 
 const BuildBaseEntity = function(context, collection) {
-    let userId = context.user ? context.user.id : context.author.id;
+    let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
     let guildId = context.guildId;
 
     let entity = {

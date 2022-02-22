@@ -1,5 +1,5 @@
 require('dotenv').config()
-const { Client, Collection, Intents, Constants } = require('discord.js');
+const { Client, Collection, Intents, Constants, MessageActionRow, MessageButton, Formatters } = require('discord.js');
 const { AuthorDao } = require('./dao/authorDao');
 const { FormattingDao } = require('./dao/formattingDao');
 const { GroupDao } = require('./dao/groupDao');
@@ -7,11 +7,14 @@ const { PackDao } = require('./dao/packDao');
 const { RuleDao } = require('./dao/ruleDao');
 const { SetDao } = require('./dao/setDao');
 const { ArtificialInteraction } = require('./models/artificialInteraction');
-const { SendContentAsEmbed, SendMessageWithOptions } = require('./utilities/messageHelper');
-const { DAY_MILLIS, SECOND_MILLIS } = require('./constants')
+const { SendContentAsEmbed, SendMessageWithOptions, CreateEmbed, RemoveComponents } = require('./utilities/messageHelper');
+const { DAY_MILLIS, SECOND_MILLIS, INTERACT_TIMEOUT, LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT } = require('./constants')
 const fs = require('fs');
 const { cardOfTheDayLoop } = require('./utilities/cardOfTheDayHelper');
 const { ConfigurationDao } = require('./dao/configurationDao');
+const { CardDao } = require('./dao/cardDao');
+const { ReportError } = require('./utilities/errorHelper');
+const { QueueCompiledResult, CreateSelectBox } = require('./utilities/cardHelper');
 
 const client = new Client({ intents: [Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS], partials: [Constants.PartialTypes.CHANNEL] });
 
@@ -22,13 +25,6 @@ for (const globalCommandFile of globalCommandFiles) {
     const globalCommand = require(`./global_commands/${globalCommandFile}`);
     client.commands.set(globalCommand.data.name, globalCommand);
 }
-
-// const guildCommandFiles = fs.readdirSync('./guild_commands').filter(file => file.endsWith('.js'));
-
-// for (const guildCommandFile of guildCommandFiles) {
-//     const guildCommand = require(`./guild_commands/${guildCommandFile}`);
-//     client.commands.set(guildCommand.data.name, guildCommand);
-// }
 
 function millisUntilEight() {
     let now = new Date();
@@ -81,66 +77,253 @@ client.on('interactionCreate', interaction => {
     }
 });
 
-const HandleMessages = function(message) {
-    if (message.author.bot) return;
+const PromptForConsolidation = async function(context, officialCardMatches, unofficialCardMatches) {
+    let components = new MessageActionRow()
+        .addComponents(new MessageButton()
+            .setCustomId('separate')
+            .setLabel('Separate')
+            .setStyle('PRIMARY'))
+        .addComponents(new MessageButton()
+            .setCustomId('together')
+            .setLabel('Together')
+            .setStyle('PRIMARY'))
+        .addComponents(new MessageButton()
+            .setCustomId('cancel')
+            .setLabel('Cancel')
+            .setStyle('DANGER'));
 
-    if (message.mentions.users.find(x => x === client.user)) {
-        message.react('💕');
-    }
+    let promise = SendContentAsEmbed(context, 'Multiple queries were detected! Would you like the results to be displayed separately or together?', [components]);
 
-    let officialCardMatches = message.content.match(/\{\{.+?\}\}/gi);
+    promise.then((message) => {
+        let collector = message.createMessageComponentCollector({ time: INTERACT_TIMEOUT * SECOND_MILLIS });
 
+        collector.on('collect', async i => {
+            let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
+
+            if (i.user.id === userId) {
+                if (i.customId === 'separate') {
+                    collector.stop('selection');
+
+                    HandleCardQueries(context, officialCardMatches, unofficialCardMatches);
+                }
+                if (i.customId === 'together') {
+                    collector.stop('selection');
+
+                    HandleBatchQuery(context, officialCardMatches, unofficialCardMatches);
+                }
+                else {
+                    collector.stop('cancel');
+                }
+            }
+            else {
+                i.reply({embeds: [CreateEmbed(INTERACT_APOLOGY)], ephemeral: true})
+            }
+        });
+
+        collector.on('end', (i, reason) => {
+            let content;
+
+            if (reason === 'selection') {
+                message.delete();
+                return;
+            }
+            else if (reason === 'cancel') content = 'Selection was canceled...';
+            else content = 'The timeout was reached...';
+            
+            RemoveComponents(message, content);
+        });
+    });
+}
+
+const HandleCardQueries = async function(context, officialCardMatches, unofficialCardMatches) {
     if (officialCardMatches) {
         const command = client.commands.get('card');
         
         for (let match of officialCardMatches) {
-            message.options = new ArtificialInteraction(true, match.replace(/[{}]/gmi, ''));
+            context.options = new ArtificialInteraction(true, match.replace(/[{}]/gmi, ''));
 
             try {
-                command.execute(message);
+                command.execute(context);
             }
             catch (error) {
                 console.error(error);
                 
-                SendContentAsEmbed(message, 'There was an error while executing this command!', true);
+                SendContentAsEmbed(context, 'There was an error while executing this command!', true);
             }
         }
     }
-
-    let unofficialCardMatches = message.content.match(/<<.+?>>/gi);
 
     if (unofficialCardMatches) {
         const command = client.commands.get('card');
         
         for (let match of unofficialCardMatches) {
-            message.options = new ArtificialInteraction(false, match.replace(/[<>]/gmi, ''));
+            context.options = new ArtificialInteraction(false, match.replace(/[<>]/gmi, ''));
 
             try {
-                command.execute(message);
+                command.execute(context);
             }
             catch (error) {
                 console.error(error);
                 
-                SendContentAsEmbed(message, 'There was an error while executing this command!', true);
+                SendContentAsEmbed(context, 'There was an error while executing this command!', true);
+            }
+        }
+    }
+}
+
+const HandleBatchQuery = async function(context, officialCardMatches, unofficialCardMatches) {
+    let cards = [];
+
+    if (officialCardMatches) {
+        for (let query of officialCardMatches) {
+            let results = await ExecuteCardQuery(context, query);
+    
+            if (results) {
+                cards = cards.concat(results);
+            }
+            else {
+                return;
             }
         }
     }
 
-    let officialRuleMatches = message.content.match(/\(\(.+?\)\)/gi);
+    if (unofficialCardMatches) {
+        for (let query of unofficialCardMatches) {
+            let results = await ExecuteCardQuery(context, query, false);
+    
+            if (results) {
+                cards = cards.concat(results);
+            }
+            else {
+                return;
+            }
+        }
+    }
+
+    if (cards) {
+        let message = await SendContentAsEmbed(context, LOAD_APOLOGY);
+
+        QueueCompiledResult(context, cards, message);
+    }
+}
+
+const ExecuteCardQuery = async function(context, query, official = true) {
+    query = query.replace(/[<>{}]/gmi, '');
+    
+    if (!query.match(/([a-z0-9])/gi)) {
+        SendContentAsEmbed(context, `${Formatters.inlineCode(query)} is not a valid query...`);
+        return null;
+    }
+
+    let origin = official ? 'official' : 'unofficial';
+    let results = await CardDao.RetrieveByName(query, origin);
+
+    if (!results || results.length === 0) return null;
+    else if (results.length === 1) return results;
+    else if (results.length > 1) {
+        let choice = await SelectBox(context, results);
+
+        return choice;
+    }
+}
+
+const SelectBox = async function(context, cards) {
+    try {
+        let prompt = `${cards.length} results were found for the given query!`;
+        let items = cards;
+
+        if (cards.length > 25) {
+            items = cards.slice(0, 25);
+            prompt += ' Only the top 25 results could be shown.';
+        }
+
+        prompt += '\n\nPlease select from the following...';
+
+        let selector = CreateSelectBox(items);
+
+        let selectMenuRow = new MessageActionRow().addComponents(selector);
+        let buttonRow = new MessageActionRow()
+            .addComponents(new MessageButton()
+                .setCustomId('showAll')
+                .setLabel('Show All')
+                .setStyle('PRIMARY'))
+            .addComponents(new MessageButton()
+                .setCustomId('cancel')
+                .setLabel('Cancel Selection')
+                .setStyle('DANGER'));
+
+        let message = await SendContentAsEmbed(context, prompt, [selectMenuRow, buttonRow]);        
+        let choice = message.awaitMessageComponent({ time: SELECT_TIMEOUT * SECOND_MILLIS })
+            .then(i => {
+                let results = null;
+                let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
+        
+                if (i.user.id === userId) {
+                    if (i.componentType === 'BUTTON') {
+                        if (i.customId === 'showAll') {
+                            results = cards;
+
+                            message.delete();
+                        }
+                        else {
+                            RemoveComponents(message, 'Selection was canceled...');
+                        }
+                    }
+                    else {
+                        let card = items.find(x => x.Id === i.values[0]);
+        
+                        results = [card];
+        
+                        message.delete();
+                    }
+    
+                    return results;
+                }
+                else {
+                    i.reply({embeds: [CreateEmbed(INTERACT_APOLOGY)], ephemeral: true});
+                }
+            })
+            .catch(_ => RemoveComponents(message, 'The timeout was reached...'));
+
+        return choice;
+    }
+    catch (e) {
+        ReportError(context, e);
+    }
+}
+
+const HandleMessages = async function(context) {
+    if (context.author.bot) return;
+
+    if (context.mentions.users.find(x => x === client.user)) {
+        context.react('💕');
+    }
+
+    let officialCardMatches = context.content.match(/\{\{.+?\}\}/gi);
+    let unofficialCardMatches = context.content.match(/<<.+?>>/gi);
+
+    if ((officialCardMatches && officialCardMatches.length) + (unofficialCardMatches && unofficialCardMatches.length) > 1) {
+        PromptForConsolidation(context, officialCardMatches, unofficialCardMatches);
+    }
+    else {
+        HandleCardQueries(context, officialCardMatches, unofficialCardMatches);
+    }
+
+    let officialRuleMatches = context.content.match(/\(\(.+?\)\)/gi);
 
     if (officialRuleMatches) {
         const command = client.commands.get('rule');
         
         for (let match of officialRuleMatches) {
-            message.options = new ArtificialInteraction(true, match.replace(/[()]/gmi, ''));
+            context.options = new ArtificialInteraction(true, match.replace(/[()]/gmi, ''));
 
             try {
-                command.execute(message);
+                command.execute(context);
             }
             catch (error) {
                 console.error(error);
                 
-                SendContentAsEmbed(message, 'There was an error while executing this command!', true);
+                SendContentAsEmbed(context, 'There was an error while executing this command!', true);
             }
         }
     }

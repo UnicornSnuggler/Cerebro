@@ -3,10 +3,10 @@ const { MessageActionRow, MessageSelectMenu, MessageButton, MessageEmbed, Messag
 const { CardDao } = require('../dao/cardDao');
 const { PackDao } = require('../dao/packDao');
 const { SetDao } = require('../dao/setDao');
-const { FindUniqueArts, GetPrintingByArtificialId, Imbibe, BuildCollectionFromBatch, ResourceConverter, BuildCardImagePath } = require('../utilities/cardHelper');
+const { FindUniqueArts, GetPrintingByArtificialId, Imbibe, BuildCollectionFromBatch, ResourceConverter, BuildCardImagePath, CreateSelectBox, QueueCompiledResult } = require('../utilities/cardHelper');
 const { LogCardResult, LogCommand } = require('../utilities/logHelper');
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed, Authorized } = require('../utilities/messageHelper');
-const { SYMBOLS, LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT, SECOND_MILLIS, COLORS, IMAGE_WIDTH, IMAGE_HEIGHT, IMAGES_PER_ROW, MAX_IMAGES, MAX_IMAGES_APOLOGY, MAX_ATTACHMENTS } = require('../constants');
+const { SYMBOLS, LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT, SECOND_MILLIS, COLORS, IMAGE_WIDTH, IMAGE_HEIGHT, IMAGES_PER_ROW, MAX_IMAGES, MAX_IMAGES_APOLOGY, MAX_ATTACHMENTS, DEFAULT_ART_TOGGLE } = require('../constants');
 const { ConfigurationDao } = require('../dao/configurationDao');
 const Canvas = require('canvas');
 const Jimp = require('jimp');
@@ -14,10 +14,6 @@ const { ReportError } = require('../utilities/errorHelper');
 
 const SelectBox = async function(context, cards) {
     try {
-        let selector = new MessageSelectMenu()
-            .setCustomId('selector')
-            .setPlaceholder('No card selected...');
-
         let prompt = `${cards.length} results were found for the given query!`;
         let items = cards;
 
@@ -27,30 +23,8 @@ const SelectBox = async function(context, cards) {
         }
 
         prompt += '\n\nPlease select from the following...';
-        
-        for (let card of items) {
-            let description = card.Type;
-            let setId = GetPrintingByArtificialId(card, card.Id).SetId ?? null;
-            
-            if (setId) {
-                let set = SetDao.SETS.find(x => x.Id === setId);
 
-                if (card.Classification === 'Hero' && !['Alter-Ego', 'Hero'].includes(card.Type)) description = `${set.Name} ${description}`;
-                else if (card.Classification === 'Encounter') description = `${description} (${set.Name})`;
-            }
-            else description = `${card.Classification} ${description}`;
-            
-            let emoji = null;
-
-            if (card.Resource) emoji = SYMBOLS[card.Resource];
-
-            selector.addOptions([{
-                label: `${card.Name}${card.Subname ? ` (${card.Subname})` : ''}`,
-                description: description,
-                emoji: emoji,
-                value: card.Id
-            }]);
-        }
+        let selector = CreateSelectBox(items);
 
         let selectMenuRow = new MessageActionRow().addComponents(selector);
         let buttonRow = new MessageActionRow()
@@ -73,7 +47,7 @@ const SelectBox = async function(context, cards) {
             let collector = message.createMessageComponentCollector({ time: SELECT_TIMEOUT * SECOND_MILLIS });
 
             collector.on('collect', async i => {
-                let userId = context.user ? context.user.id : context.author.id;
+                let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
 
                 if (i.user.id === userId) {
                     if (i.componentType === 'BUTTON') {
@@ -140,7 +114,7 @@ const QueueCardResult = async function(context, card, message = null) {
         let currentFace = collection.faces.length > 0 ? collection.faces.findIndex(x => x === expandedCard.Id) : -1;
         let currentStage = collection.elements.length > 0 ? collection.elements.findIndex(x => x.cardId === expandedCard.Id) : -1;
         
-        Imbibe(context, expandedCard, currentArtStyle, currentFace, currentStage, collection, false, false, message);
+        Imbibe(context, expandedCard, currentArtStyle, currentFace, currentStage, collection, false, DEFAULT_ART_TOGGLE, message);
     }
     catch (e) {
         ReportError(context, e);
@@ -156,93 +130,9 @@ const QueueBatchResult = function(context, batch, message = null) {
         let currentFace = collection.faces.length > 0 ? 0 : -1;
         let currentElement = 0;
 
-        Imbibe(context, card, currentArtStyle, currentFace, currentElement, collection, false, false, message);
+        Imbibe(context, card, currentArtStyle, currentFace, currentElement, collection, false, DEFAULT_ART_TOGGLE, message);
     }
     catch (e) {
-        ReportError(context, e);
-    }
-}
-
-const QueueCompiledResult = function(context, cards, message = null) {
-    try {
-        let overload = false;
-        
-        if (cards.length > MAX_ATTACHMENTS * IMAGES_PER_ROW) {
-            overload = true;
-            
-            cards = cards.slice(0, MAX_ATTACHMENTS * IMAGES_PER_ROW);
-        }
-        
-        let rows = [];
-        let attachments = [];
-        let superPromises = [];
-        
-        for (let i = 0; i < cards.length; i += IMAGES_PER_ROW) {
-            rows.push(cards.slice(i, i + IMAGES_PER_ROW < cards.length ? i + IMAGES_PER_ROW : cards.length));
-        }
-        
-        for (let row of rows) {
-            let promises = [];
-            
-            let width = IMAGE_WIDTH * row.length;
-            let height = IMAGE_HEIGHT;
-            
-            let canvas = Canvas.createCanvas(width, height);
-            let canvasContext = canvas.getContext('2d');
-            
-            for (let x = 0; x < row.length; x++) {
-                let promise = Canvas.loadImage(BuildCardImagePath(row[x], row[x].Id));
-                
-                promise.then(async function(image) {
-                    if (image.width > image.height) {
-                        let subCanvas = Canvas.createCanvas(image.height, image.width);
-                        let subContext = subCanvas.getContext('2d');
-                        
-                        subContext.translate(image.height / 2, image.width / 2);
-                        subContext.rotate(270 * Math.PI / 180);
-                        subContext.drawImage(image, -image.width / 2, -image.height / 2);
-                        subContext.translate(-image.height / 2, -image.width / 2);
-
-                        image = subCanvas;
-                    }
-                    
-                    let positionX = IMAGE_WIDTH * x;
-                    let positionY = 0;
-                    
-                    canvasContext.drawImage(image, positionX, positionY, IMAGE_WIDTH, IMAGE_HEIGHT);
-                });
-                
-                promises.push(promise);
-            }
-            
-            let superPromise = Promise.all(promises);
-            
-            superPromise.then(function() {
-                attachments.push(new MessageAttachment(canvas.toBuffer(), `Row ${rows.indexOf(row)}.png`));
-            });
-            
-            superPromises.push(superPromise);
-        }
-        
-        Promise.all(superPromises).then(async function() {
-            try {
-                attachments = attachments.sort((a, b) => a.name > b.name ? 1 : -1);
-                
-                let messageOptions = {
-                    content: overload ? MAX_IMAGES_APOLOGY : null,
-                    embeds: [],
-                    files: attachments,
-                    fetchReply: true
-                };
-                
-                await message.edit(messageOptions);
-            }
-            catch (e) {
-                ReportError(context, e);
-            }
-        });
-    }
-    catch(e) {
         ReportError(context, e);
     }
 }

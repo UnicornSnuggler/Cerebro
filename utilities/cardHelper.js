@@ -1,14 +1,15 @@
-const { Formatters, MessageActionRow, MessageButton, MessageEmbed, Util } = require('discord.js');
+const { Formatters, MessageActionRow, MessageButton, MessageEmbed, Util, MessageSelectMenu, MessageAttachment } = require('discord.js');
 const { PackDao } = require('../dao/packDao');
 const { RuleDao } = require('../dao/ruleDao');
 const { ConfigurationDao } = require('../dao/configurationDao');
-const { CreateEmbed, RemoveComponents, SendMessageWithOptions } = require('../utilities/messageHelper');
+const { CreateEmbed, RemoveComponents, SendMessageWithOptions, SendContentAsEmbed } = require('../utilities/messageHelper');
 const { Summary } = require('./printingHelper');
 const { FormatSymbols, FormatText, SpoilerIfIncomplete, QuoteText, ItalicizeText } = require('./stringHelper');
-const { RELEASED_EMOJI, COLORS, ID_LENGTH, INTERACT_APOLOGY, LOAD_APOLOGY, UNRELEASED_EMOJI, SYMBOLS, INTERACT_TIMEOUT, TINKERER_EMOJI, WARNING_EMOJI, REVIEWING_EMOJI, SECOND_MILLIS } = require('../constants');
+const { RELEASED_EMOJI, COLORS, ID_LENGTH, INTERACT_APOLOGY, LOAD_APOLOGY, UNRELEASED_EMOJI, SYMBOLS, INTERACT_TIMEOUT, TINKERER_EMOJI, WARNING_EMOJI, REVIEWING_EMOJI, SECOND_MILLIS, MAX_ATTACHMENTS, IMAGES_PER_ROW, IMAGE_WIDTH, IMAGE_HEIGHT, MAX_IMAGES_APOLOGY } = require('../constants');
 const { NavigationCollection } = require('../models/navigationCollection');
 const { SetDao } = require('../dao/setDao');
 const { ReportError } = require('./errorHelper');
+const Canvas = require('canvas');
 
 const BuildCardImagePath = exports.BuildCardImagePath = function(card, artStyle = card.Id) {
     return `${process.env.cardImagePrefix}${card.Official ? 'official/' : `unofficial/`}${artStyle}.jpg`;
@@ -241,6 +242,38 @@ const BuildStats = exports.BuildStats = function(card) {
     }
 
     return components.join('\n\n');
+}
+
+exports.CreateSelectBox = function(cards) {
+    let selector = new MessageSelectMenu()
+        .setCustomId('selector')
+        .setPlaceholder('No card selected...');
+    
+    for (let card of cards) {
+        let description = card.Type;
+        let setId = GetPrintingByArtificialId(card, card.Id).SetId ?? null;
+        
+        if (setId) {
+            let set = SetDao.SETS.find(x => x.Id === setId);
+
+            if (card.Classification === 'Hero' && !['Alter-Ego', 'Hero'].includes(card.Type)) description = `${set.Name} ${description}`;
+            else if (card.Classification === 'Encounter') description = `${description} (${set.Name})`;
+        }
+        else description = `${card.Classification} ${description}`;
+        
+        let emoji = null;
+
+        if (card.Resource) emoji = SYMBOLS[card.Resource];
+
+        selector.addOptions([{
+            label: `${card.Name}${card.Subname ? ` (${card.Subname})` : ''}`,
+            description: description,
+            emoji: emoji,
+            value: card.Id
+        }]);
+    }
+
+    return selector;
 }
 
 const EvaluateRules = exports.EvaluateRules = function(card) {
@@ -503,6 +536,97 @@ const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, current
         });
     }
     catch (e) {
+        ReportError(context, e);
+    }
+}
+
+exports.QueueCompiledResult = function(context, cards, message = null) {
+    try {
+        let overload = false;
+        
+        if (cards.length > MAX_ATTACHMENTS * IMAGES_PER_ROW) {
+            overload = true;
+            
+            cards = cards.slice(0, MAX_ATTACHMENTS * IMAGES_PER_ROW);
+        }
+        
+        let rows = [];
+        let attachments = [];
+        let superPromises = [];
+        
+        for (let i = 0; i < cards.length; i += IMAGES_PER_ROW) {
+            rows.push(cards.slice(i, i + IMAGES_PER_ROW < cards.length ? i + IMAGES_PER_ROW : cards.length));
+        }
+        
+        for (let row of rows) {
+            let promises = [];
+            
+            let width = IMAGE_WIDTH * row.length;
+            let height = IMAGE_HEIGHT;
+            
+            let canvas = Canvas.createCanvas(width, height);
+            let canvasContext = canvas.getContext('2d');
+
+            let spoiler = row.some(x => x.Incomplete);
+            
+            for (let x = 0; x < row.length; x++) {
+                let promise = Canvas.loadImage(BuildCardImagePath(row[x], row[x].Id));
+                
+                promise.then(async function(image) {
+                    if (image.width > image.height) {
+                        let subCanvas = Canvas.createCanvas(image.height, image.width);
+                        let subContext = subCanvas.getContext('2d');
+                        
+                        subContext.translate(image.height / 2, image.width / 2);
+                        subContext.rotate(270 * Math.PI / 180);
+                        subContext.drawImage(image, -image.width / 2, -image.height / 2);
+                        subContext.translate(-image.height / 2, -image.width / 2);
+
+                        image = subCanvas;
+                    }
+                    
+                    let positionX = IMAGE_WIDTH * x;
+                    let positionY = 0;
+                    
+                    canvasContext.drawImage(image, positionX, positionY, IMAGE_WIDTH, IMAGE_HEIGHT);
+                });
+                
+                promises.push(promise);
+            }
+            
+            let superPromise = Promise.all(promises);
+            
+            superPromise.then(function() {
+                attachments.push(new MessageAttachment(canvas.toBuffer(), `${spoiler ? 'SPOILER_' : ''}Row_${rows.indexOf(row)}.png`));
+            });
+            
+            superPromises.push(superPromise);
+        }
+        
+        Promise.all(superPromises).then(async function() {
+            try {
+                attachments = attachments.sort((a, b) => a.name > b.name ? 1 : -1);
+                
+                let messageOptions = {
+                    content: overload ? MAX_IMAGES_APOLOGY : null,
+                    embeds: [],
+                    files: attachments,
+                    fetchReply: true
+                };
+                
+                if (message) {
+                    await message.edit(messageOptions);
+                }
+                else {
+                    await context.channel.send(messageOptions);
+                }
+            }
+            catch (e) {
+                ReportError(context, e);
+            }
+        });
+    }
+    catch(e) {
         ReportError(context, e);
     }
 }

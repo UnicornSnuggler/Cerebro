@@ -75,3 +75,19 @@ exports.SendMessageWithOptions = function(context, options, ephemeral = false) {
 
     return context.reply(options);
 }
+
+const CONFIRMATION_TYPES = {
+    yesNo: 0,
+    separateTogether: 1
+};
+
+const CONFIRMATION_RESULTS = {
+    yes: 0,
+    no: 1,
+    separate: 2,
+    together: 3
+}
+
+exports.GetConfirmation = function(message, prompt, type) {
+    
+}
