@@ -68,8 +68,9 @@ exports.FormatText = function(text, exclusion = null) {
                     }
 
                     replacements[key] = replacedText;
-                    text = output;
                 }
+                
+                text = output;
             }
         }
         else {
