@@ -37,28 +37,40 @@ exports.FormatText = function(text, exclusion = null) {
             let formattings = FormattingDao.FORMATTINGS.filter(x => x.Priority == priority);
 
             for (let formatting of formattings) {
-                let matchedText = null;
+                let matches = {};
 
-                if (formatting.Regex) {
-                    let match = text.match(formatting.Match);
+                let search = formatting.Regex ? new RegExp(formatting.Match, 'g') : formatting.Match;
 
-                    matchedText = match ? match[0] : null;
-                }
-                else if (text.includes(formatting.Match)) matchedText = formatting.Match;
+                let output = text.replaceAll(search, m => {
+                    let key = `{${Object.keys(replacements).length + Object.keys(matches).length}}`;
+                    
+                    matches[key] = m;
 
-                if (matchedText) {
+                    return key;
+                });
+
+                for (let key of Object.keys(matches)) {
                     let replacedText = null;
 
-                    if (formatting.Operation == 'Bold') replacedText = Formatters.bold(matchedText);
-                    else if (formatting.Operation == 'Emphasis') replacedText = Formatters.bold(ItalicizeText(matchedText));
-                    else if (formatting.Operation == 'Italic') replacedText = ItalicizeText(matchedText);
-                    else if (formatting.Operation == 'Override') replacedText = formatting.Replacement ? formatting.Replacement : matchedText;
+                    switch (formatting.Operation) {
+                        case 'Bold':
+                            replacedText = Formatters.bold(matches[key]);
+                            break;
+                        case 'Emphasis':
+                            replacedText = Formatters.bold(ItalicizeText(matches[key]));
+                            break;
+                        case 'Italic':
+                            replacedText = ItalicizeText(matches[key]);
+                            break;
+                        case 'Override':
+                            replacedText = formatting.Replacement ? formatting.Replacement : matches[key];
+                            break;
+                    }
 
-                    let index = Object.keys(replacements).length;
-
-                    replacements[`{${index}}`] = replacedText;
-                    text = text.replaceAll(matchedText, `{${index}}`);
+                    replacements[key] = replacedText;
                 }
+                
+                text = output;
             }
         }
         else {
