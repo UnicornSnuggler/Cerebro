@@ -136,7 +136,7 @@ class CardDao {
         return collection;
     }
 
-    static async RetrieveByName(terms, origin) {
+    static async RetrieveByName(terms, origin, trimDuplicates = true) {
         const session = this.store.openSession();
 
         terms = terms.toLowerCase();
@@ -201,7 +201,7 @@ class CardDao {
                 return card.Name.toLowerCase() === terms || (!['Hero', 'Alter-Ego'].includes(card.Type) && card.Subname != null && card.Subname.toLowerCase() === terms) || card.Id.toLowerCase() === terms;
             });
 
-            return TrimDuplicates(matches.length > 0 ? matches : results);
+            return trimDuplicates ? TrimDuplicates(matches.length > 0 ? matches : results) : results;
         }
     }
 
@@ -270,7 +270,7 @@ class CardDao {
         return new CardEntity(documents[0]);
     }
 
-    static async RetrieveWithFilters(origin, aspect, author, cost, resource, text, traits, type) {
+    static async RetrieveWithFilters(origin, aspect, author, cost, resource, text, traits, type, trimDuplicates = true) {
         const session = this.store.openSession();
         let first = true;
 
@@ -363,7 +363,7 @@ class CardDao {
                 results.push(new CardEntity(document));
             }
 
-            return TrimDuplicates(results);
+            return trimDuplicates ? TrimDuplicates(results) : results;
         }
         else return null;
     }
