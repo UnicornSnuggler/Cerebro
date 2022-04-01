@@ -15,6 +15,7 @@ const { ConfigurationDao } = require('./dao/configurationDao');
 const { CardDao } = require('./dao/cardDao');
 const { ReportError } = require('./utilities/errorHelper');
 const { QueueCompiledResult, CreateSelectBox } = require('./utilities/cardHelper');
+const { LogCardResult, LogCommand } = require('./utilities/logHelper');
 
 const client = new Client({ intents: [Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS], partials: [Constants.PartialTypes.CHANNEL] });
 
@@ -196,6 +197,8 @@ const HandleCardQueries = async function(context, queries) {
 }
 
 const HandleBatchQuery = async function(context, queries) {
+    new Promise(() => LogCommand(context, "/batch", null));
+
     let cards = [];
 
     for (let query of queries) {
@@ -226,7 +229,11 @@ const ExecuteCardQuery = async function(context, query, official = true) {
     let results = await CardDao.RetrieveByName(query, origin);
 
     if (!results || results.length === 0) return null;
-    else if (results.length === 1) return results;
+    else if (results.length === 1) {
+        new Promise(() => LogCardResult(context, results[0]));
+
+        return results;
+    }
     else if (results.length > 1) {
         let choice = await SelectBox(context, results);
 
@@ -279,6 +286,8 @@ const SelectBox = async function(context, cards) {
                     else {
                         let card = items.find(x => x.Id === i.values[0]);
         
+                        new Promise(() => LogCardResult(context, card));
+                        
                         results = [card];
         
                         message.delete();
