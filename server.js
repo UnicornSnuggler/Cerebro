@@ -58,9 +58,9 @@ app.get('/cards', async function(req, res) {
     res.end(JSON.stringify(results));
 });
 
-var server = app.listen(process.env.PORT || 8081, function() {
+var server = app.listen(process.env.PORT || 80, '0.0.0.0', function() {
     var host = server.address().address;
     var port = server.address().port;
 
-    console.log("Example app listening at http://%s:%s", host, port);
+    console.log("API listening at %s:%s", host, port);
 });
