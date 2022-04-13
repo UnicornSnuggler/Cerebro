@@ -570,7 +570,8 @@ exports.QueueCompiledResult = function(context, cards, message = null) {
             let spoiler = row.some(x => x.Incomplete);
             
             for (let x = 0; x < row.length; x++) {
-                let promise = Canvas.loadImage(BuildCardImagePath(row[x], row[x].Id));
+                let imagePath = BuildCardImagePath(row[x], row[x].Id);
+                let promise = Canvas.loadImage(imagePath);
                 
                 promise.then(async function(image) {
                     if (image.width > image.height) {
@@ -597,7 +598,9 @@ exports.QueueCompiledResult = function(context, cards, message = null) {
             let superPromise = Promise.all(promises);
             
             superPromise.then(function() {
-                attachments.push(new MessageAttachment(canvas.toBuffer(), `${spoiler ? 'SPOILER_' : ''}Row_${rows.indexOf(row)}.png`));
+                let attachment = new MessageAttachment(canvas.toBuffer('image/jpeg', {quality: 0.8, progressive: true}), `${spoiler ? 'SPOILER_' : ''}Row_${rows.indexOf(row)}.jpg`);
+                
+                attachments.push(attachment);
             });
             
             superPromises.push(superPromise);
