@@ -14,7 +14,7 @@ const { cardOfTheDayLoop } = require('./utilities/cardOfTheDayHelper');
 const { ConfigurationDao } = require('./dao/configurationDao');
 const { CardDao } = require('./dao/cardDao');
 const { ReportError } = require('./utilities/errorHelper');
-const { QueueCompiledResult, CreateSelectBox } = require('./utilities/cardHelper');
+const { QueueCompiledResult, CreateSelectBox, ResourceConverter } = require('./utilities/cardHelper');
 const { LogCardResult, LogCommand } = require('./utilities/logHelper');
 
 const client = new Client({ intents: [Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS], partials: [Constants.PartialTypes.CHANNEL] });
