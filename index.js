@@ -281,7 +281,7 @@ const SelectBox = async function(context, cards) {
                             message.delete();
                         }
                         else {
-                            RemoveComponents(message, 'Selection was canceled...');
+                            message.delete();
                         }
                     }
                     else {
