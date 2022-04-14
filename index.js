@@ -200,6 +200,7 @@ const HandleBatchQuery = async function(context, queries) {
     new Promise(() => LogCommand(context, "/batch", null));
 
     let cards = [];
+    let missing = [];
 
     for (let query of queries) {
         let results = await ExecuteCardQuery(context, query.match, query.official);
@@ -208,14 +209,14 @@ const HandleBatchQuery = async function(context, queries) {
             cards = cards.concat(results);
         }
         else {
-            return;
+            missing.push(`${query.match} (${query.official ? 'O' : 'Uno'}fficial)`);
         }
     }
 
     if (cards) {
         let message = await SendContentAsEmbed(context, LOAD_APOLOGY);
 
-        QueueCompiledResult(context, cards, message);
+        QueueCompiledResult(context, cards, message, missing.length ? missing : null);
     }
 }
 

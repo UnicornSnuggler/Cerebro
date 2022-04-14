@@ -540,7 +540,7 @@ const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, current
     }
 }
 
-exports.QueueCompiledResult = function(context, cards, message = null) {
+exports.QueueCompiledResult = function(context, cards, message = null, missing = null) {
     try {
         let overload = false;
         
@@ -609,9 +609,27 @@ exports.QueueCompiledResult = function(context, cards, message = null) {
         Promise.all(superPromises).then(async function() {
             try {
                 attachments = attachments.sort((a, b) => a.name > b.name ? 1 : -1);
+
+                let content = [];
+
+                if (overload) {
+                    content.push(MAX_IMAGES_APOLOGY);
+                }
+
+                if (missing) {
+                    let entry = `The following quer${missing.length === 1 ? 'y' : 'ies'} returned no results:\n\`\`\``;
+                
+                    for (let query of missing) {
+                        entry += `• ${query}\n`;
+                    }
+
+                    entry += '```';
+                
+                    content.push(entry);
+                }
                 
                 let messageOptions = {
-                    content: overload ? MAX_IMAGES_APOLOGY : null,
+                    content: content.length ? content.join('\n\n') : null,
                     embeds: [],
                     files: attachments,
                     fetchReply: true
