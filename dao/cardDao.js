@@ -1,7 +1,7 @@
 const { GroupDao } = require('./groupDao');
 const { CardEntity } = require('../models/cardEntity');
 const { NavigationCollection } = require('../models/navigationCollection');
-const { GetBaseId, ShareFaces, ShareGroups, BuildCollectionFromBatch, ResourceConverter } = require('../utilities/cardHelper');
+const { GetBaseId, ShareFaces, ShareGroups, BuildCollectionFromBatch } = require('../utilities/cardHelper');
 const { CreateDocumentStore, DeriveDatabase } = require('../utilities/documentStoreHelper');
 const { OFFICIAL, UNOFFICIAL } = require('../constants');
 const { EscapeRegex } = require('../utilities/stringHelper');
@@ -311,7 +311,7 @@ class CardDao {
             }
             else {
                 query = query.openSubclause()
-                    .whereRegex('Resource', ResourceConverter[resource])
+                    .whereRegex('Resource', resource)
                     .closeSubclause();
             }
         }

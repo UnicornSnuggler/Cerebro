@@ -43,7 +43,7 @@ app.get('/cards', async function(req, res) {
                     results = results.filter(card => !card.Resource);
                 }
                 else {
-                    results = results.filter(card => card.Resource && card.Resource.toLowerCase().includes(ResourceConverter[resource]));
+                    results = results.filter(card => card.Resource && card.Resource.toLowerCase().includes(resource));
                 }
             }
             if (text) results = results.filter(card => (card.Rules && card.Rules.toLowerCase().includes(text)) || (card.Special && card.Special.toLowerCase().includes(text)));

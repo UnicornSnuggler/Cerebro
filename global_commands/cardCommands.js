@@ -232,7 +232,7 @@ module.exports = {
             let name = nameOption ? nameOption.toLowerCase() : null;
             
             let resourceOption = context.options.getString('resource');
-            let resource = resourceOption ? resourceOption.toLowerCase() : null;
+            let resource = resourceOption ? ResourceConverter[resourceOption.toLowerCase()] : null;
             
             let textOption = context.options.getString('text');
             let text = textOption ? textOption.toLowerCase() : null;
