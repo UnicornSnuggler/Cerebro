@@ -401,7 +401,7 @@ class CardDao {
 
             return trimDuplicates ? TrimDuplicates(results) : results;
         }
-        else return null;
+        else return [];
     }
 }
 
