@@ -270,7 +270,7 @@ class CardDao {
         return new CardEntity(documents[0]);
     }
 
-    static async RetrieveWithFilters(origin, aspect, author, cost, resource, text, traits, type, trimDuplicates = true) {
+    static async RetrieveWithFilters(origin, aspect, author, cost, pack, resource, set, text, traits, type, trimDuplicates = true) {
         const session = this.store.openSession();
         let first = true;
 
@@ -300,6 +300,24 @@ class CardDao {
                 .closeSubclause();
         }
 
+        if (pack) {
+            !first ? query = query.andAlso() : first = false;
+
+            query = query.openSubclause();
+
+            for (let packId of pack) {
+                if (pack.indexOf(packId) === 0) {
+                    query = query.whereEquals('PackIds', packId);
+                }
+                else {
+                    query = query.orElse()
+                        .whereEquals('PackIds', packId);
+                }
+            }
+
+            query = query.closeSubclause();
+        }
+
         if (resource) {
             !first ? query = query.andAlso() : first = false;
 
@@ -314,6 +332,24 @@ class CardDao {
                     .whereRegex('Resource', resource)
                     .closeSubclause();
             }
+        }
+
+        if (set) {
+            !first ? query = query.andAlso() : first = false;
+
+            query = query.openSubclause();
+
+            for (let setId of set) {
+                if (set.indexOf(setId) === 0) {
+                    query = query.whereEquals('SetIds', setId);
+                }
+                else {
+                    query = query.orElse()
+                        .whereEquals('SetIds', setId);
+                }
+            }
+
+            query = query.closeSubclause();
         }
 
         if (text) {

@@ -1,6 +1,8 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageActionRow, MessageButton, Formatters } = require('discord.js');
 const { CardDao } = require('../dao/cardDao');
+const { PackDao } = require('../dao/packDao');
+const { SetDao } = require('../dao/setDao');
 const { FindUniqueArts, Imbibe, BuildCollectionFromBatch, ResourceConverter, CreateSelectBox, QueueCompiledResult } = require('../utilities/cardHelper');
 const { LogCardResult, LogCommand } = require('../utilities/logHelper');
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed, Authorized } = require('../utilities/messageHelper');
@@ -175,6 +177,11 @@ module.exports = {
                 .setRequired(false))
         .addStringOption(option =>
             option
+                .setName('pack')
+                .setDescription('Query cards by their pack.')
+                .setRequired(false))
+        .addStringOption(option =>
+            option
                 .setName('resource')
                 .setDescription('Query cards by their printed resource.')
                 .setRequired(false)
@@ -183,6 +190,11 @@ module.exports = {
                 .addChoice('physical', 'physical')
                 .addChoice('wild', 'wild')
                 .addChoice('none', 'none'))
+        .addStringOption(option =>
+            option
+                .setName('set')
+                .setDescription('Query cards by their set.')
+                .setRequired(false))
         .addStringOption(option =>
             option
                 .setName('text')
@@ -231,8 +243,14 @@ module.exports = {
             let nameOption = context.options.getString('name');
             let name = nameOption ? nameOption.toLowerCase() : null;
             
+            let packOption = context.options.getString('pack');
+            let packIds = packOption ? PackDao.RetrieveByNameLocally(packOption, origin).map(x => x.Id) : null;
+            
             let resourceOption = context.options.getString('resource');
             let resource = resourceOption ? ResourceConverter[resourceOption.toLowerCase()] : null;
+            
+            let setOption = context.options.getString('set');
+            let setIds = setOption ? SetDao.RetrieveByNameLocally(setOption, origin).map(x => x.Id) : null;
             
             let textOption = context.options.getString('text');
             let text = textOption ? textOption.toLowerCase() : null;
@@ -252,7 +270,7 @@ module.exports = {
                 }
             }
             
-            if (!aspect && !author && !cost && !name && !resource && !text && !traits && !type) {
+            if (!aspect && !author && !cost && !name && !packIds && !resource && !setIds && !text && !traits && !type) {
                 SendContentAsEmbed(context, 'You must specify at least one search criteria...', null, true);
                 return;
             }
@@ -261,33 +279,44 @@ module.exports = {
 
             let results = [];
 
-            if (name) {
-                if (!name.match(/([a-z0-9])/gi)) {
-                    SendContentAsEmbed(context, `${Formatters.inlineCode(name)} is not a valid query...`);
-                    return;
-                }
-
-                results = await CardDao.RetrieveByName(name, origin);
-
-                if (results) {
-                    if (aspect) results = results.filter(card => card.Classification.toLowerCase() === aspect);
-                    if (author) results = results.filter(card => card.AuthorId === author);
-                    if (cost) results = results.filter(card => card.Cost && card.Cost.toLowerCase() === cost);
-                    if (resource) {
-                        if (resource === 'none') {
-                            results = results.filter(card => !card.Resource);
-                        }
-                        else {
-                            results = results.filter(card => card.Resource && card.Resource.toLowerCase().includes(ResourceConverter[resource]));
-                        }
-                    }
-                    if (text) results = results.filter(card => (card.Rules && card.Rules.toLowerCase().includes(text)) || (card.Special && card.Special.toLowerCase().includes(text)));
-                    if (traits) results = results.filter(card => card.Traits && traits.every(element => card.Traits.find(trait => trait.toLowerCase() === element.trim())));
-                    if (type) results = results.filter(card => card.Type.toLowerCase() === type);
-                }
+            if ((packOption && packIds.length === 0) || (setOption && setIds.length === 0)) {
+                results = [];
             }
             else {
-                results = await CardDao.RetrieveWithFilters(origin, aspect, author, cost, resource, text, traits, type);
+                if (name) {
+                    if (!name.match(/([a-z0-9])/gi)) {
+                        SendContentAsEmbed(context, `${Formatters.inlineCode(name)} is not a valid query...`);
+                        return;
+                    }
+    
+                    results = await CardDao.RetrieveByName(name, origin);
+    
+                    if (results) {
+                        if (aspect) results = results.filter(card => card.Classification.toLowerCase() === aspect);
+                        if (author) results = results.filter(card => card.AuthorId === author);
+                        if (cost) results = results.filter(card => card.Cost && card.Cost.toLowerCase() === cost);
+                        if (packIds) {
+                            results = results.filter(card => card.Printings.some(printing => packIds.includes(printing.PackId)));
+                        }
+                        if (resource) {
+                            if (resource === 'none') {
+                                results = results.filter(card => !card.Resource);
+                            }
+                            else {
+                                results = results.filter(card => card.Resource && card.Resource.toLowerCase().includes(ResourceConverter[resource]));
+                            }
+                        }
+                        if (setIds) {
+                            results = results.filter(card => card.Printings.some(printing => setIds.includes(printing.SetId)));
+                        }
+                        if (text) results = results.filter(card => (card.Rules && card.Rules.toLowerCase().includes(text)) || (card.Special && card.Special.toLowerCase().includes(text)));
+                        if (traits) results = results.filter(card => card.Traits && traits.every(element => card.Traits.find(trait => trait.toLowerCase() === element.trim())));
+                        if (type) results = results.filter(card => card.Type.toLowerCase() === type);
+                    }
+                }
+                else {
+                    results = await CardDao.RetrieveWithFilters(origin, aspect, author, cost, packIds, resource, setIds, text, traits, type);
+                }
             }
             
             if (!results || results.length === 0) SendContentAsEmbed(context, 'No results were found for the given query...');
