@@ -37,6 +37,7 @@ exports.ID_LENGTH = 5;
 
 exports.GLITCH_CHANCE = 3;
 
+exports.ALL = 'all';
 exports.OFFICIAL = 'official';
 exports.UNOFFICIAL = 'unofficial';
 

@@ -277,11 +277,6 @@ const SelectBox = async function(context, cards) {
                     if (i.componentType === 'BUTTON') {
                         if (i.customId === 'showAll') {
                             results = cards;
-
-                            message.delete();
-                        }
-                        else {
-                            message.delete();
                         }
                     }
                     else {
@@ -290,8 +285,6 @@ const SelectBox = async function(context, cards) {
                         new Promise(() => LogCardResult(context, card));
                         
                         results = [card];
-        
-                        message.delete();
                     }
     
                     return results;
@@ -299,8 +292,9 @@ const SelectBox = async function(context, cards) {
                 else {
                     i.reply({embeds: [CreateEmbed(INTERACT_APOLOGY)], ephemeral: true});
                 }
-            })
-            .catch(_ => RemoveComponents(message, 'The timeout was reached...'));
+            });
+
+        message.delete();
 
         return choice;
     }
