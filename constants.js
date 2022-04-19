@@ -47,6 +47,7 @@ exports.LOAD_APOLOGY = 'Please wait while result details are being retrieved. Ar
 exports.TIMEOUT_APOLOGY = 'The interaction timeout was reached...';
 exports.MAX_IMAGES_APOLOGY = `*(No more than ${this.MAX_IMAGES} images can be displayed at a time... Your response has been trimmed accordingly.)*`;
 
+exports.ARTIST_EMOJI = ':paintbrush:'
 exports.RELEASED_EMOJI = '<:affirmative:939594005317025832>';
 exports.REVIEWING_EMOJI = ':mag:';
 exports.TINKERER_EMOJI = '<:tinkerer_seal:939594700078317568>';

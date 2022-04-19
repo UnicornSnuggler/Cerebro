@@ -5,11 +5,13 @@ const { ConfigurationDao } = require('../dao/configurationDao');
 const { CreateEmbed, RemoveComponents, SendMessageWithOptions } = require('../utilities/messageHelper');
 const { Summary } = require('./printingHelper');
 const { FormatSymbols, FormatText, SpoilerIfIncomplete, QuoteText, ItalicizeText } = require('./stringHelper');
-const { RELEASED_EMOJI, COLORS, ID_LENGTH, INTERACT_APOLOGY, LOAD_APOLOGY, SYMBOLS, INTERACT_TIMEOUT, TINKERER_EMOJI, WARNING_EMOJI, REVIEWING_EMOJI, SECOND_MILLIS, MAX_ATTACHMENTS, IMAGES_PER_ROW, IMAGE_WIDTH, IMAGE_HEIGHT, MAX_IMAGES_APOLOGY } = require('../constants');
+const { RELEASED_EMOJI, COLORS, ID_LENGTH, INTERACT_APOLOGY, LOAD_APOLOGY, SYMBOLS, INTERACT_TIMEOUT, TINKERER_EMOJI, WARNING_EMOJI, REVIEWING_EMOJI, SECOND_MILLIS, MAX_ATTACHMENTS, IMAGES_PER_ROW, IMAGE_WIDTH, IMAGE_HEIGHT, MAX_IMAGES_APOLOGY, ARTIST_EMOJI } = require('../constants');
 const { NavigationCollection } = require('../models/navigationCollection');
 const { SetDao } = require('../dao/setDao');
 const { ReportError } = require('./errorHelper');
 const Canvas = require('canvas');
+const { CreateStringFromArray } = require('./arrayHelper');
+const { ArtistDao } = require('../dao/artistDao');
 
 const BuildCardImagePath = exports.BuildCardImagePath = function(card, artStyle = card.Id) {
     return `${process.env.cardImagePrefix}${card.Official ? 'official/' : `unofficial/`}${artStyle}.jpg`;
@@ -77,7 +79,9 @@ const BuildEmbed = exports.BuildEmbed = function(card, alternateArt = null, spoi
         body.push(SpoilerIfIncomplete(ItalicizeText(escapedFlavor), card.Incomplete && !spoilerFree));
     }
 
-    if (!card.Official) body.push(BuildCredits(card));
+    let credits = BuildCredits(card);
+
+    if (credits) body.push(credits);
 
     if (body.length > 0) description.push(body.join('\n\n'));
 
@@ -98,23 +102,32 @@ const BuildEmbed = exports.BuildEmbed = function(card, alternateArt = null, spoi
 }
 
 const BuildCredits = exports.BuildCredits = function(card) {
-    let pack = PackDao.PACKS.find(x => x.Id === GetPrintingByArtificialId(card, card.Id).PackId);
-
     let credits = [];
 
-    credits.push(`${Formatters.bold('Author')}: <@${card.AuthorId}>`);
-    switch (pack.ReleaseStatus) {
-        case 3:
-            credits.push(`${REVIEWING_EMOJI} Pending council review...`);
-            break;
-        case 2:
-            credits.push(`${RELEASED_EMOJI} Released in Council Set #${pack.CouncilNumber}!`);
-            break;
-        case 1:
-            credits.push(`${TINKERER_EMOJI} The Tinkerer Blue Gold Seal of Approval!`);
-            break;
-        default:
-            credits.push(`${WARNING_EMOJI} Not yet released...`);
+    if (card.Artists) {
+        let list = CreateStringFromArray(card.Artists.map(x => Formatters.bold(ArtistDao.ARTISTS.find(y => y.Id === x).Name)), ', ', false);
+
+        credits.push(`${ARTIST_EMOJI} ${list}`);
+    }
+
+    if (!card.Official) {
+        let pack = PackDao.PACKS.find(x => x.Id === GetPrintingByArtificialId(card, card.Id).PackId);
+        
+        
+        credits.push(`${Formatters.bold('Author')}: <@${card.AuthorId}>`);
+        switch (pack.ReleaseStatus) {
+            case 3:
+                credits.push(`${REVIEWING_EMOJI} Pending council review...`);
+                break;
+            case 2:
+                credits.push(`${RELEASED_EMOJI} Released in Council Set #${pack.CouncilNumber}!`);
+                break;
+            case 1:
+                credits.push(`${TINKERER_EMOJI} The Tinkerer Blue Gold Seal of Approval!`);
+                break;
+            default:
+                credits.push(`${WARNING_EMOJI} Not yet released...`);
+        }
     }
 
     return credits.join('\n');

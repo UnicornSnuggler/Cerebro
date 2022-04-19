@@ -16,6 +16,7 @@ const { CardDao } = require('./dao/cardDao');
 const { ReportError } = require('./utilities/errorHelper');
 const { QueueCompiledResult, CreateSelectBox, ResourceConverter } = require('./utilities/cardHelper');
 const { LogCardResult, LogCommand } = require('./utilities/logHelper');
+const { ArtistDao } = require('./dao/artistDao');
 
 const client = new Client({ intents: [Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS], partials: [Constants.PartialTypes.CHANNEL] });
 
@@ -39,6 +40,7 @@ function millisUntilEight() {
 }
 
 client.on('ready', async () => {
+    await ArtistDao.RetrieveAllArtists();
     await AuthorDao.RetrieveAllAuthors();
     await FormattingDao.RetrieveAllFormattings();
     await GroupDao.RetrieveAllGroups();
