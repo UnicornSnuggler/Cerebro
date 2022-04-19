@@ -62,13 +62,15 @@ let SendContentAsEmbed = exports.SendContentAsEmbed = function(context, content,
         components: components,
         embeds: [embed],
         ephemeral: ephemeral,
-        fetchReply: true
+        fetchReply: true,
+        failIfNotExists: false
     });
 }
 
 exports.SendMessageWithOptions = function(context, options, ephemeral = false) {
     options.allowedMentions = {
-        repliedUser: false
+        repliedUser: false,
+        failIfNotExists: false
     };
     options.ephemeral = ephemeral;
     options.fetchReply = true;

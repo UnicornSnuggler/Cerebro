@@ -207,7 +207,8 @@ module.exports = {
                     
                     await context.reply({
                         embeds:[replyEmbed],
-                        ephemeral: true
+                        ephemeral: true,
+                        failIfNotExists: false
                     });
 
                     return;
@@ -240,7 +241,8 @@ module.exports = {
                 let replyEmbed = CreateEmbed(content, COLORS.Encounter);
     
                 await context.reply({
-                   embeds:[replyEmbed]
+                   embeds:[replyEmbed],
+                   failIfNotExists: false
                 });
             }
             else if (subCommand === 'hero') {
@@ -257,7 +259,8 @@ module.exports = {
                 let replyEmbed = CreateEmbed(content, COLORS.Hero);
     
                 await context.reply({
-                   embeds:[replyEmbed]
+                   embeds:[replyEmbed],
+                   failIfNotExists: false
                 });
             }
             else if (subCommand === 'team-up') {
@@ -266,7 +269,8 @@ module.exports = {
                     
                     await context.reply({
                         embeds:[replyEmbed],
-                        ephemeral: true
+                        ephemeral: true,
+                        failIfNotExists: false
                     });
     
                     return;
@@ -305,7 +309,8 @@ module.exports = {
                 let replyEmbed = CreateEmbed(content, COLORS.Justice);
     
                 await context.reply({
-                   embeds:[replyEmbed]
+                   embeds:[replyEmbed],
+                   failIfNotExists: false
                 });
             }
             else if (subCommand === 'challenge') {
@@ -354,14 +359,16 @@ module.exports = {
                 let replyEmbed = CreateEmbed(content, COLORS.Aggression);
     
                 await context.reply({
-                   embeds:[replyEmbed]
+                   embeds:[replyEmbed],
+                   failIfNotExists: false
                 });
             }
             else {
                 let replyEmbed = CreateEmbed('Not yet implemented! Stay tuned :two_hearts:');
     
                 await context.reply({
-                   embeds:[replyEmbed]
+                   embeds:[replyEmbed],
+                   failIfNotExists: false
                 });
             }
         }
