@@ -270,31 +270,39 @@ const SelectBox = async function(context, cards) {
                 .setStyle('DANGER'));
 
         let message = await SendContentAsEmbed(context, prompt, [selectMenuRow, buttonRow]);        
-        let choice = message.awaitMessageComponent({ time: SELECT_TIMEOUT * SECOND_MILLIS })
-            .then(i => {
-                let results = null;
-                let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
-        
-                if (i.user.id === userId) {
-                    if (i.componentType === 'BUTTON') {
-                        if (i.customId === 'showAll') {
-                            results = cards;
+        let choice = null;
+        let escape = false;
+
+        while (choice === null && !escape) {
+            await message.awaitMessageComponent({ time: INTERACT_TIMEOUT * SECOND_MILLIS })
+                .then(i => {
+                    let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
+            
+                    if (i.user.id === userId) {
+                        if (i.componentType === 'BUTTON') {
+                            if (i.customId === 'showAll') {
+                                choice = cards;
+                            }
+                            else {
+                                escape = true;
+                            }
+                        }
+                        else {
+                            let card = items.find(x => x.Id === i.values[0]);
+            
+                            new Promise(() => LogCardResult(context, card));
+                            
+                            choice = [card];
                         }
                     }
                     else {
-                        let card = items.find(x => x.Id === i.values[0]);
-        
-                        new Promise(() => LogCardResult(context, card));
-                        
-                        results = [card];
+                        i.reply({embeds: [CreateEmbed(INTERACT_APOLOGY)], ephemeral: true});
                     }
-    
-                    return results;
-                }
-                else {
-                    i.reply({embeds: [CreateEmbed(INTERACT_APOLOGY)], ephemeral: true});
-                }
-            });
+                })
+                .catch(i => {
+                    escape = true;
+                });
+        }
 
         message.delete();
 

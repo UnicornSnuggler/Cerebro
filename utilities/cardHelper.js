@@ -630,7 +630,7 @@ exports.QueueCompiledResult = function(context, cards, message = null, missing =
                 }
 
                 if (missing) {
-                    let entry = `The following quer${missing.length === 1 ? 'y' : 'ies'} returned no results:\n\`\`\``;
+                    let entry = `The following quer${missing.length === 1 ? 'y' : 'ies'} timed out, were canceled, or returned no results:\n\`\`\``;
                 
                     for (let query of missing) {
                         entry += `• ${query}\n`;
@@ -645,7 +645,8 @@ exports.QueueCompiledResult = function(context, cards, message = null, missing =
                     content: content.length ? content.join('\n\n') : null,
                     embeds: [],
                     files: attachments,
-                    fetchReply: true
+                    fetchReply: true,
+                    failIfNotExists: false
                 };
                 
                 if (message) {
