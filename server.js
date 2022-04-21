@@ -3,59 +3,68 @@ const { PackDao } = require('./dao/packDao');
 const { SetDao } = require('./dao/setDao');
 const { ResourceConverter } = require('./utilities/cardHelper');
 const express = require('express');
-const { OFFICIAL } = require('./constants');
+const { OFFICIAL, ALL, UNOFFICIAL } = require('./constants');
+const { ArtistDao } = require('./dao/artistDao');
 
 const app = express();
 
+app.get('/artists', async function(req, res) {
+    let id = req.query.id;
+    let name = req.query.name?.toLowerCase();
+
+    let results = await ArtistDao.RetrieveWithFilters(id, name);
+
+    results.sort(function(a, b) {
+        return a.Name - b.Name;
+    });
+
+    res.setHeader('Content-Type', 'application/json')
+        .end(JSON.stringify(results));
+});
+
 app.get('/cards', async function(req, res) {
     let results = [];
+    
+    let origin = req.query.origin?.toLowerCase() || OFFICIAL;
 
-    let origin = 'official';
+    if (![ALL, OFFICIAL, UNOFFICIAL].includes(origin)) {
+        res.setHeader('Content-Type', 'application/json')
+            .status(400)
+            .end(JSON.stringify({ error: `The 'origin' parameter must be '${ALL}', '${OFFICIAL}', or '${UNOFFICIAL}'...` }));
 
-    let aspectOption = req.query.aspect;
-    let aspect = aspectOption ? aspectOption.toLowerCase() : null;
-
+        return;
+    }
+    
+    let aspect = req.query.aspect?.toLowerCase();
     let author = req.query.author;
-
     let cost = req.query.cost;
+    let name = req.query.name?.toLowerCase();
+    let resource = req.query.resource?.toLowerCase();
+    let text = req.query.text?.toLowerCase();
+    let traits = req.query.traits?.split(',').map(x => x.toLowerCase().replace(/[^a-z0-9]/gmi, ''));
+    let type = req.query.type?.toLowerCase();
 
-    let nameOption = req.query.name;
-    let name = nameOption ? nameOption.toLowerCase() : null;
-
-    let packOption = req.query.pack;
+    let packOption = req.query.pack?.toLowerCase();
     let packIds = null;
     
     if (packOption) {
-        let packs = await PackDao.RetrieveByNameRemotely(packOption, OFFICIAL);
+        let packs = await PackDao.RetrieveWithFilters(origin, null, packOption);
+        packs = packs.concat(await PackDao.RetrieveWithFilters(origin, packOption, null));
         
         packIds = packs.map(x => x.Id);
     }
-
-    let resourceOption = req.query.resource;
-    let resource = resourceOption ? resourceOption.toLowerCase() : null;
-
-    let setOption = req.query.set;
+    
+    let setOption = req.query.set?.toLowerCase();
     let setIds = null;
     
     if (setOption) {
-        let sets = await SetDao.RetrieveByNameRemotely(setOption, OFFICIAL);
+        let sets = await SetDao.RetrieveWithFilters(origin, null, setOption);
+        sets = sets.concat(await SetDao.RetrieveWithFilters(origin, setOption, null));
         
         setIds = sets.map(x => x.Id);
     }
 
-    let textOption = req.query.text;
-    let text = textOption ? textOption.toLowerCase() : null;
-
-    let traitsOption = req.query.traits;
-    let traits = traitsOption ? traitsOption.split(',').map(x => x.toLowerCase().replace(/[^a-z0-9]/gmi, '')) : null;
-
-    let typeOption = req.query.type;
-    let type = typeOption ? typeOption.toLowerCase() : null;
-
-    if ((packOption && packIds.length === 0) || (setOption && setIds.length === 0)) {
-        results = [];
-    }
-    else {
+    if ((!packOption || packIds.length > 0) && (!setOption || setIds.length > 0)) {
         if (name && name.match(/([a-z0-9])/gi)) {
             results = await CardDao.RetrieveByName(name, origin, false);
     
@@ -91,7 +100,70 @@ app.get('/cards', async function(req, res) {
         return a.Id - b.Id;
     });
 
-    res.end(JSON.stringify(results));
+    res.setHeader('Content-Type', 'application/json')
+        .end(JSON.stringify(results));
+});
+
+app.get('/packs', async function(req, res) {
+    let origin = req.query.origin?.toLowerCase() || OFFICIAL;
+
+    if (![ALL, OFFICIAL, UNOFFICIAL].includes(origin)) {
+        res.setHeader('Content-Type', 'application/json')
+            .status(400)
+            .end(JSON.stringify({ error: `The 'origin' parameter must be '${ALL}', '${OFFICIAL}', or '${UNOFFICIAL}'...` }));
+
+        return;
+    }
+
+    let id = req.query.id?.toLowerCase();
+    let name = req.query.name?.toLowerCase();
+
+    let results = await PackDao.RetrieveWithFilters(origin, id, name);
+
+    results.sort(function(a, b) {
+        return a.Name - b.Name;
+    });
+
+    res.setHeader('Content-Type', 'application/json')
+        .end(JSON.stringify(results));
+});
+
+app.get('/sets', async function(req, res) {
+    let origin = req.query.origin?.toLowerCase() || OFFICIAL;
+
+    if (![ALL, OFFICIAL, UNOFFICIAL].includes(origin)) {
+        res.setHeader('Content-Type', 'application/json')
+            .status(400)
+            .end(JSON.stringify({ error: `The 'origin' parameter must be '${ALL}', '${OFFICIAL}', or '${UNOFFICIAL}'...` }));
+
+        return;
+    }
+
+    let id = req.query.id?.toLowerCase();
+    let name = req.query.name?.toLowerCase();
+
+    let results = await SetDao.RetrieveWithFilters(origin, id, name);
+
+    results.sort(function(a, b) {
+        return a.Name - b.Name;
+    });
+
+    res.setHeader('Content-Type', 'application/json')
+        .end(JSON.stringify(results));
+});
+
+app.get('*', function(req, res) {
+    let errors = [
+        'These are not the URLs you\'re looking for...',
+        'You\'ve reached the void of space...',
+        'You need to work on your typing skills...',
+        'The page that was here is mad at you and doesn\'t want to see you right now...',
+        'You don\'t belong here...'
+    ]
+
+    res.setHeader('Content-Type', 'application/json')
+        .status(404)
+        .end(JSON.stringify({ error: errors[Math.floor(Math.random() * errors.length)] }));
 });
 
 var server = app.listen(process.env.PORT || 80, '0.0.0.0', function() {

@@ -40,7 +40,7 @@ function millisUntilEight() {
 }
 
 client.on('ready', async () => {
-    await ArtistDao.RetrieveAllArtists();
+    await ArtistDao.UpdateArtistList();
     await AuthorDao.RetrieveAllAuthors();
     await FormattingDao.RetrieveAllFormattings();
     await GroupDao.RetrieveAllGroups();
