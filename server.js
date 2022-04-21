@@ -3,7 +3,7 @@ const { PackDao } = require('./dao/packDao');
 const { SetDao } = require('./dao/setDao');
 const { ResourceConverter } = require('./utilities/cardHelper');
 const express = require('express');
-const { OFFICIAL, ALL, UNOFFICIAL } = require('./constants');
+const { OFFICIAL, ALL, UNOFFICIAL, FALSE, TRUE } = require('./constants');
 const { ArtistDao } = require('./dao/artistDao');
 
 const app = express();
@@ -35,6 +35,16 @@ app.get('/cards', async function(req, res) {
         return;
     }
     
+    let incomplete = req.query.incomplete?.toLowerCase();
+
+    if (incomplete && ![FALSE, TRUE].includes(incomplete)) {
+        res.setHeader('Content-Type', 'application/json')
+            .status(400)
+            .end(JSON.stringify({ error: `The 'incomplete' parameter must be '${FALSE}' or '${TRUE}'...` }));
+
+        return;
+    }
+
     let aspect = req.query.aspect?.toLowerCase();
     let author = req.query.author;
     let cost = req.query.cost;
@@ -72,9 +82,8 @@ app.get('/cards', async function(req, res) {
                 if (aspect) results = results.filter(card => card.Classification.toLowerCase() === aspect);
                 if (author) results = results.filter(card => card.AuthorId === author);
                 if (cost) results = results.filter(card => card.Cost && card.Cost.toLowerCase() === cost);
-                if (packIds) {
-                    results = results.filter(card => card.Printings.some(printing => packIds.includes(printing.PackId)));
-                }
+                if (incomplete) results = results.filter(card => card.Incomplete === (incomplete === 'true'));
+                if (packIds) results = results.filter(card => card.Printings.some(printing => packIds.includes(printing.PackId)));
                 if (resource) {
                     if (resource === 'none') {
                         results = results.filter(card => !card.Resource);
@@ -83,16 +92,14 @@ app.get('/cards', async function(req, res) {
                         results = results.filter(card => card.Resource && card.Resource.toLowerCase().includes(resource));
                     }
                 }
-                if (setIds) {
-                    results = results.filter(card => card.Printings.some(printing => setIds.includes(printing.SetId)));
-                }
+                if (setIds) results = results.filter(card => card.Printings.some(printing => setIds.includes(printing.SetId)));
                 if (text) results = results.filter(card => (card.Rules && card.Rules.toLowerCase().includes(text)) || (card.Special && card.Special.toLowerCase().includes(text)));
                 if (traits) results = results.filter(card => card.Traits && traits.every(element => card.Traits.find(trait => trait.toLowerCase() === element.trim())));
                 if (type) results = results.filter(card => card.Type.toLowerCase() === type);
             }
         }
         else {
-            results = await CardDao.RetrieveWithFilters(origin, aspect, author, cost, packIds, resource, setIds, text, traits, type, false);
+            results = await CardDao.RetrieveWithFilters(origin, aspect, author, cost, incomplete, packIds, resource, setIds, text, traits, type, false);
         }
     }
 
@@ -114,11 +121,21 @@ app.get('/packs', async function(req, res) {
 
         return;
     }
+    
+    let incomplete = req.query.incomplete?.toLowerCase();
+
+    if (incomplete && ![FALSE, TRUE].includes(incomplete)) {
+        res.setHeader('Content-Type', 'application/json')
+            .status(400)
+            .end(JSON.stringify({ error: `The 'incomplete' parameter must be '${FALSE}' or '${TRUE}'...` }));
+
+        return;
+    }
 
     let id = req.query.id?.toLowerCase();
     let name = req.query.name?.toLowerCase();
 
-    let results = await PackDao.RetrieveWithFilters(origin, id, name);
+    let results = await PackDao.RetrieveWithFilters(origin, id, incomplete, name);
 
     results.sort(function(a, b) {
         return a.Name - b.Name;

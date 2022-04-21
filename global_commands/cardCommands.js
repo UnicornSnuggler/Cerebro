@@ -315,7 +315,7 @@ module.exports = {
                     }
                 }
                 else {
-                    results = await CardDao.RetrieveWithFilters(origin, aspect, author, cost, packIds, resource, setIds, text, traits, type);
+                    results = await CardDao.RetrieveWithFilters(origin, aspect, author, cost, null, packIds, resource, setIds, text, traits, type);
                 }
             }
             

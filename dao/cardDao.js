@@ -270,39 +270,35 @@ class CardDao {
         return new CardEntity(documents[0]);
     }
 
-    static async RetrieveWithFilters(origin, aspect, author, cost, pack, resource, set, text, traits, type, trimDuplicates = true) {
+    static async RetrieveWithFilters(origin, aspect, author, cost, incomplete, pack, resource, set, text, traits, type, trimDuplicates = true) {
         const session = this.store.openSession();
-        let first = true;
-
         let query = session.query({ indexName: `${origin}${CardEntity.COLLECTION}` });
 
         if (aspect) {
-            !first ? query = query.andAlso() : first = false;
-
             query = query.openSubclause()
                 .whereRegex('Classification', aspect)
                 .closeSubclause();
         }
 
         if (author) {
-            !first ? query = query.andAlso() : first = false;
-
             query = query.openSubclause()
                 .whereRegex('AuthorId', author)
                 .closeSubclause();
         }
 
         if (cost) {
-            !first ? query = query.andAlso() : first = false;
-
             query = query.openSubclause()
                 .whereRegex('Cost', cost)
                 .closeSubclause();
         }
 
-        if (pack) {
-            !first ? query = query.andAlso() : first = false;
+        if (incomplete) {
+            query = query.openSubclause()
+                .whereEquals('Incomplete', incomplete)
+                .closeSubclause();
+        }
 
+        if (pack) {
             query = query.openSubclause();
 
             for (let packId of pack) {
@@ -319,8 +315,6 @@ class CardDao {
         }
 
         if (resource) {
-            !first ? query = query.andAlso() : first = false;
-
             if (resource === 'none') {
                 query = query.openSubclause()
                     .negateNext()
@@ -335,8 +329,6 @@ class CardDao {
         }
 
         if (set) {
-            !first ? query = query.andAlso() : first = false;
-
             query = query.openSubclause();
 
             for (let setId of set) {
@@ -353,8 +345,6 @@ class CardDao {
         }
 
         if (text) {
-            !first ? query = query.andAlso() : first = false;
-
             let escapedTerms = EscapeRegex(text);
 
             query = query.openSubclause()
@@ -364,8 +354,6 @@ class CardDao {
         }
 
         if (traits) {
-            !first ? query = query.andAlso() : first = false;
-            
             query = query.openSubclause();
 
             for (let term of traits) {
@@ -383,8 +371,6 @@ class CardDao {
         }
 
         if (type) {
-            !first ? query = query.andAlso() : first = false;
-
             query = query.openSubclause()
                 .whereRegex('Type', type)
                 .closeSubclause();

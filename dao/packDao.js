@@ -36,7 +36,7 @@ class PackDao {
         return results;
     }
 
-    static async RetrieveWithFilters(origin = ALL, id = null, name = null) {
+    static async RetrieveWithFilters(origin = ALL, id = null, incomplete = null, name = null) {
         const session = this.store.openSession();
         let query = session.query({ indexName: `${ALL}${PackEntity.COLLECTION}` });
         
@@ -49,6 +49,12 @@ class PackDao {
         if (id) {
             query = query.openSubclause()
                 .whereRegex('id()', id)
+                .closeSubclause();
+        }
+
+        if (incomplete) {
+            query = query.openSubclause()
+                .whereEquals('Incomplete', incomplete)
                 .closeSubclause();
         }
 
