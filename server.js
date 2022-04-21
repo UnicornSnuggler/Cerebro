@@ -8,7 +8,14 @@ const { ArtistDao } = require('./dao/artistDao');
 
 const app = express();
 
+function DefaultHeaders(res) {
+    res.setHeader('Content-Type', 'application/json')
+        .setHeader('Access-Control-Allow-Origin', '*');
+}
+
 app.get('/artists', async function(req, res) {
+    DefaultHeaders(res);
+    
     let id = req.query.id;
     let name = req.query.name?.toLowerCase();
 
@@ -18,18 +25,18 @@ app.get('/artists', async function(req, res) {
         return a.Name - b.Name;
     });
 
-    res.setHeader('Content-Type', 'application/json')
-        .end(JSON.stringify(results));
+    res.end(JSON.stringify(results));
 });
 
 app.get('/cards', async function(req, res) {
+    DefaultHeaders(res);
+    
     let results = [];
     
     let origin = req.query.origin?.toLowerCase() || OFFICIAL;
 
     if (![ALL, OFFICIAL, UNOFFICIAL].includes(origin)) {
-        res.setHeader('Content-Type', 'application/json')
-            .status(400)
+        res.status(400)
             .end(JSON.stringify({ error: `The 'origin' parameter must be '${ALL}', '${OFFICIAL}', or '${UNOFFICIAL}'...` }));
 
         return;
@@ -38,8 +45,7 @@ app.get('/cards', async function(req, res) {
     let incomplete = req.query.incomplete?.toLowerCase();
 
     if (incomplete && ![FALSE, TRUE].includes(incomplete)) {
-        res.setHeader('Content-Type', 'application/json')
-            .status(400)
+        res.status(400)
             .end(JSON.stringify({ error: `The 'incomplete' parameter must be '${FALSE}' or '${TRUE}'...` }));
 
         return;
@@ -107,16 +113,16 @@ app.get('/cards', async function(req, res) {
         return a.Id - b.Id;
     });
 
-    res.setHeader('Content-Type', 'application/json')
-        .end(JSON.stringify(results));
+    res.end(JSON.stringify(results));
 });
 
 app.get('/packs', async function(req, res) {
+    DefaultHeaders(res);
+
     let origin = req.query.origin?.toLowerCase() || OFFICIAL;
 
     if (![ALL, OFFICIAL, UNOFFICIAL].includes(origin)) {
-        res.setHeader('Content-Type', 'application/json')
-            .status(400)
+        res.status(400)
             .end(JSON.stringify({ error: `The 'origin' parameter must be '${ALL}', '${OFFICIAL}', or '${UNOFFICIAL}'...` }));
 
         return;
@@ -125,8 +131,7 @@ app.get('/packs', async function(req, res) {
     let incomplete = req.query.incomplete?.toLowerCase();
 
     if (incomplete && ![FALSE, TRUE].includes(incomplete)) {
-        res.setHeader('Content-Type', 'application/json')
-            .status(400)
+        res.status(400)
             .end(JSON.stringify({ error: `The 'incomplete' parameter must be '${FALSE}' or '${TRUE}'...` }));
 
         return;
@@ -141,16 +146,16 @@ app.get('/packs', async function(req, res) {
         return a.Name - b.Name;
     });
 
-    res.setHeader('Content-Type', 'application/json')
-        .end(JSON.stringify(results));
+    res.end(JSON.stringify(results));
 });
 
 app.get('/sets', async function(req, res) {
+    DefaultHeaders(res);
+
     let origin = req.query.origin?.toLowerCase() || OFFICIAL;
 
     if (![ALL, OFFICIAL, UNOFFICIAL].includes(origin)) {
-        res.setHeader('Content-Type', 'application/json')
-            .status(400)
+        res.status(400)
             .end(JSON.stringify({ error: `The 'origin' parameter must be '${ALL}', '${OFFICIAL}', or '${UNOFFICIAL}'...` }));
 
         return;
@@ -165,7 +170,7 @@ app.get('/sets', async function(req, res) {
         return a.Name - b.Name;
     });
 
-    res.setHeader('Content-Type', 'application/json')
+    res.DefaultHeaders()
         .end(JSON.stringify(results));
 });
 
@@ -178,8 +183,7 @@ app.get('*', function(req, res) {
         'You don\'t belong here...'
     ]
 
-    res.setHeader('Content-Type', 'application/json')
-        .status(404)
+    res.status(404)
         .end(JSON.stringify({ error: errors[Math.floor(Math.random() * errors.length)] }));
 });
 
