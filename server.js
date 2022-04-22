@@ -5,6 +5,7 @@ const { ResourceConverter } = require('./utilities/cardHelper');
 const express = require('express');
 const { OFFICIAL, ALL, UNOFFICIAL, FALSE, TRUE } = require('./constants');
 const { ArtistDao } = require('./dao/artistDao');
+const { FormattingDao } = require('./dao/formattingDao');
 
 const app = express();
 
@@ -111,6 +112,20 @@ app.get('/cards', async function(req, res) {
 
     results.sort(function(a, b) {
         return a.Id - b.Id;
+    });
+
+    res.end(JSON.stringify(results));
+});
+
+app.get('/formattings', async function(req, res) {
+    DefaultHeaders(res);
+    
+    let results = await FormattingDao.RetrieveWithFilters();
+
+    results.sort(function(a, b) {
+        let priorities = ['Severe', 'Exclusion', 'High', 'Medium', 'Low'];
+        
+        return priorities.indexOf(a.Priority) - priorities.indexOf(b.Priority);
     });
 
     res.end(JSON.stringify(results));

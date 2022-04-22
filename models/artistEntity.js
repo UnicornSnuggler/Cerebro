@@ -7,7 +7,6 @@ class ArtistEntity extends BaseEntity {
     constructor (document) {
         super(document);
         
-        this.DummyId = document.DummyId;
         this.Name = document.Name;
     }
 }
