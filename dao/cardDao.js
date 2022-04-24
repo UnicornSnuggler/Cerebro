@@ -228,10 +228,9 @@ class CardDao {
             }
 
             let matches = results.filter(function(card) {
-                return card.Name.toLowerCase() === terms || (!['Hero', 'Alter-Ego'].includes(card.Type) && card.Subname != null && card.Subname.toLowerCase() === terms) || card.Id.toLowerCase() === terms;
+                return card.Name.toLowerCase() === terms || (card.Subname != null && card.Subname.toLowerCase() === terms) || card.Id.toLowerCase() === terms;
             });
 
-            // return trimDuplicates ? TrimDuplicates(matches.length > 0 ? matches : results) : results;
             return matches.length > 0 ? matches : results;
         }
     }
