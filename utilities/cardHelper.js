@@ -5,11 +5,14 @@ const { ConfigurationDao } = require('../dao/configurationDao');
 const { CreateEmbed, RemoveComponents, SendMessageWithOptions } = require('../utilities/messageHelper');
 const { Summary } = require('./printingHelper');
 const { FormatSymbols, FormatText, SpoilerIfIncomplete, QuoteText, ItalicizeText } = require('./stringHelper');
-const { RELEASED_EMOJI, COLORS, ID_LENGTH, INTERACT_APOLOGY, LOAD_APOLOGY, SYMBOLS, INTERACT_TIMEOUT, TINKERER_EMOJI, WARNING_EMOJI, REVIEWING_EMOJI, SECOND_MILLIS, MAX_ATTACHMENTS, IMAGES_PER_ROW, IMAGE_WIDTH, IMAGE_HEIGHT, MAX_IMAGES_APOLOGY } = require('../constants');
+const { RELEASED_EMOJI, COLORS, ID_LENGTH, INTERACT_APOLOGY, LOAD_APOLOGY, SYMBOLS, INTERACT_TIMEOUT, TINKERER_EMOJI, WARNING_EMOJI, REVIEWING_EMOJI, SECOND_MILLIS, MAX_ATTACHMENTS, IMAGES_PER_ROW, IMAGE_WIDTH, IMAGE_HEIGHT, MAX_IMAGES_APOLOGY, ARTIST_EMOJI } = require('../constants');
 const { NavigationCollection } = require('../models/navigationCollection');
 const { SetDao } = require('../dao/setDao');
 const { ReportError } = require('./errorHelper');
 const Canvas = require('canvas');
+const { CreateStringFromArray } = require('./arrayHelper');
+const { ArtistDao } = require('../dao/artistDao');
+const { GetUserIdFromContext } = require('./userHelper');
 
 const BuildCardImagePath = exports.BuildCardImagePath = function(card, artStyle = card.Id) {
     return `${process.env.cardImagePrefix}${card.Official ? 'official/' : `unofficial/`}${artStyle}.jpg`;
@@ -77,7 +80,9 @@ const BuildEmbed = exports.BuildEmbed = function(card, alternateArt = null, spoi
         body.push(SpoilerIfIncomplete(ItalicizeText(escapedFlavor), card.Incomplete && !spoilerFree));
     }
 
-    if (!card.Official) body.push(BuildCredits(card));
+    let credits = BuildCredits(card);
+
+    if (credits) body.push(credits);
 
     if (body.length > 0) description.push(body.join('\n\n'));
 
@@ -98,23 +103,32 @@ const BuildEmbed = exports.BuildEmbed = function(card, alternateArt = null, spoi
 }
 
 const BuildCredits = exports.BuildCredits = function(card) {
-    let pack = PackDao.PACKS.find(x => x.Id === GetPrintingByArtificialId(card, card.Id).PackId);
-
     let credits = [];
 
-    credits.push(`${Formatters.bold('Author')}: <@${card.AuthorId}>`);
-    switch (pack.ReleaseStatus) {
-        case 3:
-            credits.push(`${REVIEWING_EMOJI} Pending council review...`);
-            break;
-        case 2:
-            credits.push(`${RELEASED_EMOJI} Released in Council Set #${pack.CouncilNumber}!`);
-            break;
-        case 1:
-            credits.push(`${TINKERER_EMOJI} The Tinkerer Blue Gold Seal of Approval!`);
-            break;
-        default:
-            credits.push(`${WARNING_EMOJI} Not yet released...`);
+    if (card.Artists) {
+        let list = CreateStringFromArray(card.Artists.map(x => Formatters.bold(ArtistDao.ARTISTS.find(y => y.Id === x).Name)), ', ', false);
+
+        credits.push(`${ARTIST_EMOJI} ${list}`);
+    }
+
+    if (!card.Official) {
+        let pack = PackDao.PACKS.find(x => x.Id === GetPrintingByArtificialId(card, card.Id).PackId);
+        
+        
+        credits.push(`${Formatters.bold('Author')}: <@${card.AuthorId}>`);
+        switch (pack.ReleaseStatus) {
+            case 3:
+                credits.push(`${REVIEWING_EMOJI} Pending council review...`);
+                break;
+            case 2:
+                credits.push(`${RELEASED_EMOJI} Released in Council Set #${pack.CouncilNumber}!`);
+                break;
+            case 1:
+                credits.push(`${TINKERER_EMOJI} The Tinkerer Blue Gold Seal of Approval!`);
+                break;
+            default:
+                credits.push(`${WARNING_EMOJI} Not yet released...`);
+        }
     }
 
     return credits.join('\n');
@@ -266,7 +280,7 @@ exports.CreateSelectBox = function(cards) {
         if (card.Resource) emoji = SYMBOLS[card.Resource];
 
         selector.addOptions([{
-            label: `${card.Name}${card.Subname ? ` (${card.Subname})` : ''}`,
+            label: `${card.Name}${card.Subname ? ` (${card.Subname})` : ''}${card.Stage ? ` — Stage ${card.Stage}` : ''}`,
             description: description,
             emoji: emoji,
             value: card.Id
@@ -433,7 +447,7 @@ const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, current
             const collector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: INTERACT_TIMEOUT * SECOND_MILLIS });
 
             collector.on('collect', i => {
-                let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
+                let userId = GetUserIdFromContext(context);
 
                 if (i.customId === 'toggleSpoiler') {
                     Imbibe(i, card, currentArtStyle, currentFace, currentElement, collection, rulesToggle, artToggle, null, true);
@@ -542,6 +556,8 @@ const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, current
 
 exports.QueueCompiledResult = function(context, cards, message = null, missing = null) {
     try {
+        let spoilerOverride = (!context.guildId || (ConfigurationDao.CONFIGURATION.SpoilerExceptions[context.guildId] && ConfigurationDao.CONFIGURATION.SpoilerExceptions[context.guildId].includes(context.channelId)));
+
         let overload = false;
         
         if (cards.length > MAX_ATTACHMENTS * IMAGES_PER_ROW) {
@@ -567,7 +583,7 @@ exports.QueueCompiledResult = function(context, cards, message = null, missing =
             let canvas = Canvas.createCanvas(width, height);
             let canvasContext = canvas.getContext('2d');
 
-            let spoiler = row.some(x => x.Incomplete);
+            let spoiler = !spoilerOverride && row.some(x => x.Incomplete);
             
             for (let x = 0; x < row.length; x++) {
                 let imagePath = BuildCardImagePath(row[x], row[x].Id);
@@ -617,7 +633,7 @@ exports.QueueCompiledResult = function(context, cards, message = null, missing =
                 }
 
                 if (missing) {
-                    let entry = `The following quer${missing.length === 1 ? 'y' : 'ies'} returned no results:\n\`\`\``;
+                    let entry = `The following quer${missing.length === 1 ? 'y' : 'ies'} timed out, were canceled, or returned no results:\n\`\`\``;
                 
                     for (let query of missing) {
                         entry += `• ${query}\n`;
@@ -632,7 +648,8 @@ exports.QueueCompiledResult = function(context, cards, message = null, missing =
                     content: content.length ? content.join('\n\n') : null,
                     embeds: [],
                     files: attachments,
-                    fetchReply: true
+                    fetchReply: true,
+                    failIfNotExists: false
                 };
                 
                 if (message) {

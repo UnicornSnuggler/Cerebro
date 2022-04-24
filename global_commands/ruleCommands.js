@@ -6,6 +6,7 @@ const { CreateEmbed, RemoveComponents, SendContentAsEmbed, SendMessageWithOption
 const { BuildEmbed } = require('../utilities/ruleHelper');
 const { SYMBOLS, INTERACT_APOLOGY, LOAD_APOLOGY, SELECT_TIMEOUT, TIMEOUT_APOLOGY, SECOND_MILLIS } = require('../constants');
 const { ReportError } = require('../utilities/errorHelper');
+const { GetUserIdFromContext } = require('../utilities/userHelper');
 
     const SelectBox = async function(context, rules) {
         try {
@@ -52,7 +53,7 @@ const { ReportError } = require('../utilities/errorHelper');
             const collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: SELECT_TIMEOUT * SECOND_MILLIS });
 
             collector.on('collect', async i => {
-                let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
+                let userId = GetUserIdFromContext(context);
 
                 if (i.user.id === userId) {
                     let rule = rules.find(x => x.Id === i.values[0]);

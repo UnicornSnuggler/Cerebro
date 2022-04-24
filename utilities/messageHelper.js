@@ -1,9 +1,10 @@
 const { MessageEmbed } = require("discord.js");
 const { COLORS, PRODUCTION_BOT, WIZARD, ACOLYTE } = require("../constants");
 const { ConfigurationDao } = require("../dao/configurationDao");
+const { GetUserIdFromContext } = require("./userHelper");
 
 exports.Authorized = function(context, adminLocked = false) {
-    let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
+    let userId = GetUserIdFromContext(context);
 
     if (adminLocked && userId !== WIZARD) {
         SendContentAsEmbed(context, "Only the bot administrator can use this command!", null, true);
@@ -37,6 +38,19 @@ let CreateEmbed = exports.CreateEmbed = function(content, color = COLORS.Default
     return embed;
 }
 
+exports.DirectMessageUser = async function(user, message) {            
+    let embed = CreateEmbed(message, COLORS.Basic);
+
+    try {
+        await user.send({
+            embeds: [embed]
+        });
+    }
+    catch (e) {
+        console.error(`An error occurred while attempting to direct message a user...\n\n${e}`);
+    }
+}
+
 exports.RemoveComponents = function(message, content, removeFiles = true) {
     let messageOptions = {
         components: []
@@ -62,32 +76,18 @@ let SendContentAsEmbed = exports.SendContentAsEmbed = function(context, content,
         components: components,
         embeds: [embed],
         ephemeral: ephemeral,
-        fetchReply: true
+        fetchReply: true,
+        failIfNotExists: false
     });
 }
 
 exports.SendMessageWithOptions = function(context, options, ephemeral = false) {
     options.allowedMentions = {
-        repliedUser: false
+        repliedUser: false,
+        failIfNotExists: false
     };
     options.ephemeral = ephemeral;
     options.fetchReply = true;
 
     return context.reply(options);
-}
-
-const CONFIRMATION_TYPES = {
-    yesNo: 0,
-    separateTogether: 1
-};
-
-const CONFIRMATION_RESULTS = {
-    yes: 0,
-    no: 1,
-    separate: 2,
-    together: 3
-}
-
-exports.GetConfirmation = function(message, prompt, type) {
-    
 }

@@ -9,6 +9,7 @@ const { LogCommand, LogCollectionResult } = require('../utilities/logHelper');
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed, Authorized } = require('../utilities/messageHelper');
 const { LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT, SECOND_MILLIS, DEFAULT_ART_TOGGLE } = require('../constants');
 const { ReportError } = require('../utilities/errorHelper');
+const { GetUserIdFromContext } = require('../utilities/userHelper');
 
 const SelectBox = async function(context, collectionEntities, type) {
     try {
@@ -44,7 +45,7 @@ const SelectBox = async function(context, collectionEntities, type) {
             let collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: SELECT_TIMEOUT * SECOND_MILLIS });
 
             collector.on('collect', async i => {
-                let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
+                let userId = GetUserIdFromContext(context);
 
                 if (i.user.id === userId) {
                     let collectionEntity = collectionEntities.find(x => x.Id === i.values[0]);

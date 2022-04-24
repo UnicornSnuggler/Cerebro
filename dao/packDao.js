@@ -36,35 +36,41 @@ class PackDao {
         return results;
     }
 
-    static async RetrieveByNameRemotely(terms, origin = ALL) {
+    static async RetrieveWithFilters(origin = ALL, id = null, incomplete = null, name = null) {
         const session = this.store.openSession();
+        let query = session.query({ indexName: `${ALL}${PackEntity.COLLECTION}` });
+        
+        let results = [];
 
-        let index = `${ALL}${PackEntity.COLLECTION}`;
+        if (origin !== ALL) {            
+            query = query.whereEquals('Official', origin === OFFICIAL);
+        }
+        
+        if (id) {
+            query = query.openSubclause()
+                .whereRegex('id()', id)
+                .closeSubclause();
+        }
 
-        let query = session.query({ indexName: index })
-            .whereRegex('Name', terms.toLowerCase());
+        if (incomplete) {
+            query = query.openSubclause()
+                .whereEquals('Incomplete', incomplete)
+                .closeSubclause();
+        }
 
-        if (origin !== ALL) {
-            let official = origin === OFFICIAL;
-            
-            query = query.andAlso()
-                .whereEquals('Official', official);
+        if (name) {
+            query = query.openSubclause()
+                .whereRegex('Name', name)
+                .closeSubclause();
         }
 
         let documents = await query.all();
 
-        if (documents.length > 0) {
-            let results = [];
+        for (let document of documents) {
+            results.push(new PackEntity(document));
+        }
 
-            for (let document of documents) {
-                results.push(new PackEntity(document));
-            }
-            
-            return results;
-        }
-        else {
-            return [];
-        }
+        return results;
     }
 }
 

@@ -52,7 +52,8 @@ module.exports = {
                 allowedMentions: {
                     repliedUser: false
                 },
-                embeds: [embed]
+                embeds: [embed],
+                failIfNotExists: false
             });
         }
         catch (e) {

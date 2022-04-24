@@ -8,6 +8,7 @@ class CardEntity extends BaseAuthoredEntity {
         super(document);
 
         this.Acceleration = document.Acceleration;
+        this.Artists = document.Artists;
         this.Attack = document.Attack;
         this.Boost = document.Boost;
         this.Classification = document.Classification;

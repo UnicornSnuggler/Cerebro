@@ -1,10 +1,10 @@
 const { MessageActionRow, MessageButton, MessageEmbed } = require('discord.js');
 const { INTERACT_APOLOGY, TIMEOUT_APOLOGY, COLORS, WIZARD, PROMPT_TIMEOUT, MINUTE_MILLIS, PRODUCTION_BOT } = require("../constants");
-const { CreateEmbed, RemoveComponents } = require("./messageHelper");
+const { CreateEmbed, DirectMessageUser, RemoveComponents } = require("./messageHelper");
 const { RequestDao } = require('../dao/requestDao');
 const { CapitalizedTitleElement, QuoteText } = require('./stringHelper');
 const { ConfigurationDao } = require('../dao/configurationDao');
-const { GetUser, DirectMessageUser } = require('./userHelper');
+const { GetUser, GetUserIdFromContext } = require('./userHelper');
 const { ReportError } = require('./errorHelper');
 
 const STABILITY_TYPES = exports.STABILITY_TYPES = {
@@ -219,7 +219,7 @@ const TrashRequest = async function(context, request, newFlag, inputConfirmation
             messageCollector = context.channel.createMessageCollector({ time: PROMPT_TIMEOUT * MINUTE_MILLIS });
 
             messageCollector.on('collect', i => {
-                let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
+                let userId = GetUserIdFromContext(context);
 
                 if (i.author.id === userId) {
                     buttonCollector.stop(null);
@@ -231,7 +231,7 @@ const TrashRequest = async function(context, request, newFlag, inputConfirmation
         buttonCollector.on('collect', i => {
             i.deferUpdate()
             .then(async () => {
-                let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
+                let userId = GetUserIdFromContext(context);
 
                 if (i.user.id === userId) {
                     switch (i.customId) {
@@ -486,7 +486,7 @@ const SendConfirmation = async function(context, request, prompt, operation) {
             buttonCollector.on('collect', i => {
                 i.deferUpdate()
                 .then(async () => {
-                    let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
+                    let userId = GetUserIdFromContext(context);
 
                     if (i.user.id === userId) {
                         if (i.customId === 'yes') {
@@ -606,7 +606,7 @@ exports.SendRequestEmbed = async function(context, request, moderator, owner) {
                 buttonCollector.on('collect', i => {
                     i.deferUpdate()
                     .then(async () => {
-                        let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
+                        let userId = GetUserIdFromContext(context);
         
                         if (i.user.id === userId) {
                             switch (i.customId) {

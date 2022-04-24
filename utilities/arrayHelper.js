@@ -12,7 +12,7 @@ exports.ChooseRandomElements = function(array, number) {
     return choices;
 }
 
-exports.CreateStringFromArray = function(array, delimiter = ', ') {
+exports.CreateStringFromArray = function(array, delimiter = ', ', fullWordAnd = true) {
     let output = null;
 
     switch(array.length) {
@@ -22,10 +22,10 @@ exports.CreateStringFromArray = function(array, delimiter = ', ') {
             output = array[0];
             break;
         case 2:
-            output = `${array[0]} and ${array[1]}`;
+            output = `${array[0]} ${fullWordAnd ? 'and' : '&'} ${array[1]}`;
             break;
         default:
-            output = array.map(x => array.indexOf(x) === array.length - 1 ? `and ${x}` : `${x}`).join(delimiter);
+            output = array.map(x => array.indexOf(x) === array.length - 1 ? `${fullWordAnd ? 'and' : '&'} ${x}` : `${x}`).join(delimiter);
             break;
     }
 

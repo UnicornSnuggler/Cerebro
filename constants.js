@@ -35,11 +35,15 @@ exports.PROMPT_TIMEOUT = 5;
 
 exports.ID_LENGTH = 5;
 
+exports.DONOR_GLITCH_CHANCE = 7;
 exports.GLITCH_CHANCE = 3;
 
 exports.ALL = 'all';
 exports.OFFICIAL = 'official';
 exports.UNOFFICIAL = 'unofficial';
+
+exports.FALSE = 'false';
+exports.TRUE = 'true';
 
 exports.DM_APOLOGY = 'Sorry, but you can\'t view server statistics in a direct message...';
 exports.INTERACT_APOLOGY = 'Sorry, but you can\'t interact with another user\'s messages...';
@@ -47,6 +51,7 @@ exports.LOAD_APOLOGY = 'Please wait while result details are being retrieved. Ar
 exports.TIMEOUT_APOLOGY = 'The interaction timeout was reached...';
 exports.MAX_IMAGES_APOLOGY = `*(No more than ${this.MAX_IMAGES} images can be displayed at a time... Your response has been trimmed accordingly.)*`;
 
+exports.ARTIST_EMOJI = ':paintbrush:'
 exports.RELEASED_EMOJI = '<:affirmative:939594005317025832>';
 exports.REVIEWING_EMOJI = ':mag:';
 exports.TINKERER_EMOJI = '<:tinkerer_seal:939594700078317568>';

@@ -86,7 +86,8 @@ module.exports = {
 
                 await context.reply({
                     embeds: [embed],
-                    ephemeral: moderator || scopeOption !== 'all'
+                    ephemeral: moderator || scopeOption !== 'all',
+                    failIfNotExists: false
                 });
             }
             else if (subCommand === 'new') {

@@ -22,6 +22,19 @@ class FormattingDao {
         console.log(` - Found ${documents.length} formattings in the database...`);
         console.log(`Loaded ${this.FORMATTINGS.length} total formattings from the database!\n`);
     }
+
+    static async RetrieveWithFilters() {
+        const session = this.store.openSession();
+        let documents = await session.query({ indexName: FormattingEntity.COLLECTION }).all();
+        
+        let results = [];
+
+        for (let document of documents) {
+            results.push(new FormattingEntity(document));
+        }
+
+        return results;
+    }
 }
 
 module.exports = { FormattingDao }
