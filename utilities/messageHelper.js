@@ -38,6 +38,19 @@ let CreateEmbed = exports.CreateEmbed = function(content, color = COLORS.Default
     return embed;
 }
 
+exports.DirectMessageUser = async function(user, message) {            
+    let embed = CreateEmbed(message, COLORS.Basic);
+
+    try {
+        await user.send({
+            embeds: [embed]
+        });
+    }
+    catch (e) {
+        console.error(`An error occurred while attempting to direct message a user...\n\n${e}`);
+    }
+}
+
 exports.RemoveComponents = function(message, content, removeFiles = true) {
     let messageOptions = {
         components: []
@@ -77,20 +90,4 @@ exports.SendMessageWithOptions = function(context, options, ephemeral = false) {
     options.fetchReply = true;
 
     return context.reply(options);
-}
-
-const CONFIRMATION_TYPES = {
-    yesNo: 0,
-    separateTogether: 1
-};
-
-const CONFIRMATION_RESULTS = {
-    yes: 0,
-    no: 1,
-    separate: 2,
-    together: 3
-}
-
-exports.GetConfirmation = function(message, prompt, type) {
-    
 }

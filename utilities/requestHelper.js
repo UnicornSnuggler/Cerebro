@@ -1,10 +1,10 @@
 const { MessageActionRow, MessageButton, MessageEmbed } = require('discord.js');
 const { INTERACT_APOLOGY, TIMEOUT_APOLOGY, COLORS, WIZARD, PROMPT_TIMEOUT, MINUTE_MILLIS, PRODUCTION_BOT } = require("../constants");
-const { CreateEmbed, RemoveComponents } = require("./messageHelper");
+const { CreateEmbed, DirectMessageUser, RemoveComponents } = require("./messageHelper");
 const { RequestDao } = require('../dao/requestDao');
 const { CapitalizedTitleElement, QuoteText } = require('./stringHelper');
 const { ConfigurationDao } = require('../dao/configurationDao');
-const { GetUser, DirectMessageUser, GetUserIdFromContext } = require('./userHelper');
+const { GetUser, GetUserIdFromContext } = require('./userHelper');
 const { ReportError } = require('./errorHelper');
 
 const STABILITY_TYPES = exports.STABILITY_TYPES = {
