@@ -12,6 +12,7 @@ const { ReportError } = require('./errorHelper');
 const Canvas = require('canvas');
 const { CreateStringFromArray } = require('./arrayHelper');
 const { ArtistDao } = require('../dao/artistDao');
+const { GetUserIdFromContext } = require('./userHelper');
 
 const BuildCardImagePath = exports.BuildCardImagePath = function(card, artStyle = card.Id) {
     return `${process.env.cardImagePrefix}${card.Official ? 'official/' : `unofficial/`}${artStyle}.jpg`;
@@ -279,7 +280,7 @@ exports.CreateSelectBox = function(cards) {
         if (card.Resource) emoji = SYMBOLS[card.Resource];
 
         selector.addOptions([{
-            label: `${card.Name}${card.Subname ? ` (${card.Subname})` : ''}`,
+            label: `${card.Name}${card.Subname ? ` (${card.Subname})` : ''}${card.Stage ? ` — Stage ${card.Stage}` : ''}`,
             description: description,
             emoji: emoji,
             value: card.Id
@@ -446,7 +447,7 @@ const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, current
             const collector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: INTERACT_TIMEOUT * SECOND_MILLIS });
 
             collector.on('collect', i => {
-                let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
+                let userId = GetUserIdFromContext(context);
 
                 if (i.customId === 'toggleSpoiler') {
                     Imbibe(i, card, currentArtStyle, currentFace, currentElement, collection, rulesToggle, artToggle, null, true);
@@ -555,6 +556,8 @@ const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, current
 
 exports.QueueCompiledResult = function(context, cards, message = null, missing = null) {
     try {
+        let spoilerOverride = (!context.guildId || (ConfigurationDao.CONFIGURATION.SpoilerExceptions[context.guildId] && ConfigurationDao.CONFIGURATION.SpoilerExceptions[context.guildId].includes(context.channelId)));
+
         let overload = false;
         
         if (cards.length > MAX_ATTACHMENTS * IMAGES_PER_ROW) {
@@ -580,7 +583,7 @@ exports.QueueCompiledResult = function(context, cards, message = null, missing =
             let canvas = Canvas.createCanvas(width, height);
             let canvasContext = canvas.getContext('2d');
 
-            let spoiler = row.some(x => x.Incomplete);
+            let spoiler = !spoilerOverride && row.some(x => x.Incomplete);
             
             for (let x = 0; x < row.length; x++) {
                 let imagePath = BuildCardImagePath(row[x], row[x].Id);

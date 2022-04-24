@@ -11,9 +11,10 @@ const { GetPrintingByArtificialId, BuildCardImagePath } = require('./cardHelper'
 const { COLORS } = require('../constants');
 const { CapitalizedTitleElement } = require('./stringHelper');
 const { ReportError } = require('./errorHelper');
+const { GetUserIdFromContext } = require('./userHelper');
 
 const BuildBaseEntity = function(context, collection) {
-    let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
+    let userId = GetUserIdFromContext(context);
     let guildId = context.guildId;
 
     let entity = {

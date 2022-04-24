@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { COLORS, MASOCHIST } = require('../constants');
+const { COLORS, MASOCHIST, WIZARD, ACOLYTE } = require('../constants');
 const { ConfigurationDao } = require('../dao/configurationDao');
 const { PackDao } = require('../dao/packDao');
 const { SetDao } = require('../dao/setDao');
@@ -9,6 +9,7 @@ const { ReportError } = require('../utilities/errorHelper');
 const { LogCommand } = require('../utilities/logHelper');
 const { CreateEmbed, Authorized } = require('../utilities/messageHelper');
 const { SuperscriptNumber } = require('../utilities/stringHelper');
+const { GetUserIdFromContext } = require('../utilities/userHelper');
 
 const ContributionString = function(contributions) {
     let result = contributions.length > 0 ? '\n' : '';
@@ -169,6 +170,38 @@ const GenerateHero = function(unofficial = false, heroExclusions = null, aspectE
     };
 }
 
+const GenerateModulars = function(number, unofficial = false) {
+    let randomModulars = ChooseRandomElements(GetModularChoices(unofficial), number);
+
+    let contributions = [];
+
+    for (let modular of randomModulars) {
+        if (modular.AuthorId && !contributions.includes(x => x.AuthorId === modular.AuthorId && x.PackId === modular.PackId)) {
+            let modularPack = PackDao.PACKS.find(x => x.Id === modular.PackId);
+
+            contributions.push({
+                authorId: modular.AuthorId,
+                packName: `${modularPack.Name} ${modularPack.Type}`,
+                packId: modularPack.Id
+            });
+        }
+    }
+
+    return {
+        modulars: randomModulars,
+        contributions: contributions
+    };
+}
+
+const GetModularChoices = function(unofficial) {
+    return SetDao.SETS.filter(x =>
+        (unofficial || x.Official) &&
+        x.Type === 'Modular Set' &&
+        x.CanSimulate &&
+        !PackDao.PACKS.find(y => y.Id === x.PackId).Incomplete
+    );
+}
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('danger-room')
@@ -192,7 +225,16 @@ module.exports = {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('challenge')
-                .setDescription('Simulate the ultimate training exercise.')),
+                .setDescription('Simulate the ultimate training exercise.'))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('environment')
+                .setDescription('Randomly select one or more modular sets.')
+                .addIntegerOption(option =>
+                    option
+                        .setName('modulars')
+                        .setDescription('The number of modular sets to randomize. Defaults to 1 if unspecified.')
+                        .setRequired(false))),
     async execute(context) {
         if (!Authorized(context)) return;
         
@@ -220,16 +262,19 @@ module.exports = {
                     unofficial = true;
                 }
             }
+            
+            let donor = ConfigurationDao.CONFIGURATION.Donors.concat([WIZARD, ACOLYTE]).includes(GetUserIdFromContext(context));
 
             let subCommand = context.options.getSubcommand();
             let heroesOption = context.options.getInteger('heroes');
+            let modularsOption = context.options.getInteger('modulars');
             let command = `/danger-room`;
 
             new Promise(() => LogCommand(context, command, null));
             
             if (subCommand === 'mission') {
                 let results = [GenerateScenario(unofficial)];
-                RandomizeGlitches(results, null);
+                RandomizeGlitches(results, null, donor);
 
                 let content = '**D**:> Rendering combat simulation...' +
                     `\n**D**:> Loading **${results[0].scenario.Name}**${TagUnofficial(results[0].contributions, results[0].scenario.PackId)} protocol...` +
@@ -247,7 +292,7 @@ module.exports = {
             }
             else if (subCommand === 'hero') {
                 let results = [GenerateHero(unofficial)];
-                RandomizeGlitches(null, results);
+                RandomizeGlitches(null, results, donor);
 
                 let content = '**D**:> Processing bio-signature...' +
                     `\n**D**:> Identity verified!` +
@@ -291,7 +336,7 @@ module.exports = {
                     });
                 }
 
-                RandomizeGlitches(scenarioResults, heroResults);
+                RandomizeGlitches(scenarioResults, heroResults, donor);
 
                 let content = '**D**:> Initializing team training exercise...' +
                     `\n**D**:> Loading **${scenarioResults[0].scenario.Name}**${TagUnofficial(contributions, scenarioResults[0].scenario.PackId)} protocol...` +
@@ -357,6 +402,35 @@ module.exports = {
                     ContributionString(contributions);
 
                 let replyEmbed = CreateEmbed(content, COLORS.Aggression);
+    
+                await context.reply({
+                   embeds:[replyEmbed],
+                   failIfNotExists: false
+                });
+            }
+            else if (subCommand === 'environment') {
+                let maxModulars = GetModularChoices(unofficial).length;
+
+                if (modularsOption < 1 || modularsOption > maxModulars) {
+                    let replyEmbed = CreateEmbed(`You must specify a number of modulars between 1 and ${maxModulars}...`);
+                    
+                    await context.reply({
+                        embeds:[replyEmbed],
+                        ephemeral: true,
+                        failIfNotExists: false
+                    });
+    
+                    return;
+                }
+
+                let results = GenerateModulars(modularsOption ?? 1, unofficial);
+
+                let content = '**D**:> Synthesizing environmental composite...' +
+                `${results.modulars.map(x => `\n**D**:> Grafted **${x.Name}**${TagUnofficial(results.contributions, x.PackId)}.`).join('')}` +
+                    '\n**D**:> Composite synthesized!' +
+                    ContributionString(results.contributions);
+
+                let replyEmbed = CreateEmbed(content, COLORS.Encounter);
     
                 await context.reply({
                    embeds:[replyEmbed],

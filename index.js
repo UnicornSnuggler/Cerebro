@@ -17,6 +17,7 @@ const { ReportError } = require('./utilities/errorHelper');
 const { QueueCompiledResult, CreateSelectBox, ResourceConverter } = require('./utilities/cardHelper');
 const { LogCardResult, LogCommand } = require('./utilities/logHelper');
 const { ArtistDao } = require('./dao/artistDao');
+const { GetUserIdFromContext } = require('./utilities/userHelper');
 
 const client = new Client({ intents: [Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS], partials: [Constants.PartialTypes.CHANNEL] });
 
@@ -144,7 +145,7 @@ const PromptForConsolidation = async function(context, matches) {
         let collector = message.createMessageComponentCollector({ time: INTERACT_TIMEOUT * SECOND_MILLIS });
 
         collector.on('collect', async i => {
-            let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
+            let userId = GetUserIdFromContext(context);
 
             if (i.user.id === userId) {
                 if (i.customId === 'separate') {
@@ -276,7 +277,7 @@ const SelectBox = async function(context, cards) {
         while (choice === null && !escape) {
             await message.awaitMessageComponent({ time: INTERACT_TIMEOUT * SECOND_MILLIS })
                 .then(i => {
-                    let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
+                    let userId = GetUserIdFromContext(context);
             
                     if (i.user.id === userId) {
                         if (i.componentType === 'BUTTON') {

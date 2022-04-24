@@ -1,9 +1,10 @@
 const { MessageEmbed } = require("discord.js");
 const { COLORS, PRODUCTION_BOT, WIZARD, ACOLYTE } = require("../constants");
 const { ConfigurationDao } = require("../dao/configurationDao");
+const { GetUserIdFromContext } = require("./userHelper");
 
 exports.Authorized = function(context, adminLocked = false) {
-    let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
+    let userId = GetUserIdFromContext(context);
 
     if (adminLocked && userId !== WIZARD) {
         SendContentAsEmbed(context, "Only the bot administrator can use this command!", null, true);

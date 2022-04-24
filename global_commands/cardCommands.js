@@ -9,6 +9,7 @@ const { CreateEmbed, RemoveComponents, SendContentAsEmbed, Authorized } = requir
 const { LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT, SECOND_MILLIS, DEFAULT_ART_TOGGLE } = require('../constants');
 const { ConfigurationDao } = require('../dao/configurationDao');
 const { ReportError } = require('../utilities/errorHelper');
+const { GetUserIdFromContext } = require('../utilities/userHelper');
 
 const SelectBox = async function(context, cards) {
     try {
@@ -45,7 +46,7 @@ const SelectBox = async function(context, cards) {
             let collector = message.createMessageComponentCollector({ time: SELECT_TIMEOUT * SECOND_MILLIS });
 
             collector.on('collect', async i => {
-                let userId = context.user ? context.user.id : context.author ? context.author.id : context.member.id;
+                let userId = GetUserIdFromContext(context);
 
                 if (i.user.id === userId) {
                     if (i.componentType === 'BUTTON') {
@@ -147,10 +148,15 @@ module.exports = {
                 .addChoice('official', 'official')
                 .addChoice('unofficial', 'unofficial')
                 .addChoice('all', 'all'))
+        .addMentionableOption(option =>
+            option
+                .setName('author')
+                .setDescription('Query unofficial cards by their author.')
+                .setRequired(false))
         .addStringOption(option =>
             option
-                .setName('aspect')
-                .setDescription('Query cards by their aspect.')
+                .setName('classification')
+                .setDescription('Query cards by their aspect or other classification.')
                 .setRequired(false)
                 .addChoice('aggression', 'aggression')
                 .addChoice('basic', 'basic')
@@ -159,12 +165,8 @@ module.exports = {
                 .addChoice('hero', 'hero')
                 .addChoice('justice', 'justice')
                 .addChoice('leadership', 'leadership')
+                .addChoice('player', 'player')
                 .addChoice('protection', 'protection'))
-        .addMentionableOption(option =>
-            option
-                .setName('author')
-                .setDescription('Query unofficial cards by their author.')
-                .setRequired(false))
         .addStringOption(option =>
             option
                 .setName('cost')
@@ -232,11 +234,11 @@ module.exports = {
             let command = `/card`;
             let origin = context.options.getString('origin');
             
-            let aspectOption = context.options.getString('aspect');
-            let aspect = aspectOption ? aspectOption.toLowerCase() : null;
-            
             let authorOption = context.options.getMentionable('author');
             let author = authorOption ? authorOption.id : null;
+            
+            let classificationOption = context.options.getString('classification');
+            let classification = classificationOption ? classificationOption.toLowerCase() : null;
             
             let cost = context.options.getString('cost');
             
@@ -270,7 +272,7 @@ module.exports = {
                 }
             }
             
-            if (!aspect && !author && !cost && !name && !packIds && !resource && !setIds && !text && !traits && !type) {
+            if (!classification && !author && !cost && !name && !packIds && !resource && !setIds && !text && !traits && !type) {
                 SendContentAsEmbed(context, 'You must specify at least one search criteria...', null, true);
                 return;
             }
@@ -292,8 +294,15 @@ module.exports = {
                     results = await CardDao.RetrieveByName(name, origin);
     
                     if (results) {
-                        if (aspect) results = results.filter(card => card.Classification.toLowerCase() === aspect);
                         if (author) results = results.filter(card => card.AuthorId === author);
+                        if (classification) {
+                            if (classification === 'player') {
+                                results = results.filter(card => card.Classification.toLowerCase() !== 'encounter');
+                            }
+                            else {
+                                results = results.filter(card => card.Classification.toLowerCase() === classification);
+                            }
+                        }
                         if (cost) results = results.filter(card => card.Cost && card.Cost.toLowerCase() === cost);
                         if (packIds) {
                             results = results.filter(card => card.Printings.some(printing => packIds.includes(printing.PackId)));
@@ -315,7 +324,7 @@ module.exports = {
                     }
                 }
                 else {
-                    results = await CardDao.RetrieveWithFilters(origin, aspect, author, cost, null, packIds, resource, setIds, text, traits, type);
+                    results = await CardDao.RetrieveWithFilters(origin, author, null, classification, cost, null, packIds, resource, setIds, text, traits, type);
                 }
             }
             

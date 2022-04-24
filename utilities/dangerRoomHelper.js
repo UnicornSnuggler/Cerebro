@@ -1,4 +1,4 @@
-const { GLITCH_CHANCE } = require("../constants");
+const { GLITCH_CHANCE, DONOR_GLITCH_CHANCE } = require("../constants");
 
 const GLITCH_FILTERS = {
     mustHaveModulars: 0,
@@ -71,9 +71,9 @@ const GLITCHES = [
     }
 ];
 
-exports.RandomizeGlitches = function(scenarios, heroes) {
+exports.RandomizeGlitches = function(scenarios, heroes, donor = false) {
     let randomNumber = Math.random();
-    let chance = GLITCH_CHANCE / 100;
+    let chance = (donor ? DONOR_GLITCH_CHANCE : GLITCH_CHANCE) / 100;
 
     if (randomNumber > chance) {
         return;

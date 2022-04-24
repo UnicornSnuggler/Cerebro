@@ -3,7 +3,7 @@ const { CardEntity } = require('../models/cardEntity');
 const { NavigationCollection } = require('../models/navigationCollection');
 const { GetBaseId, ShareFaces, ShareGroups, BuildCollectionFromBatch } = require('../utilities/cardHelper');
 const { CreateDocumentStore, DeriveDatabase } = require('../utilities/documentStoreHelper');
-const { OFFICIAL, UNOFFICIAL } = require('../constants');
+const { OFFICIAL, UNOFFICIAL, ALL } = require('../constants');
 const { EscapeRegex } = require('../utilities/stringHelper');
 
 const TrimDuplicates = function(cards) {
@@ -40,11 +40,13 @@ class CardDao {
 
         if (card.Id.length === baseId.length) return null;
 
-        let index = `${card.Official ? OFFICIAL : UNOFFICIAL}${CardEntity.COLLECTION}`;
+        let index = `${ALL}${CardEntity.COLLECTION}`;
 
         let results = [];
 
         let documents = await this.store.openSession().query({ indexName: index })
+            .whereEquals('Official', card.Official)
+            .andAlso()
             .whereRegex('id()', baseId)
             .orderBy('id()').all();
 
@@ -58,11 +60,13 @@ class CardDao {
     static async FindElements(card) {
         if (!card.GroupId) return null;
 
-        let index = `${card.Official ? OFFICIAL : UNOFFICIAL}${CardEntity.COLLECTION}`;
+        let index = `${ALL}${CardEntity.COLLECTION}`;
 
         let results = [];
 
         let documents = await this.store.openSession().query({ indexName: index })
+            .whereEquals('Official', card.Official)
+            .andAlso()
             .whereRegex('GroupId', card.GroupId)
             .orderBy('id()').all();
 
@@ -143,51 +147,77 @@ class CardDao {
 
         let wildcard = terms.includes('*');
 
-        let index = `${origin}${CardEntity.COLLECTION}`;
+        let index = `${ALL}${CardEntity.COLLECTION}`;
         let convertedQuery = terms.normalize('NFD').replace(/[\u0300-\u036f]/gmi, '').toLowerCase();
         let tokenizedQuery = convertedQuery.replace(/[^a-z0-9 -]/gmi, '').replace(/[-]/gmi, ' ');
         let strippedQuery = convertedQuery.replace(/[^a-z0-9]/gmi, '');
+        
+        let query;
+        let documents = [];
 
-        let documents = !wildcard ? await session.query({ indexName: index })
-            .search('id()', convertedQuery, 'AND').orElse()
-            .search('Name', convertedQuery, 'AND').orElse()
-            .search('TokenizedName', tokenizedQuery, 'AND').orElse()
-            .search('StrippedName', strippedQuery, 'AND').orElse()
-            .search('Subname', convertedQuery, 'AND').orElse()
-            .search('TokenizedSubname', tokenizedQuery, 'AND').orElse()
-            .search('StrippedSubname', strippedQuery, 'AND')
-            .all() : [];
+        if (!wildcard) {
+            query = session.query({ indexName: index });
 
-        if (documents.length === 0) {
-            documents = !wildcard ? await session.query({ indexName: index })
+            if (origin !== 'all') query.whereEquals('Official', origin === OFFICIAL).andAlso();
+
+            query = query.openSubclause()
+                .search('id()', convertedQuery, 'AND').orElse()
+                .search('Name', convertedQuery, 'AND').orElse()
+                .search('TokenizedName', tokenizedQuery, 'AND').orElse()
+                .search('StrippedName', strippedQuery, 'AND').orElse()
+                .search('Subname', convertedQuery, 'AND').orElse()
+                .search('TokenizedSubname', tokenizedQuery, 'AND').orElse()
+                .search('StrippedSubname', strippedQuery, 'AND')
+                .closeSubclause();
+
+            documents = await query.all();
+        }
+
+        if (documents.length === 0 && !wildcard) {
+            query = session.query({ indexName: index });
+
+            if (origin !== 'all') query.whereEquals('Official', origin === OFFICIAL).andAlso();
+
+            query = query.openSubclause()
                 .whereLucene('TokenizedName', tokenizedQuery).orElse()
                 .whereLucene('StrippedName', strippedQuery).orElse()
                 .whereLucene('TokenizedSubname', tokenizedQuery).orElse()
                 .whereLucene('StrippedSubname', strippedQuery)
-                .all() : [];
-        
-            if (documents.length === 0) {
-                documents = await session.query({ indexName: index })
-                    .whereRegex('id()', convertedQuery).orElse()
-                    .whereRegex('Name', convertedQuery).orElse()
-                    .whereRegex('TokenizedName', tokenizedQuery).orElse()
-                    .whereRegex('StrippedName', strippedQuery).orElse()
-                    .whereRegex('Subname', convertedQuery).orElse()
-                    .whereRegex('TokenizedSubname', tokenizedQuery).orElse()
-                    .whereRegex('StrippedSubname', strippedQuery)
-                    .all();
+                .closeSubclause();
 
-                if (documents.length === 0) {
-                    documents = await session.query({ indexName: index })
-                        .whereEquals('Name', convertedQuery).fuzzy(0.70).orElse()
-                        .whereEquals('TokenizedName', tokenizedQuery).fuzzy(0.70).orElse()
-                        .whereEquals('StrippedName', strippedQuery).fuzzy(0.70).orElse()
-                        .whereEquals('Subname', convertedQuery).fuzzy(0.70).orElse()
-                        .whereEquals('TokenizedSubname', tokenizedQuery).fuzzy(0.70).orElse()
-                        .whereEquals('StrippedSubname', strippedQuery).fuzzy(0.70)
-                        .all();
-                }
-            }
+            documents = await query.all();
+        }
+        
+        if (documents.length === 0) {
+            query = session.query({ indexName: index });
+
+            if (origin !== 'all') query.whereEquals('Official', origin === OFFICIAL).andAlso();
+
+            query = query.openSubclause()
+                .whereRegex('TokenizedName', tokenizedQuery).orElse()
+                .whereRegex('StrippedName', strippedQuery).orElse()
+                .whereRegex('TokenizedSubname', tokenizedQuery).orElse()
+                .whereRegex('StrippedSubname', strippedQuery)
+                .closeSubclause();
+
+            documents = await query.all();
+        }
+
+        if (documents.length === 0) {
+            query = session.query({ indexName: index });
+
+            if (origin !== 'all') query.whereEquals('Official', origin === OFFICIAL).andAlso();
+
+            query = query.openSubclause()
+                .whereEquals('Name', convertedQuery).fuzzy(0.70).orElse()
+                .whereEquals('TokenizedName', tokenizedQuery).fuzzy(0.70).orElse()
+                .whereEquals('StrippedName', strippedQuery).fuzzy(0.70).orElse()
+                .whereEquals('Subname', convertedQuery).fuzzy(0.70).orElse()
+                .whereEquals('TokenizedSubname', tokenizedQuery).fuzzy(0.70).orElse()
+                .whereEquals('StrippedSubname', strippedQuery).fuzzy(0.70)
+                .closeSubclause();
+
+            documents = await query.all();
         }
 
         if (documents.length > 0) {
@@ -201,16 +231,17 @@ class CardDao {
                 return card.Name.toLowerCase() === terms || (!['Hero', 'Alter-Ego'].includes(card.Type) && card.Subname != null && card.Subname.toLowerCase() === terms) || card.Id.toLowerCase() === terms;
             });
 
-            return trimDuplicates ? TrimDuplicates(matches.length > 0 ? matches : results) : results;
+            // return trimDuplicates ? TrimDuplicates(matches.length > 0 ? matches : results) : results;
+            return matches.length > 0 ? matches : results;
         }
     }
 
     static async RetrieveByCollection(collectionEntity, type) {
         const session = this.store.openSession();
 
-        let index = `${collectionEntity.Official ? OFFICIAL : UNOFFICIAL}${CardEntity.COLLECTION}`;
-
-        let documents = await session.query({ indexName: index })
+        let documents = await session.query({ indexName: `${ALL}${CardEntity.COLLECTION}` })
+            .whereEquals('Official', collectionEntity.Official)
+            .andAlso()
             .search(`${type}Ids`, collectionEntity.Id, 'OR')
             .all();
 
@@ -240,7 +271,7 @@ class CardDao {
     static async RetrieveByIdList(ids) {
         const session = this.store.openSession();
     
-        let documents = await session.query({ indexName: `all${CardEntity.COLLECTION}` })
+        let documents = await session.query({ indexName: `${ALL}${CardEntity.COLLECTION}` })
             .whereIn('id()', ids)
             .all();
     
@@ -259,7 +290,9 @@ class CardDao {
     static async RetrieveRandomCard() {
         const session = this.store.openSession();
 
-        let documents = await session.query({ indexName: `official${CardEntity.COLLECTION}` })
+        let documents = await session.query({ indexName: `${ALL}${CardEntity.COLLECTION}` })
+            .whereEquals('Official', true)
+            .andAlso()
             .whereEquals('Incomplete', false)
             .andAlso()
             .whereNotEquals('Classification', 'Encounter')
@@ -270,19 +303,37 @@ class CardDao {
         return new CardEntity(documents[0]);
     }
 
-    static async RetrieveWithFilters(origin, aspect, author, cost, incomplete, pack, resource, set, text, traits, type, trimDuplicates = true) {
+    static async RetrieveWithFilters(origin, author, boost, classification, cost, incomplete, pack, resource, set, text, traits, type, trimDuplicates = true) {
         const session = this.store.openSession();
-        let query = session.query({ indexName: `${origin}${CardEntity.COLLECTION}` });
+        let query = session.query({ indexName: `${ALL}${CardEntity.COLLECTION}` });
 
-        if (aspect) {
-            query = query.openSubclause()
-                .whereRegex('Classification', aspect)
-                .closeSubclause();
+        if (origin !== ALL) {            
+            query = query.whereEquals('Official', origin === OFFICIAL);
+        }
+
+        if (classification) {
+            if (classification === 'player') {
+                query = query.openSubclause()
+                    .not()
+                    .whereRegex('Classification', 'encounter')
+                    .closeSubclause();
+            }
+            else {
+                query = query.openSubclause()
+                    .whereRegex('Classification', classification)
+                    .closeSubclause();
+            }
         }
 
         if (author) {
             query = query.openSubclause()
                 .whereRegex('AuthorId', author)
+                .closeSubclause();
+        }
+
+        if (boost) {
+            query = query.openSubclause()
+                .whereRegex('Boost', boost)
                 .closeSubclause();
         }
 

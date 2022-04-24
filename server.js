@@ -52,8 +52,9 @@ app.get('/cards', async function(req, res) {
         return;
     }
 
-    let aspect = req.query.aspect?.toLowerCase();
     let author = req.query.author;
+    let boost = req.query.boost;
+    let classification = req.query.classification?.toLowerCase();
     let cost = req.query.cost;
     let name = req.query.name?.toLowerCase();
     let resource = req.query.resource?.toLowerCase();
@@ -86,8 +87,16 @@ app.get('/cards', async function(req, res) {
             results = await CardDao.RetrieveByName(name, origin, false);
     
             if (results) {
-                if (aspect) results = results.filter(card => card.Classification.toLowerCase() === aspect);
                 if (author) results = results.filter(card => card.AuthorId === author);
+                if (boost) results = results.filter(card => card.Boost && card.Boost.toLowerCase() === boost);
+                if (classification) {
+                    if (classification === 'player') {
+                        results = results.filter(card => card.Classification.toLowerCase() !== 'encounter');
+                    }
+                    else {
+                        results = results.filter(card => card.Classification.toLowerCase() === classification);
+                    }
+                }
                 if (cost) results = results.filter(card => card.Cost && card.Cost.toLowerCase() === cost);
                 if (incomplete) results = results.filter(card => card.Incomplete === (incomplete === 'true'));
                 if (packIds) results = results.filter(card => card.Printings.some(printing => packIds.includes(printing.PackId)));
@@ -106,7 +115,7 @@ app.get('/cards', async function(req, res) {
             }
         }
         else {
-            results = await CardDao.RetrieveWithFilters(origin, aspect, author, cost, incomplete, packIds, resource, setIds, text, traits, type, false);
+            results = await CardDao.RetrieveWithFilters(origin, author, boost, classification, cost, incomplete, packIds, resource, setIds, text, traits, type, false);
         }
     }
 
