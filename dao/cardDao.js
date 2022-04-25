@@ -233,6 +233,8 @@ class CardDao {
 
             return matches.length > 0 ? matches : results;
         }
+
+        return [];
     }
 
     static async RetrieveByCollection(collectionEntity, type) {
