@@ -34,7 +34,7 @@ app.get('/cards', async function(req, res) {
     
     let results = [];
     
-    let origin = req.query.origin?.toLowerCase() || OFFICIAL;
+    let origin = req.query.origin?.toLowerCase() || ALL;
 
     if (![ALL, OFFICIAL, UNOFFICIAL].includes(origin)) {
         res.status(400)

@@ -158,7 +158,7 @@ class CardDao {
         if (!wildcard) {
             query = session.query({ indexName: index });
 
-            if (origin !== 'all') query.whereEquals('Official', origin === OFFICIAL).andAlso();
+            if (origin !== ALL) query.whereEquals('Official', origin === OFFICIAL).andAlso();
 
             query = query.openSubclause()
                 .search('id()', convertedQuery, 'AND').orElse()
@@ -176,7 +176,7 @@ class CardDao {
         if (documents.length === 0 && !wildcard) {
             query = session.query({ indexName: index });
 
-            if (origin !== 'all') query.whereEquals('Official', origin === OFFICIAL).andAlso();
+            if (origin !== ALL) query.whereEquals('Official', origin === OFFICIAL).andAlso();
 
             query = query.openSubclause()
                 .whereLucene('TokenizedName', tokenizedQuery).orElse()
@@ -191,7 +191,7 @@ class CardDao {
         if (documents.length === 0) {
             query = session.query({ indexName: index });
 
-            if (origin !== 'all') query.whereEquals('Official', origin === OFFICIAL).andAlso();
+            if (origin !== ALL) query.whereEquals('Official', origin === OFFICIAL).andAlso();
 
             query = query.openSubclause()
                 .whereRegex('TokenizedName', tokenizedQuery).orElse()
@@ -206,7 +206,7 @@ class CardDao {
         if (documents.length === 0) {
             query = session.query({ indexName: index });
 
-            if (origin !== 'all') query.whereEquals('Official', origin === OFFICIAL).andAlso();
+            if (origin !== ALL) query.whereEquals('Official', origin === OFFICIAL).andAlso();
 
             query = query.openSubclause()
                 .whereEquals('Name', convertedQuery).fuzzy(0.70).orElse()
