@@ -158,7 +158,7 @@ class CardDao {
         if (!wildcard) {
             query = session.query({ indexName: index });
 
-            if (origin !== 'all') query.whereEquals('Official', origin === OFFICIAL).andAlso();
+            if (origin !== ALL) query.whereEquals('Official', origin === OFFICIAL).andAlso();
 
             query = query.openSubclause()
                 .search('id()', convertedQuery, 'AND').orElse()
@@ -176,7 +176,7 @@ class CardDao {
         if (documents.length === 0 && !wildcard) {
             query = session.query({ indexName: index });
 
-            if (origin !== 'all') query.whereEquals('Official', origin === OFFICIAL).andAlso();
+            if (origin !== ALL) query.whereEquals('Official', origin === OFFICIAL).andAlso();
 
             query = query.openSubclause()
                 .whereLucene('TokenizedName', tokenizedQuery).orElse()
@@ -191,7 +191,7 @@ class CardDao {
         if (documents.length === 0) {
             query = session.query({ indexName: index });
 
-            if (origin !== 'all') query.whereEquals('Official', origin === OFFICIAL).andAlso();
+            if (origin !== ALL) query.whereEquals('Official', origin === OFFICIAL).andAlso();
 
             query = query.openSubclause()
                 .whereRegex('TokenizedName', tokenizedQuery).orElse()
@@ -206,7 +206,7 @@ class CardDao {
         if (documents.length === 0) {
             query = session.query({ indexName: index });
 
-            if (origin !== 'all') query.whereEquals('Official', origin === OFFICIAL).andAlso();
+            if (origin !== ALL) query.whereEquals('Official', origin === OFFICIAL).andAlso();
 
             query = query.openSubclause()
                 .whereEquals('Name', convertedQuery).fuzzy(0.70).orElse()
@@ -228,12 +228,13 @@ class CardDao {
             }
 
             let matches = results.filter(function(card) {
-                return card.Name.toLowerCase() === terms || (!['Hero', 'Alter-Ego'].includes(card.Type) && card.Subname != null && card.Subname.toLowerCase() === terms) || card.Id.toLowerCase() === terms;
+                return card.Name.toLowerCase() === terms || (card.Subname != null && card.Subname.toLowerCase() === terms) || card.Id.toLowerCase() === terms;
             });
 
-            // return trimDuplicates ? TrimDuplicates(matches.length > 0 ? matches : results) : results;
             return matches.length > 0 ? matches : results;
         }
+
+        return [];
     }
 
     static async RetrieveByCollection(collectionEntity, type) {

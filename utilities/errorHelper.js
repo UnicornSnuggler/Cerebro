@@ -1,13 +1,15 @@
-const { WIZARD } = require("../constants");
-const { CreateEmbed, DirectMessageUser } = require("./messageHelper");
+const { WIZARD, COLORS } = require("../constants");
 const { GetUser } = require("./userHelper");
+const { MessageEmbed } = require("discord.js");
 
 exports.ReportError = async function(context, error) {
     try {
         console.log(error);
         
-        let replyEmbed = CreateEmbed('Something went wrong... The error is being investigated.');
-        
+        let replyEmbed = new MessageEmbed()
+            .setColor(COLORS.Default)
+            .setDescription('Something went wrong... The error is being investigated.');
+
         await context.channel.send({
             embeds: [replyEmbed]
         });
@@ -15,7 +17,13 @@ exports.ReportError = async function(context, error) {
         let user = await GetUser(context, WIZARD);
         
         if (user && user !== context.user) {
-            DirectMessageUser(user, `An error has occurred!\n\n\`${error.name}\``);
+            let errorEmbed = new MessageEmbed()
+                .setColor(COLORS.Default)
+                .setDescription(`An error has occurred!\n\n\`${error.name}\``);
+
+            await user.send({
+                embeds: [errorEmbed]
+            });
         }
     }
     catch (e) {

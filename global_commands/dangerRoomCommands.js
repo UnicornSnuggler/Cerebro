@@ -411,7 +411,7 @@ module.exports = {
             else if (subCommand === 'environment') {
                 let maxModulars = GetModularChoices(unofficial).length;
 
-                if (modularsOption < 1 || modularsOption > maxModulars) {
+                if (modularsOption != null && (modularsOption < 1 || modularsOption > maxModulars)) {
                     let replyEmbed = CreateEmbed(`You must specify a number of modulars between 1 and ${maxModulars}...`);
                     
                     await context.reply({

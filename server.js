@@ -34,7 +34,7 @@ app.get('/cards', async function(req, res) {
     
     let results = [];
     
-    let origin = req.query.origin?.toLowerCase() || OFFICIAL;
+    let origin = req.query.origin?.toLowerCase() || ALL;
 
     if (![ALL, OFFICIAL, UNOFFICIAL].includes(origin)) {
         res.status(400)
@@ -194,8 +194,7 @@ app.get('/sets', async function(req, res) {
         return a.Name - b.Name;
     });
 
-    res.DefaultHeaders()
-        .end(JSON.stringify(results));
+    res.end(JSON.stringify(results));
 });
 
 app.get('*', function(req, res) {
@@ -204,7 +203,8 @@ app.get('*', function(req, res) {
         'You\'ve reached the void of space...',
         'You need to work on your typing skills...',
         'The page that was here is mad at you and doesn\'t want to see you right now...',
-        'You don\'t belong here...'
+        'You don\'t belong here...',
+        'This URL ain\'t big enough for the two of us...'
     ]
 
     res.status(404)

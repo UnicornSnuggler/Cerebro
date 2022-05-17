@@ -1,6 +1,7 @@
 const { MessageEmbed } = require("discord.js");
 const { COLORS, PRODUCTION_BOT, WIZARD, ACOLYTE } = require("../constants");
 const { ConfigurationDao } = require("../dao/configurationDao");
+const { ReportError } = require("./errorHelper");
 const { GetUserIdFromContext } = require("./userHelper");
 
 exports.Authorized = function(context, adminLocked = false) {
@@ -39,55 +40,70 @@ let CreateEmbed = exports.CreateEmbed = function(content, color = COLORS.Default
 }
 
 exports.DirectMessageUser = async function(user, message) {            
-    let embed = CreateEmbed(message, COLORS.Basic);
-
     try {
+        let embed = CreateEmbed(message, COLORS.Basic);
+
         await user.send({
             embeds: [embed]
         });
     }
     catch (e) {
-        console.error(`An error occurred while attempting to direct message a user...\n\n${e}`);
+        ReportError(context, e);
     }
 }
 
-exports.RemoveComponents = function(message, content, removeFiles = true) {
-    let messageOptions = {
-        components: []
-    };
-
-    if (removeFiles) {
-        messageOptions.attachments = [];
-        messageOptions.files = [];
+exports.RemoveComponents = async function(message, content, removeFiles = true) {
+    try {
+        let messageOptions = {
+            components: []
+        };
+        
+        if (removeFiles) {
+            messageOptions.attachments = [];
+            messageOptions.files = [];
+        }
+        
+        if (content) messageOptions.embeds = [CreateEmbed(content)];
+        
+        await message.edit(messageOptions);
     }
-
-    if (content) messageOptions.embeds = [CreateEmbed(content)];
-
-    message.edit(messageOptions);
+    catch(e) {
+        ReportError(message, e);
+    }
 }
 
 let SendContentAsEmbed = exports.SendContentAsEmbed = function(context, content, components = null, ephemeral = false) {
-    let embed = CreateEmbed(content);
+    try {
+        let embed = CreateEmbed(content);
 
-    return context.reply({
-        allowedMentions: {
-            repliedUser: false
-        },
-        components: components,
-        embeds: [embed],
-        ephemeral: ephemeral,
-        fetchReply: true,
-        failIfNotExists: false
-    });
+        return context.reply({
+            allowedMentions: {
+                repliedUser: false
+            },
+            components: components,
+            embeds: [embed],
+            ephemeral: ephemeral,
+            fetchReply: true,
+            failIfNotExists: false
+        });
+    }
+    catch (e) {
+        ReportError(context, e);
+    }
 }
 
 exports.SendMessageWithOptions = function(context, options, ephemeral = false) {
-    options.allowedMentions = {
-        repliedUser: false,
-        failIfNotExists: false
-    };
-    options.ephemeral = ephemeral;
-    options.fetchReply = true;
+    try {
+        options.allowedMentions = {
+            repliedUser: false,
+            failIfNotExists: false
+        };
+        options.ephemeral = ephemeral;
+        options.fetchReply = true;
 
-    return context.reply(options);
+        return context.reply(options);
+    }
+    catch (e) {
+        ReportError(context, e);
+    }
 }
