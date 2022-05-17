@@ -92,8 +92,8 @@ const SelectBox = async function(context, cards) {
                 if (reason === 'selection') content = LOAD_APOLOGY;
                 else if (reason === 'cancel') content = 'Selection was canceled...';
                 else content = 'The timeout was reached...';
-                
-                RemoveComponents(message, content);
+
+                new Promise(() => RemoveComponents(message, content));
             });
         });
     }
