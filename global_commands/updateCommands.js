@@ -1,4 +1,5 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
+const { ArtistDao } = require('../dao/artistDao');
 const { AuthorDao } = require('../dao/authorDao');
 const { ConfigurationDao } = require('../dao/configurationDao');
 const { FormattingDao } = require('../dao/formattingDao');
@@ -18,6 +19,7 @@ module.exports = {
                 .setDescription('The list to be updated.')
                 .setRequired(true)
                 .addChoice('All', 'all')
+                .addChoice('Artists', 'artists')
                 .addChoice('Authors', 'authors')
                 .addChoice('Configuration', 'configuration')
                 .addChoice('Formattings', 'formattings')
@@ -38,6 +40,10 @@ module.exports = {
                     await RuleDao.RetrieveKeywordsAndSchemeIcons();
                     await SetDao.RetrieveAllSets();
                     SendContentAsEmbed(context, 'All lists updated!', null, true);
+                    break;
+                case 'authors':
+                    await ArtistDao.UpdateArtistList();
+                    SendContentAsEmbed(context, 'Authors list updated!', null, true);
                     break;
                 case 'authors':
                     await AuthorDao.RetrieveAllAuthors();
