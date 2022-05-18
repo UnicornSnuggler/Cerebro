@@ -43,7 +43,7 @@ module.exports = {
                     break;
                 case 'authors':
                     await ArtistDao.UpdateArtistList();
-                    SendContentAsEmbed(context, 'Authors list updated!', null, true);
+                    SendContentAsEmbed(context, 'Artists list updated!', null, true);
                     break;
                 case 'authors':
                     await AuthorDao.RetrieveAllAuthors();
