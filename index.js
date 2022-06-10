@@ -230,7 +230,7 @@ const ExecuteCardQuery = async function(context, query, official = true) {
     }
 
     let origin = official ? 'official' : 'unofficial';
-    let results = await CardDao.RetrieveByName(query, origin);
+    let results = await CardDao.RetrieveByName(query, origin, false);
 
     if (!results || results.length === 0) return null;
     else if (results.length === 1) {
