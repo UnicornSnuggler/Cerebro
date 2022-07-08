@@ -6,7 +6,7 @@ const { RuleResultLogEntity } = require('../models/ruleResultLogEntity');
 const { LogDao } = require('../dao/logDao');
 const { BuildCardResultsEmbed, BuildSetResultsEmbed, BuildPackResultsEmbed, BuildUserResultsEmbed } = require('../utilities/logHelper');
 const { SendMessageWithOptions, CreateEmbed, Authorized } = require('../utilities/messageHelper');
-const { DM_APOLOGY } = require('../constants');
+const { DM_APOLOGY, STATISTICS_APOLOGY } = require('../constants');
 const { ReportError } = require('../utilities/errorHelper');
 
 module.exports = {
@@ -45,13 +45,20 @@ module.exports = {
             let timeframe = context.options.getString('timeframe');
             let type = context.options.getString('type');
 
+            if (scale === 'server' && !context.guildId) {
+                SendMessageWithOptions(context, { embeds: [CreateEmbed(DM_APOLOGY)] });
+                return;
+            }
+            
+            let message = await SendMessageWithOptions(context, { embeds: [CreateEmbed(STATISTICS_APOLOGY)] });
+
             let map = {
                 'cards': `all${CardResultLogEntity.COLLECTION}`,
                 'packs': `all${CollectionResultLogEntity.COLLECTION}`,
                 'rules': `all${RuleResultLogEntity.COLLECTION}`,
                 'sets': `all${CollectionResultLogEntity.COLLECTION}`,
                 'users': `all${CommandLogEntity.COLLECTION}`
-            }
+            };
 
             let index = map[type];
 
@@ -81,13 +88,7 @@ module.exports = {
             let cutoff = factor ? Date.now() - factor : 0;
 
             if (scale === 'personal') results = await LogDao.RetrieveLogs(index, cutoff, null, context.user.id);
-            else if (scale === 'server') {
-                if (context.guildId) results = await LogDao.RetrieveLogs(index, cutoff, context.guildId);
-                else {
-                    SendMessageWithOptions(context, { embeds: [CreateEmbed(DM_APOLOGY)] });
-                    return;
-                }
-            }
+            else if (scale === 'server') results = await LogDao.RetrieveLogs(index, cutoff, context.guildId);
             else if (scale === 'global') results = await LogDao.RetrieveLogs(index, cutoff);
 
             let embeds = [];
@@ -96,16 +97,16 @@ module.exports = {
                 embeds.push(await BuildCardResultsEmbed(results, scale, timeframe));
             }
             else if (type === 'packs') {
-                embeds.push(await BuildPackResultsEmbed(results, scale, timeframe));
+                embeds.push(BuildPackResultsEmbed(results, scale, timeframe));
             }
             else if (type === 'sets') {
-                embeds.push(await BuildSetResultsEmbed(results, scale, timeframe));
+                embeds.push(BuildSetResultsEmbed(results, scale, timeframe));
             }
             else if (type === 'users') {
-                embeds.push(await BuildUserResultsEmbed(results, scale, timeframe));
+                embeds.push(BuildUserResultsEmbed(results, scale, timeframe));
             }
 
-            SendMessageWithOptions(context, { embeds: embeds });
+            message.edit({ embeds: embeds });
         }
         catch (e) {
             ReportError(context, e);

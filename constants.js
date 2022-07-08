@@ -48,6 +48,7 @@ exports.TRUE = 'true';
 exports.DM_APOLOGY = 'Sorry, but you can\'t view server statistics in a direct message...';
 exports.INTERACT_APOLOGY = 'Sorry, but you can\'t interact with another user\'s messages...';
 exports.LOAD_APOLOGY = 'Please wait while result details are being retrieved. Art rendering will likely result in longer load times.';
+exports.STATISTICS_APOLOGY = 'Please wait while pertinent data is being retrieved...';
 exports.TIMEOUT_APOLOGY = 'The interaction timeout was reached...';
 exports.MAX_IMAGES_APOLOGY = `*(No more than ${this.MAX_IMAGES} images can be displayed at a time... Your response has been trimmed accordingly.)*`;
 
