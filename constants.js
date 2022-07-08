@@ -48,6 +48,7 @@ exports.TRUE = 'true';
 exports.DM_APOLOGY = 'Sorry, but you can\'t view server statistics in a direct message...';
 exports.INTERACT_APOLOGY = 'Sorry, but you can\'t interact with another user\'s messages...';
 exports.LOAD_APOLOGY = 'Please wait while result details are being retrieved. Art rendering will likely result in longer load times.';
+exports.STATISTICS_APOLOGY = 'Please wait while pertinent data is being retrieved...';
 exports.TIMEOUT_APOLOGY = 'The interaction timeout was reached...';
 exports.MAX_IMAGES_APOLOGY = `*(No more than ${this.MAX_IMAGES} images can be displayed at a time... Your response has been trimmed accordingly.)*`;
 
@@ -60,16 +61,17 @@ exports.WARNING_EMOJI = ':warning:';
 
 exports.SYMBOLS = {
     '{a}': '<:mc_acceleration:939593942800932974>',
-    '{y}': '<:mc_amplify:939593942788374648>',
     '{b}': '<:mc_boost:939593942431838320>',
-    '{d}': '<:mc_consequential:939593942784172072>',
     '{c}': '<:mc_crisis:939593942821929081>',
+    '{d}': '<:mc_consequential:939593942784172072>',
     '{e}': '<:mc_energy:939593942893211688>',
     '{h}': '<:mc_hazard:939593942993891398>',
+    '{i}': '<:mc_players:939593943291658250>',
     '{m}': '<:mc_mental:939593942951931904>',
     '{p}': '<:mc_physical:939593942800932915>',
-    '{i}': '<:mc_players:939593943291658250>',
     '{s}': '<:mc_star:939593943035826257>',
     '{u}': '<:mc_unique:939593943069380740>',
-    '{w}': '<:mc_wild:939593942830305321>'
+    '{w}': '<:mc_wild:939593942830305321>',
+    '{x}': '<:mc_mutant_genesis:984586842475221062>',
+    '{y}': '<:mc_amplify:939593942788374648>'
 };

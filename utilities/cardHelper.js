@@ -80,6 +80,20 @@ const BuildEmbed = exports.BuildEmbed = function(card, alternateArt = null, spoi
         body.push(SpoilerIfIncomplete(ItalicizeText(escapedFlavor), card.Incomplete && !spoilerFree));
     }
 
+    if (card.ArtificialPackId) {
+        let emojiPack = PackDao.PACKS.find(x => x.Id === card.ArtificialPackId);
+
+        body.push(`${emojiPack.Emoji} **${emojiPack.Name}**`);
+    }
+    else {
+        let printing = GetPrintingByArtificialId(card, card.Id);
+        let emojiPack = PackDao.PACKS.find(x => x.Id === printing.PackId);
+
+        if (emojiPack.Emoji) {
+            body.push(`${emojiPack.Emoji} **${emojiPack.Name}**`);
+        }
+    }
+
     let credits = BuildCredits(card);
 
     if (credits) body.push(credits);

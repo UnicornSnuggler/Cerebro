@@ -7,6 +7,7 @@ class PackEntity extends BaseCollectionEntity {
         super(document);
 
         this.CouncilNumber = document.CouncilNumber;
+        this.Emoji = document.Emoji;
         this.Incomplete = document.Incomplete;
         this.Number = document.Number;
         this.ReleaseStatus = document.ReleaseStatus;
