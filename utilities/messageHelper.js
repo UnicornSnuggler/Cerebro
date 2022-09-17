@@ -5,28 +5,34 @@ const { ReportError } = require("./errorHelper");
 const { GetUserIdFromContext } = require("./userHelper");
 
 exports.Authorized = function(context, adminLocked = false) {
-    let userId = GetUserIdFromContext(context);
-
-    if (adminLocked && userId !== WIZARD) {
-        SendContentAsEmbed(context, "Only the bot administrator can use this command!", null, true);
-        return false;
-    }
+    try {
+        let userId = GetUserIdFromContext(context);
     
-    if (context.client.user.id !== PRODUCTION_BOT && !ConfigurationDao.CONFIGURATION.Donors.concat([WIZARD, ACOLYTE]).includes(userId)) {
-        SendContentAsEmbed(context, "You do not possess beta access!", null, true);
-        return false;
-    }
-
-    if (context.guildId) {
-        let permissions = context.client.guilds.cache.get(context.guildId).me.permissionsIn(context.channelId);
-
-        if (!permissions.has('VIEW_CHANNEL') || !permissions.has('SEND_MESSAGES') || !permissions.has('MANAGE_MESSAGES')) {
-            SendContentAsEmbed(context, "I don't have sufficient permissions here!", null, true);
+        if (adminLocked && userId !== WIZARD) {
+            SendContentAsEmbed(context, "Only the bot administrator can use this command!", null, true);
             return false;
         }
-    }
+        
+        if (context.client.user.id !== PRODUCTION_BOT && !ConfigurationDao.CONFIGURATION.Donors.concat([WIZARD, ACOLYTE]).includes(userId)) {
+            SendContentAsEmbed(context, "You do not possess beta access!", null, true);
+            return false;
+        }
     
-    return true;
+        if (context.guildId) {    
+            let guild = context.client.guilds.resolve(context.guildId);
+            let permissions = guild.me.permissionsIn(context.channelId);
+
+            if (!permissions.has('VIEW_CHANNEL') || !permissions.has('SEND_MESSAGES') || !permissions.has('MANAGE_MESSAGES')) {
+                SendContentAsEmbed(context, "I don't have sufficient permissions here!", null, true);
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    catch (e) {
+        ReportError(context, e);
+    }
 }
 
 let CreateEmbed = exports.CreateEmbed = function(content, color = COLORS.Default, title = null) {
