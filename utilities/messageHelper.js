@@ -18,11 +18,11 @@ exports.Authorized = function(context, adminLocked = false) {
             return false;
         }
     
-        if (context.guildId) {    
+        if (context.guildId) {
             let guild = context.client.guilds.resolve(context.guildId);
             let permissions = guild.me.permissionsIn(context.channelId);
 
-            if (!permissions.has('VIEW_CHANNEL') || !permissions.has('SEND_MESSAGES') || !permissions.has('MANAGE_MESSAGES')) {
+            if (permissions && (!permissions.has('VIEW_CHANNEL') || !permissions.has('SEND_MESSAGES') || !permissions.has('MANAGE_MESSAGES'))) {
                 SendContentAsEmbed(context, "I don't have sufficient permissions here!", null, true);
                 return false;
             }
