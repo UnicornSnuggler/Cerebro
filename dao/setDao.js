@@ -8,6 +8,7 @@ class SetDao {
     static store = CreateDocumentStore(DeriveDatabase(SetEntity.DATABASE_SUFFIX)).initialize();
 
     static SETS = [];
+    static CAMPAIGN_SET_IDS = [];
 
     static async RetrieveAllSets() {
         console.log(`Starting to load sets from the database...`);
@@ -16,12 +17,18 @@ class SetDao {
 
         let documents = await this.store.openSession().query({ indexName: `${ALL}${SetEntity.COLLECTION}` }).all();
 
-        for (let document of documents) {
-            this.SETS.push(new SetEntity(document));
+        for (let document of documents) {      
+            let set = new SetEntity(document);
+            this.SETS.push(set);
+
+            if (set.Type === 'Campaign Set') {
+                this.CAMPAIGN_SET_IDS.push(set.Id);
+            }
         }
 
         console.log(` - Found ${this.SETS.filter(x => x.Official).length} official sets in the database...`);
         console.log(` - Found ${this.SETS.filter(x => !x.Official).length} unofficial sets in the database...`);
+        console.log(` - Discovered ${this.CAMPAIGN_SET_IDS.length} campaign sets among the results...`);
         console.log(`Loaded ${this.SETS.length} total sets from the database!\n`);
     }
 

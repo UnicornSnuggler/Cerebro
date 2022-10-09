@@ -604,22 +604,27 @@ exports.QueueCompiledResult = function(context, cards, message = null, missing =
                 let promise = Canvas.loadImage(imagePath);
                 
                 promise.then(async function(image) {
-                    if (image.width > image.height) {
-                        let subCanvas = Canvas.createCanvas(image.height, image.width);
-                        let subContext = subCanvas.getContext('2d');
+                    try {
+                        if (image.width > image.height) {
+                            let subCanvas = Canvas.createCanvas(image.height, image.width);
+                            let subContext = subCanvas.getContext('2d');
+                            
+                            subContext.translate(image.height / 2, image.width / 2);
+                            subContext.rotate(270 * Math.PI / 180);
+                            subContext.drawImage(image, -image.width / 2, -image.height / 2);
+                            subContext.translate(-image.height / 2, -image.width / 2);
+    
+                            image = subCanvas;
+                        }
                         
-                        subContext.translate(image.height / 2, image.width / 2);
-                        subContext.rotate(270 * Math.PI / 180);
-                        subContext.drawImage(image, -image.width / 2, -image.height / 2);
-                        subContext.translate(-image.height / 2, -image.width / 2);
-
-                        image = subCanvas;
+                        let positionX = IMAGE_WIDTH * x;
+                        let positionY = 0;
+                        
+                        canvasContext.drawImage(image, positionX, positionY, IMAGE_WIDTH, IMAGE_HEIGHT);
                     }
-                    
-                    let positionX = IMAGE_WIDTH * x;
-                    let positionY = 0;
-                    
-                    canvasContext.drawImage(image, positionX, positionY, IMAGE_WIDTH, IMAGE_HEIGHT);
+                    catch (e) {
+                        ReportError(context, e);
+                    }
                 });
                 
                 promises.push(promise);
