@@ -28,7 +28,7 @@ module.exports = {
                 let guild = context.client.guilds.resolve(guildId);
                 let data = ConfigurationDao.CONFIGURATION.CardOfTheDay[guildId];
 
-                if (guild && data.channels) {
+                if (guild && data && data.channels) {
                     cardOfTheDay(guild, data.channels, data.role);
 
                     SendContentAsEmbed(context, 'Card of the Day emitted!', null, true);

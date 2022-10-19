@@ -5,6 +5,7 @@ const { GetBaseId, ShareFaces, ShareGroups, BuildCollectionFromBatch } = require
 const { CreateDocumentStore, DeriveDatabase } = require('../utilities/documentStoreHelper');
 const { OFFICIAL, UNOFFICIAL, ALL } = require('../constants');
 const { EscapeRegex } = require('../utilities/stringHelper');
+const { SetDao } = require('./setDao');
 
 const TrimDuplicates = function(cards) {
     let results = [];
@@ -288,16 +289,26 @@ class CardDao {
         else return null;
     }
 
-    static async RetrieveRandomCard() {
+    static async RetrieveRandomCard(encounter = false) {
         const session = this.store.openSession();
 
-        let documents = await session.query({ indexName: `${ALL}${CardEntity.COLLECTION}` })
+        let query = session.query({ indexName: `${ALL}${CardEntity.COLLECTION}` })
             .whereEquals('Official', true)
             .andAlso()
             .whereEquals('Incomplete', false)
             .andAlso()
-            .whereNotEquals('Classification', 'Encounter')
-            .randomOrdering()
+            .not()
+            .whereIn('SetIds', SetDao.CAMPAIGN_SET_IDS)
+            .andAlso();
+        
+        if (encounter) {
+            query = query.whereEquals('Classification', 'Encounter');
+        }
+        else {
+            query = query.whereNotEquals('Classification', 'Encounter');
+        }
+
+        let documents = await query.randomOrdering()
             .take(1)
             .all();
 
