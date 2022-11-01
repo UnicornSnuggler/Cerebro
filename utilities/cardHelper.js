@@ -1,4 +1,4 @@
-const { Formatters, MessageActionRow, MessageButton, MessageEmbed, Util, MessageSelectMenu, MessageAttachment } = require('discord.js');
+const { italic, bold, escapeMarkdown, ActionRowBuilder, ButtonBuilder, ButtonStyle, SelectMenuBuilder, AttachmentBuilder, EmbedBuilder, ComponentType } = require('discord.js');
 const { PackDao } = require('../dao/packDao');
 const { RuleDao } = require('../dao/ruleDao');
 const { ConfigurationDao } = require('../dao/configurationDao');
@@ -43,12 +43,12 @@ exports.BuildCollectionFromBatch = function(batch) {
 }
 
 const BuildEmbed = exports.BuildEmbed = function(card, alternateArt = null, spoilerFree = false) {
-    let embed = new MessageEmbed();
+    let embed = new EmbedBuilder();
 
     let description = [];
     let subheader = [BuildHeader(card)];
 
-    if (card.Traits) subheader.push(ItalicizeText(Formatters.bold(card.Traits.join(', '))));
+    if (card.Traits) subheader.push(ItalicizeText(bold(card.Traits.join(', '))));
 
     description.push(SpoilerIfIncomplete(subheader.join('\n'), card.Incomplete && !spoilerFree));
 
@@ -75,7 +75,7 @@ const BuildEmbed = exports.BuildEmbed = function(card, alternateArt = null, spoi
     }
 
     if (card.Flavor) {
-        let escapedFlavor = Util.escapeMarkdown(card.Flavor);
+        let escapedFlavor = escapeMarkdown(card.Flavor);
 
         body.push(SpoilerIfIncomplete(ItalicizeText(escapedFlavor), card.Incomplete && !spoilerFree));
     }
@@ -120,7 +120,7 @@ const BuildCredits = exports.BuildCredits = function(card) {
     let credits = [];
 
     if (card.Artists) {
-        let list = CreateStringFromArray(card.Artists.map(x => Formatters.bold(ArtistDao.ARTISTS.find(y => y.Id === x).Name)), ', ', false);
+        let list = CreateStringFromArray(card.Artists.map(x => bold(ArtistDao.ARTISTS.find(y => y.Id === x).Name)), ', ', false);
 
         credits.push(`${ARTIST_EMOJI} ${list}`);
     }
@@ -129,7 +129,7 @@ const BuildCredits = exports.BuildCredits = function(card) {
         let pack = PackDao.PACKS.find(x => x.Id === GetPrintingByArtificialId(card, card.Id).PackId);
         
         
-        credits.push(`${Formatters.bold('Author')}: <@${card.AuthorId}>`);
+        credits.push(`${bold('Author')}: <@${card.AuthorId}>`);
         switch (pack.ReleaseStatus) {
             case 3:
                 credits.push(`${REVIEWING_EMOJI} Pending council review...`);
@@ -178,15 +178,15 @@ const BuildHeader = exports.BuildHeader = function(card) {
     }
     else description = `${card.Classification} ${description}`;
 
-    let header = Formatters.bold(description);
+    let header = bold(description);
 
-    if (card.Stage) header += ` — ${Formatters.italic(`Stage ${card.Stage}`)}`;
+    if (card.Stage) header += ` — ${italic(`Stage ${card.Stage}`)}`;
 
     return header;
 }
 
 const BuildRulesEmbed = exports.BuildRulesEmbed = function(card, alternateArt = null, spoilerFree = false) {
-    let embed = new MessageEmbed();
+    let embed = new EmbedBuilder();
     let image = BuildCardImagePath(card, alternateArt ?? card.Id);
     let ruleEntries = EvaluateRules(card);
 
@@ -273,7 +273,7 @@ const BuildStats = exports.BuildStats = function(card) {
 }
 
 exports.CreateSelectBox = function(cards) {
-    let selector = new MessageSelectMenu()
+    let selector = new SelectMenuBuilder()
         .setCustomId('selector')
         .setPlaceholder('No card selected...');
     
@@ -289,7 +289,7 @@ exports.CreateSelectBox = function(cards) {
         }
         else description = `${card.Classification} ${description}`;
         
-        let emoji = null;
+        let emoji = undefined;
 
         if (card.Resource) emoji = SYMBOLS[card.Resource];
 
@@ -366,60 +366,60 @@ exports.ShareGroups = function(thisCard, thatCard) {
 
 const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, currentFace, currentElement, collection, rulesToggle, artToggle, message = null, spoilerToggle = false) {
     try {
-        let navigationRow = new MessageActionRow();
-        let toggleRow = new MessageActionRow();
+        let navigationRow = new ActionRowBuilder();
+        let toggleRow = new ActionRowBuilder();
 
         let spoilerOverride = (!context.guildId || (ConfigurationDao.CONFIGURATION.SpoilerExceptions[context.guildId] && ConfigurationDao.CONFIGURATION.SpoilerExceptions[context.guildId].includes(context.channelId)));
 
         let artStyles = FindUniqueArts(card);
 
         if (collection.elements.length > 0) {
-            let style = collection.tag === 'Card' ? 'SECONDARY' : 'PRIMARY';
+            let style = collection.tag === 'Card' ? ButtonStyle.Secondary : ButtonStyle.Primary;
 
-            navigationRow.addComponents(new MessageButton()
+            navigationRow.addComponents(new ButtonBuilder()
                 .setCustomId('previousElement')
                 .setLabel(`Previous ${collection.tag}`)
                 .setStyle(style));
             
-            navigationRow.addComponents(new MessageButton()
+            navigationRow.addComponents(new ButtonBuilder()
                 .setCustomId('nextElement')
                 .setLabel(`Next  ${collection.tag}`)
                 .setStyle(style));
         }
 
         if (collection.faces.length > 1)
-            navigationRow.addComponents(new MessageButton()
+            navigationRow.addComponents(new ButtonBuilder()
                 .setCustomId('cycleFace')
                 .setLabel('Flip Card')
-                .setStyle('PRIMARY'));
+                .setStyle(ButtonStyle.Primary));
 
         if (artStyles.length > 1)
-            navigationRow.addComponents(new MessageButton()
+            navigationRow.addComponents(new ButtonBuilder()
                 .setCustomId('cycleArt')
                 .setLabel('Change Art')
-                .setStyle('PRIMARY'));
+                .setStyle(ButtonStyle.Primary));
 
         if (EvaluateRules(card))
-            toggleRow.addComponents(new MessageButton()
+            toggleRow.addComponents(new ButtonBuilder()
                 .setCustomId('toggleRules')
                 .setLabel('Toggle Rules')
-                .setStyle('SECONDARY'));
+                .setStyle(ButtonStyle.Secondary));
 
         if (!spoilerOverride && card.Incomplete)
-            toggleRow.addComponents(new MessageButton()
+            toggleRow.addComponents(new ButtonBuilder()
                 .setCustomId('toggleSpoiler')
                 .setLabel('Unveil Secretly')
-                .setStyle('SECONDARY'));
+                .setStyle(ButtonStyle.Secondary));
 
-        toggleRow.addComponents(new MessageButton()
+        toggleRow.addComponents(new ButtonBuilder()
             .setCustomId('toggleArt')
             .setLabel('Toggle Art')
-            .setStyle('SUCCESS'));
+            .setStyle(ButtonStyle.Success));
 
-        toggleRow.addComponents(new MessageButton()
+        toggleRow.addComponents(new ButtonBuilder()
             .setCustomId('clearComponents')
             .setLabel('Clear Buttons')
-            .setStyle('DANGER'));
+            .setStyle(ButtonStyle.Danger));
 
         let promise;
 
@@ -458,7 +458,7 @@ const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, current
         else promise = SendMessageWithOptions(context, messageOptions, !spoilerOverride && spoilerToggle);
             
         promise.then((message) => {
-            const collector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: INTERACT_TIMEOUT * SECOND_MILLIS });
+            const collector = message.createMessageComponentCollector({ componentType: ComponentType.Button, time: INTERACT_TIMEOUT * SECOND_MILLIS });
 
             collector.on('collect', i => {
                 let userId = GetUserIdFromContext(context);
@@ -633,7 +633,7 @@ exports.QueueCompiledResult = function(context, cards, message = null, missing =
             let superPromise = Promise.all(promises);
             
             superPromise.then(function() {
-                let attachment = new MessageAttachment(canvas.toBuffer('image/jpeg', {quality: 0.8, progressive: true}), `${spoiler ? 'SPOILER_' : ''}Row_${rows.indexOf(row)}.jpg`);
+                let attachment = new AttachmentBuilder(canvas.toBuffer('image/jpeg', {quality: 0.8, progressive: true}), {name: `${spoiler ? 'SPOILER_' : ''}Row_${rows.indexOf(row)}.jpg`, description: 'Bulk Query Image'});
                 
                 attachments.push(attachment);
             });
@@ -652,7 +652,7 @@ exports.QueueCompiledResult = function(context, cards, message = null, missing =
                 }
 
                 if (missing) {
-                    let entry = `The following quer${missing.length === 1 ? 'y' : 'ies'} timed out, were canceled, or returned no results:\n\`\`\``;
+                    let entry = `The following quer${missing.length === 1 ? 'y' : 'ies'} timed out, ${missing.length === 1 ? 'was' : 'were'} canceled, or returned no results:\n\`\`\``;
                 
                     for (let query of missing) {
                         entry += `• ${query}\n`;

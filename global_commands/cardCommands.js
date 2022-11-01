@@ -1,5 +1,4 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
-const { MessageActionRow, MessageButton, Formatters } = require('discord.js');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder, inlineCode, ComponentType } = require('discord.js');
 const { CardDao } = require('../dao/cardDao');
 const { PackDao } = require('../dao/packDao');
 const { SetDao } = require('../dao/setDao');
@@ -25,20 +24,20 @@ const SelectBox = async function(context, cards) {
 
         let selector = CreateSelectBox(items);
 
-        let selectMenuRow = new MessageActionRow().addComponents(selector);
-        let buttonRow = new MessageActionRow()
-            .addComponents(new MessageButton()
+        let selectMenuRow = new ActionRowBuilder().addComponents(selector);
+        let buttonRow = new ActionRowBuilder()
+            .addComponents(new ButtonBuilder()
                 .setCustomId('browse')
                 .setLabel('Browse Results')
-                .setStyle('PRIMARY'))
-            .addComponents(new MessageButton()
+                .setStyle(ButtonStyle.Primary))
+            .addComponents(new ButtonBuilder()
                 .setCustomId('showAll')
                 .setLabel('Show All')
-                .setStyle('PRIMARY'))
-            .addComponents(new MessageButton()
+                .setStyle(ButtonStyle.Primary))
+            .addComponents(new ButtonBuilder()
                 .setCustomId('cancel')
                 .setLabel('Cancel Selection')
-                .setStyle('DANGER'));
+                .setStyle(ButtonStyle.Danger));
 
         let promise = SendContentAsEmbed(context, prompt, [selectMenuRow, buttonRow]);
         
@@ -49,7 +48,7 @@ const SelectBox = async function(context, cards) {
                 let userId = GetUserIdFromContext(context);
 
                 if (i.user.id === userId) {
-                    if (i.componentType === 'BUTTON') {
+                    if (i.componentType === ComponentType.Button) {
                         if (i.customId === 'browse') {
                             collector.stop('selection');
             
@@ -145,9 +144,11 @@ module.exports = {
                 .setName('origin')
                 .setDescription('The origin of the card.')
                 .setRequired(true)
-                .addChoice('official', 'official')
-                .addChoice('unofficial', 'unofficial')
-                .addChoice('all', 'all'))
+                .addChoices(
+                    { name: 'official', value: 'official' },
+                    { name: 'unofficial', value: 'unofficial' },
+                    { name: 'all', value: 'all' }
+                ))
         .addMentionableOption(option =>
             option
                 .setName('author')
@@ -158,15 +159,17 @@ module.exports = {
                 .setName('classification')
                 .setDescription('Query cards by their aspect or other classification.')
                 .setRequired(false)
-                .addChoice('aggression', 'aggression')
-                .addChoice('basic', 'basic')
-                .addChoice('determination', 'determination')
-                .addChoice('encounter', 'encounter')
-                .addChoice('hero', 'hero')
-                .addChoice('justice', 'justice')
-                .addChoice('leadership', 'leadership')
-                .addChoice('player', 'player')
-                .addChoice('protection', 'protection'))
+                .addChoices(
+                    { name: 'aggression', value: 'aggression' },
+                    { name: 'basic', value: 'basic' },
+                    { name: 'determination', value: 'determination' },
+                    { name: 'encounter', value: 'encounter' },
+                    { name: 'hero', value: 'hero' },
+                    { name: 'justice', value: 'justice' },
+                    { name: 'leadership', value: 'leadership' },
+                    { name: 'player', value: 'player' },
+                    { name: 'protection', value: 'protection' }
+                ))
         .addStringOption(option =>
             option
                 .setName('cost')
@@ -187,11 +190,13 @@ module.exports = {
                 .setName('resource')
                 .setDescription('Query cards by their printed resource.')
                 .setRequired(false)
-                .addChoice('energy', 'energy')
-                .addChoice('mental', 'mental')
-                .addChoice('physical', 'physical')
-                .addChoice('wild', 'wild')
-                .addChoice('none', 'none'))
+                .addChoices(
+                    { name: 'energy', value: 'energy' },
+                    { name: 'mental', value: 'mental' },
+                    { name: 'physical', value: 'physical' },
+                    { name: 'wild', value: 'wild' },
+                    { name: 'none', value: 'none' }
+                ))
         .addStringOption(option =>
             option
                 .setName('set')
@@ -212,21 +217,23 @@ module.exports = {
                 .setName('type')
                 .setDescription('Query cards by their type.')
                 .setRequired(false)
-                .addChoice('ally', 'ally')
-                .addChoice('alter-ego', 'alter-ego')
-                .addChoice('attachment', 'attachment')
-                .addChoice('environment', 'environment')
-                .addChoice('event', 'event')
-                .addChoice('hero', 'hero')
-                .addChoice('main scheme', 'main scheme')
-                .addChoice('minion', 'minion')
-                .addChoice('obligation', 'obligation')
-                .addChoice('resource', 'resource')
-                .addChoice('side scheme', 'side scheme')
-                .addChoice('support', 'support')
-                .addChoice('treachery', 'treachery')
-                .addChoice('upgrade', 'upgrade')
-                .addChoice('villain', 'villain')),
+                .addChoices(
+                    { name: 'ally', value: 'ally' },
+                    { name: 'alter-ego', value: 'alter-ego' },
+                    { name: 'attachment', value: 'attachment' },
+                    { name: 'environment', value: 'environment' },
+                    { name: 'event', value: 'event' },
+                    { name: 'hero', value: 'hero' },
+                    { name: 'main scheme', value: 'main scheme' },
+                    { name: 'minion', value: 'minion' },
+                    { name: 'obligation', value: 'obligation' },
+                    { name: 'resource', value: 'resource' },
+                    { name: 'side scheme', value: 'side scheme' },
+                    { name: 'support', value: 'support' },
+                    { name: 'treachery', value: 'treachery' },
+                    { name: 'upgrade', value: 'upgrade' },
+                    { name: 'villain', value: 'villain' },
+                )),
     async execute(context) {
         if (!Authorized(context)) return;
 
@@ -287,7 +294,7 @@ module.exports = {
             else {
                 if (name) {
                     if (!name.match(/([a-z0-9])/gi)) {
-                        SendContentAsEmbed(context, `${Formatters.inlineCode(name)} is not a valid query...`);
+                        SendContentAsEmbed(context, `${inlineCode(name)} is not a valid query...`);
                         return;
                     }
     

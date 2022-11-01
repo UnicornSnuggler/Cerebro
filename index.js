@@ -1,5 +1,5 @@
 require('dotenv').config()
-const { Client, Collection, Intents, Constants, MessageActionRow, MessageButton, Formatters } = require('discord.js');
+const { Client, Collection, GatewayIntentBits, Partials, ActionRowBuilder, ButtonBuilder, ButtonStyle, inlineCode, ComponentType } = require('discord.js');
 const { AuthorDao } = require('./dao/authorDao');
 const { FormattingDao } = require('./dao/formattingDao');
 const { GroupDao } = require('./dao/groupDao');
@@ -8,18 +8,19 @@ const { RuleDao } = require('./dao/ruleDao');
 const { SetDao } = require('./dao/setDao');
 const { ArtificialInteraction } = require('./models/artificialInteraction');
 const { SendContentAsEmbed, CreateEmbed, RemoveComponents } = require('./utilities/messageHelper');
-const { DAY_MILLIS, SECOND_MILLIS, INTERACT_TIMEOUT, LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT } = require('./constants')
+const { DAY_MILLIS, SECOND_MILLIS, INTERACT_TIMEOUT, LOAD_APOLOGY, INTERACT_APOLOGY } = require('./constants')
 const fs = require('fs');
 const { cardOfTheDayLoop } = require('./utilities/cardOfTheDayHelper');
 const { ConfigurationDao } = require('./dao/configurationDao');
 const { CardDao } = require('./dao/cardDao');
 const { ReportError } = require('./utilities/errorHelper');
-const { QueueCompiledResult, CreateSelectBox, ResourceConverter } = require('./utilities/cardHelper');
+const { QueueCompiledResult, CreateSelectBox } = require('./utilities/cardHelper');
 const { LogCardResult, LogCommand } = require('./utilities/logHelper');
 const { ArtistDao } = require('./dao/artistDao');
 const { GetUserIdFromContext } = require('./utilities/userHelper');
+const { deckOfTheDayLoop } = require('./utilities/deckOfTheDayHelper');
 
-const client = new Client({ intents: [Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MEMBERS], partials: [Constants.PartialTypes.CHANNEL] });
+const client = new Client({ intents: [GatewayIntentBits.DirectMessages, GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMembers], partials: [Partials.Channel] });
 
 client.commands = new Collection();
 const globalCommandFiles = fs.readdirSync('./global_commands').filter(file => file.endsWith('.js'));
@@ -35,7 +36,7 @@ function millisUntilEight() {
 
     if (millis < 0) millis += DAY_MILLIS;
 
-    console.log(`There are ${millis/SECOND_MILLIS} seconds until the first 'Card of the Day' message...`);
+    console.log(`There are ${millis/SECOND_MILLIS} seconds until the first 'Card of the Day' and 'Deck of the Day' messages...`);
     
     return millis;
 }
@@ -54,8 +55,10 @@ client.on('ready', async () => {
 
     setTimeout(function() {
         cardOfTheDayLoop(client);
+        deckOfTheDayLoop(client);
         setInterval(function() {
             cardOfTheDayLoop(client);
+            deckOfTheDayLoop(client);
         }, DAY_MILLIS)
     }, millisUntilEight());
 });
@@ -125,19 +128,19 @@ client.on('interactionCreate', interaction => {
 });
 
 const PromptForConsolidation = async function(context, matches) {
-    let components = new MessageActionRow()
-        .addComponents(new MessageButton()
+    let components = new ActionRowBuilder()
+        .addComponents(new ButtonBuilder()
             .setCustomId('separate')
             .setLabel('Separate')
-            .setStyle('PRIMARY'))
-        .addComponents(new MessageButton()
+            .setStyle(ButtonStyle.Primary))
+        .addComponents(new ButtonBuilder()
             .setCustomId('together')
             .setLabel('Together')
-            .setStyle('PRIMARY'))
-        .addComponents(new MessageButton()
+            .setStyle(ButtonStyle.Primary))
+        .addComponents(new ButtonBuilder()
             .setCustomId('cancel')
             .setLabel('Cancel')
-            .setStyle('DANGER'));
+            .setStyle(ButtonStyle.Danger));
 
     let promise = SendContentAsEmbed(context, 'Multiple queries were detected! Would you like the results to be displayed separately or together?', [components]);
 
@@ -225,12 +228,12 @@ const HandleBatchQuery = async function(context, queries) {
 
 const ExecuteCardQuery = async function(context, query, official = true) {    
     if (!query.match(/([a-z0-9])/gi)) {
-        SendContentAsEmbed(context, `${Formatters.inlineCode(query)} is not a valid query...`);
+        SendContentAsEmbed(context, `${inlineCode(query)} is not a valid query...`);
         return null;
     }
 
     let origin = official ? 'official' : 'unofficial';
-    let results = await CardDao.RetrieveByName(query, origin, false);
+    let results = await CardDao.RetrieveByName(query, origin);
 
     if (!results || results.length === 0) return null;
     else if (results.length === 1) {
@@ -259,16 +262,16 @@ const SelectBox = async function(context, cards) {
 
         let selector = CreateSelectBox(items);
 
-        let selectMenuRow = new MessageActionRow().addComponents(selector);
-        let buttonRow = new MessageActionRow()
-            .addComponents(new MessageButton()
+        let selectMenuRow = new ActionRowBuilder().addComponents(selector);
+        let buttonRow = new ActionRowBuilder()
+            .addComponents(new ButtonBuilder()
                 .setCustomId('showAll')
                 .setLabel('Show All')
-                .setStyle('PRIMARY'))
-            .addComponents(new MessageButton()
+                .setStyle(ButtonStyle.Primary))
+            .addComponents(new ButtonBuilder()
                 .setCustomId('cancel')
                 .setLabel('Cancel Selection')
-                .setStyle('DANGER'));
+                .setStyle(ButtonStyle.Danger));
 
         let message = await SendContentAsEmbed(context, prompt, [selectMenuRow, buttonRow]);        
         let choice = null;
@@ -280,7 +283,7 @@ const SelectBox = async function(context, cards) {
                     let userId = GetUserIdFromContext(context);
             
                     if (i.user.id === userId) {
-                        if (i.componentType === 'BUTTON') {
+                        if (i.componentType === ComponentType.Button) {
                             if (i.customId === 'showAll') {
                                 choice = cards;
                             }

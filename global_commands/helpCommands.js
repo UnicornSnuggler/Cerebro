@@ -1,6 +1,5 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
-const { MessageEmbed } = require('discord.js');
-const { SendContentAsEmbed, Authorized } = require('../utilities/messageHelper');
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { Authorized } = require('../utilities/messageHelper');
 const { COLORS } = require('../constants');
 const { ReportError } = require('../utilities/errorHelper');
 
@@ -12,7 +11,7 @@ module.exports = {
         if (!Authorized(context)) return;
 
         try {
-            const embed = new MessageEmbed()
+            const embed = new EmbedBuilder()
                 .setTitle('Help')
                 .setColor(COLORS.Default);
 

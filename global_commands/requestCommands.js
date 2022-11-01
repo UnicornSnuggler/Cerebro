@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
+const { SlashCommandBuilder } = require('discord.js');
 const { LogCommand } = require('../utilities/logHelper');
 const { CreateEmbed, Authorized } = require('../utilities/messageHelper');
 const { DAY_MILLIS, COLORS } = require('../constants');
@@ -20,16 +20,20 @@ module.exports = {
                         .setName('type')
                         .setDescription('Whether to list data requests or feature requests.')
                         .setRequired(true)
-                        .addChoice('all', 'all')
-                        .addChoice('data', 'data')
-                        .addChoice('feature', 'feature'))
+                        .addChoices(
+                            { name: 'all', value: 'all' },
+                            { name: 'data', value: 'data' },
+                            { name: 'feature', value: 'feature' }
+                        ))
                 .addStringOption(option =>
                     option
                         .setName('scope')
                         .setDescription('Whether to list all requests or just your own.')
                         .setRequired(true)
-                        .addChoice('all', 'all')
-                        .addChoice('personal', 'personal')))
+                        .addChoices(
+                            { name: 'all', value: 'all' },
+                            { name: 'personal', value: 'personal' }
+                        )))
         .addSubcommand(subcommand =>
             subcommand
                 .setName('new')
@@ -39,8 +43,10 @@ module.exports = {
                         .setName('type')
                         .setDescription('Whether to make a new data request or a new feature request.')
                         .setRequired(true)
-                        .addChoice('data', 'data')
-                        .addChoice('feature', 'feature')))
+                        .addChoices(
+                            { name: 'data', value: 'data' },
+                            { name: 'feature', value: 'feature' }
+                        )))
         .addSubcommand(subcommand =>
             subcommand
                 .setName('review')

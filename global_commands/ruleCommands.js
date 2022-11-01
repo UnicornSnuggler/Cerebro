@@ -1,5 +1,4 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
-const { MessageActionRow, MessageSelectMenu } = require('discord.js');
+const { ActionRowBuilder, SelectMenuBuilder, SlashCommandBuilder, ComponentType } = require('discord.js');
 const { RuleDao } = require('../dao/ruleDao');
 const { LogCommand, LogRuleResult } = require('../utilities/logHelper');
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed, SendMessageWithOptions, Authorized } = require('../utilities/messageHelper');
@@ -10,7 +9,7 @@ const { GetUserIdFromContext } = require('../utilities/userHelper');
 
     const SelectBox = async function(context, rules) {
         try {
-        let selector = new MessageSelectMenu()
+        let selector = new SelectMenuBuilder()
             .setCustomId('selector')
             .setPlaceholder('No rule selected...');
 
@@ -24,7 +23,7 @@ const { GetUserIdFromContext } = require('../utilities/userHelper');
         prompt += '\n\nPlease select from the following...';
         
         for (let rule of rules) {
-            let emoji = null;
+            let emoji = undefined;
             let emojiMatch = rule.Title.match(/ \((\{[a-z]\})\)/i);
 
             let title = rule.Title;
@@ -45,12 +44,12 @@ const { GetUserIdFromContext } = require('../utilities/userHelper');
             }]);
         }
 
-        let components = new MessageActionRow().addComponents(selector);
+        let components = new ActionRowBuilder().addComponents(selector);
 
         promise = SendContentAsEmbed(context, prompt, [components]);
         
         promise.then((message) => {
-            const collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: SELECT_TIMEOUT * SECOND_MILLIS });
+            const collector = message.createMessageComponentCollector({ componentType: ComponentType.StringSelect, time: SELECT_TIMEOUT * SECOND_MILLIS });
 
             collector.on('collect', async i => {
                 let userId = GetUserIdFromContext(context);
@@ -100,9 +99,11 @@ module.exports = {
                 .setName('origin')
                 .setDescription('The origin of the rule.')
                 .setRequired(true)
-                .addChoice('official', 'official')
-                .addChoice('unofficial', 'unofficial')
-                .addChoice('all', 'all'))
+                .addChoices(
+                    { name: 'official', value: 'official' },
+                    { name: 'unofficial', value: 'unofficial' },
+                    { name: 'all', value: 'all' }
+                ))
         .addStringOption(option =>
             option
                 .setName('title')

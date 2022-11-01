@@ -7,6 +7,7 @@ const { LogDao } = require('../dao/logDao');
 const { GetDateString } = require('./dateHelper');
 const { ConfigurationDao } = require('../dao/configurationDao');
 const { ReportError } = require('./errorHelper');
+const { PermissionsBitField } = require('discord.js');
 
 exports.cardOfTheDayLoop = async function cardOfTheDayLoop(client) {
     for (let [guildId, data] of Object.entries(ConfigurationDao.CONFIGURATION.CardOfTheDay)) {
@@ -43,16 +44,16 @@ const cardOfTheDay = exports.cardOfTheDay = async function(guild, channels, role
             let channel = guild.channels.resolve(channelId);
 
             if (channel) {
-                let permissions = guild.me.permissionsIn(channelId);
+                let permissions = guild.members.me.permissionsIn(channelId);
 
-                if (permissions.has('VIEW_CHANNEL') && permissions.has('SEND_MESSAGES') && permissions.has('MANAGE_MESSAGES')) {
+                if (permissions.has(PermissionsBitField.Flags.ViewChannel) && permissions.has(PermissionsBitField.Flags.SendMessages) && permissions.has(PermissionsBitField.Flags.ManageMessages)) {
                     let ping = `It's time for the **Card of the Day**!`;
 
                     if (role) {
                         ping = ping.replace('\*\*Card of the Day\*\*', `<@&${role}>`);
                     }
 
-                    if (permissions.has('CREATE_PUBLIC_THREADS')) {
+                    if (permissions.has(PermissionsBitField.Flags.CreatePublicThreads)) {
                         channel.send({
                             embeds: [baseEmbed]
                         })
@@ -84,6 +85,6 @@ const cardOfTheDay = exports.cardOfTheDay = async function(guild, channels, role
         });
     }
     catch (e) {
-        ReportError(context, e);
+        ReportError(null, e);
     }
 }

@@ -1,4 +1,4 @@
-const { MessageActionRow, MessageButton, MessageEmbed } = require('discord.js');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ComponentType } = require('discord.js');
 const { INTERACT_APOLOGY, TIMEOUT_APOLOGY, COLORS, WIZARD, PROMPT_TIMEOUT, MINUTE_MILLIS, PRODUCTION_BOT } = require("../constants");
 const { CreateEmbed, DirectMessageUser, RemoveComponents } = require("./messageHelper");
 const { RequestDao } = require('../dao/requestDao');
@@ -132,7 +132,7 @@ exports.BuildEntity = function(userId, type) {
 }
 
 exports.BuildRequestListEmbed = function(results, type, scale) {
-    let embed = new MessageEmbed()
+    let embed = new EmbedBuilder()
         .setColor(COLORS["Basic"])
         .setTitle(`${CapitalizedTitleElement(scale)}${type !== 'all' ? ` ${CapitalizedTitleElement(type)}` : ''} Requests`);
 
@@ -178,24 +178,24 @@ const DenyRequest = async function(context, request) {
 }
 
 const TrashRequest = async function(context, request, newFlag, inputConfirmation = null) {
-    let buttonRow = new MessageActionRow();
+    let buttonRow = new ActionRowBuilder();
 
     if (inputConfirmation) {
-        buttonRow.addComponents(new MessageButton()
+        buttonRow.addComponents(new ButtonBuilder()
             .setCustomId('yes')
             .setLabel(`Yes`)
-            .setStyle('SUCCESS'));
+            .setStyle(ButtonStyle.Success));
 
-        buttonRow.addComponents(new MessageButton()
+        buttonRow.addComponents(new ButtonBuilder()
             .setCustomId('no')
             .setLabel(`No`)
-            .setStyle('SECONDARY'));
+            .setStyle(ButtonStyle.Secondary));
     }
 
-    buttonRow.addComponents(new MessageButton()
+    buttonRow.addComponents(new ButtonBuilder()
         .setCustomId('cancel')
         .setLabel('Cancel')
-        .setStyle('DANGER'));
+        .setStyle(ButtonStyle.Danger));
 
     let id = request.Id.substring(24);
 
@@ -213,7 +213,7 @@ const TrashRequest = async function(context, request, newFlag, inputConfirmation
     promise.then((message) => {
         let messageCollector = null;
 
-        const buttonCollector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: PROMPT_TIMEOUT * MINUTE_MILLIS });
+        const buttonCollector = message.createMessageComponentCollector({ componentType: ComponentType.Button, time: PROMPT_TIMEOUT * MINUTE_MILLIS });
 
         if (!inputConfirmation) {
             messageCollector = context.channel.createMessageCollector({ time: PROMPT_TIMEOUT * MINUTE_MILLIS });
@@ -328,7 +328,7 @@ const ProcessRequest = exports.ProcessRequest = async function(context, requestE
     try {
         let currentQuestion = questionSet[currentQuestionId];
         let type = currentQuestion.type;
-        let buttonRow = new MessageActionRow();
+        let buttonRow = new ActionRowBuilder();
 
         if (type === QUESTION_TYPES.completion) {
             let id = await SubmitRequest(context, requestEntity);
@@ -343,21 +343,21 @@ const ProcessRequest = exports.ProcessRequest = async function(context, requestE
         }
 
         if ([QUESTION_TYPES.yesNoContinue, QUESTION_TYPES.yesNoFailure].includes(type) || (type === QUESTION_TYPES.userInput && inputConfirmation)) {
-            buttonRow.addComponents(new MessageButton()
+            buttonRow.addComponents(new ButtonBuilder()
                 .setCustomId('yes')
                 .setLabel(`Yes`)
-                .setStyle('SUCCESS'));
+                .setStyle(ButtonStyle.Success));
 
-            buttonRow.addComponents(new MessageButton()
+            buttonRow.addComponents(new ButtonBuilder()
                 .setCustomId('no')
                 .setLabel(`No`)
-                .setStyle('SECONDARY'));
+                .setStyle(ButtonStyle.Secondary));
         }
 
-        buttonRow.addComponents(new MessageButton()
+        buttonRow.addComponents(new ButtonBuilder()
             .setCustomId('cancel')
             .setLabel('Cancel')
-            .setStyle('DANGER'));
+            .setStyle(ButtonStyle.Danger));
 
         let prompt = type === QUESTION_TYPES.userInput && inputConfirmation ? `Your input is as follows:\n\n${QuoteText(inputConfirmation)}\n\nIs this what you want to submit?` : currentQuestion.question;
 
@@ -373,7 +373,7 @@ const ProcessRequest = exports.ProcessRequest = async function(context, requestE
         promise.then((message) => {
             let messageCollector = null;
 
-            const buttonCollector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: PROMPT_TIMEOUT * MINUTE_MILLIS });
+            const buttonCollector = message.createMessageComponentCollector({ componentType: ComponentType.Button, time: PROMPT_TIMEOUT * MINUTE_MILLIS });
 
             if (type === QUESTION_TYPES.userInput && !inputConfirmation) {
                 messageCollector = dmChannel.createMessageCollector({ time: PROMPT_TIMEOUT * MINUTE_MILLIS });
@@ -460,17 +460,17 @@ const ProcessRequest = exports.ProcessRequest = async function(context, requestE
 
 const SendConfirmation = async function(context, request, prompt, operation) {
     try {
-        let buttonRow = new MessageActionRow();
+        let buttonRow = new ActionRowBuilder();
 
-        buttonRow.addComponents(new MessageButton()
+        buttonRow.addComponents(new ButtonBuilder()
             .setCustomId('yes')
             .setLabel(`Yes`)
-            .setStyle('SUCCESS'));
+            .setStyle(ButtonStyle.Success));
 
-        buttonRow.addComponents(new MessageButton()
+        buttonRow.addComponents(new ButtonBuilder()
             .setCustomId('no')
             .setLabel(`No`)
-            .setStyle('SECONDARY'));
+            .setStyle(ButtonStyle.Secondary));
 
         let embed = CreateEmbed(prompt, COLORS.Basic);
 
@@ -481,7 +481,7 @@ const SendConfirmation = async function(context, request, prompt, operation) {
         });
 
         promise.then((message) => {
-            const buttonCollector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: PROMPT_TIMEOUT * MINUTE_MILLIS });
+            const buttonCollector = message.createMessageComponentCollector({ componentType: ComponentType.Button, time: PROMPT_TIMEOUT * MINUTE_MILLIS });
 
             buttonCollector.on('collect', i => {
                 i.deferUpdate()
@@ -527,9 +527,9 @@ const SendConfirmation = async function(context, request, prompt, operation) {
 
 exports.SendRequestEmbed = async function(context, request, moderator, owner) {
     try {
-        let adminRow = new MessageActionRow();
-        let moderatorRow = new MessageActionRow();
-        let defaultRow = new MessageActionRow();
+        let adminRow = new ActionRowBuilder();
+        let moderatorRow = new ActionRowBuilder();
+        let defaultRow = new ActionRowBuilder();
 
         let components = [];
 
@@ -547,46 +547,46 @@ exports.SendRequestEmbed = async function(context, request, moderator, owner) {
         let embed = CreateEmbed(description, COLORS.Basic, `${id} — ${request.Title}`);
 
         if ((owner && [FLAG_TYPES.pendingReview, FLAG_TYPES.approved, FLAG_TYPES.complete].includes(request.Flag)) || context.user.id === WIZARD) {
-            adminRow.addComponents(new MessageButton()
+            adminRow.addComponents(new ButtonBuilder()
                 .setCustomId('delete')
                 .setLabel('Delete')
-                .setStyle('DANGER'));
+                .setStyle(ButtonStyle.Danger));
         }
 
         if (context.user.id === WIZARD) {
-            adminRow.addComponents(new MessageButton()
+            adminRow.addComponents(new ButtonBuilder()
                 .setCustomId('inProgress')
                 .setLabel('In Progress')
-                .setStyle('PRIMARY'));
+                .setStyle(ButtonStyle.Primary));
 
-            adminRow.addComponents(new MessageButton()
+            adminRow.addComponents(new ButtonBuilder()
                 .setCustomId('complete')
                 .setLabel('Complete')
-                .setStyle('SUCCESS'));
+                .setStyle(ButtonStyle.Success));
         }
 
         if ((moderator && !owner) || context.user.id === WIZARD) {
-            moderatorRow.addComponents(new MessageButton()
+            moderatorRow.addComponents(new ButtonBuilder()
                 .setCustomId('approved')
                 .setLabel(`Approve`)
-                .setStyle('SUCCESS'));
+                .setStyle(ButtonStyle.Success));
 
-            moderatorRow.addComponents(new MessageButton()
+            moderatorRow.addComponents(new ButtonBuilder()
                 .setCustomId('denied')
                 .setLabel(`Deny`)
-                .setStyle('SECONDARY'));
+                .setStyle(ButtonStyle.Secondary));
 
-            moderatorRow.addComponents(new MessageButton()
+            moderatorRow.addComponents(new ButtonBuilder()
                 .setCustomId('banished')
                 .setLabel('Banish')
-                .setStyle('DANGER'));
+                .setStyle(ButtonStyle.Danger));
         }
 
         if (adminRow.components.length > 0 || moderatorRow.components > 0) {
-            defaultRow.addComponents(new MessageButton()
+            defaultRow.addComponents(new ButtonBuilder()
                 .setCustomId('clearComponents')
                 .setLabel('Clear Buttons')
-                .setStyle('DANGER'));
+                .setStyle(ButtonStyle.Danger));
         }
 
         [adminRow, moderatorRow, defaultRow].forEach(x => {
@@ -601,7 +601,7 @@ exports.SendRequestEmbed = async function(context, request, moderator, owner) {
 
         promise.then((message) => {
             if (components.length > 0) {
-                const buttonCollector = message.createMessageComponentCollector({ componentType: 'BUTTON', time: PROMPT_TIMEOUT * MINUTE_MILLIS });
+                const buttonCollector = message.createMessageComponentCollector({ componentType: ComponentType.Button, time: PROMPT_TIMEOUT * MINUTE_MILLIS });
         
                 buttonCollector.on('collect', i => {
                     i.deferUpdate()

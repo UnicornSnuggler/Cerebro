@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
+const { SlashCommandBuilder } = require('discord.js');
 const { ArtistDao } = require('../dao/artistDao');
 const { AuthorDao } = require('../dao/authorDao');
 const { ConfigurationDao } = require('../dao/configurationDao');
@@ -18,21 +18,24 @@ module.exports = {
             option.setName('list')
                 .setDescription('The list to be updated.')
                 .setRequired(true)
-                .addChoice('All', 'all')
-                .addChoice('Artists', 'artists')
-                .addChoice('Authors', 'authors')
-                .addChoice('Configuration', 'configuration')
-                .addChoice('Formattings', 'formattings')
-                .addChoice('Groups', 'groups')
-                .addChoice('Packs', 'packs')
-                .addChoice('Rules', 'rules')
-                .addChoice('Sets', 'sets')),
+                .addChoices(
+                    { name: 'All', value: 'all' },
+                    { name: 'Artists', value: 'artists' },
+                    { name: 'Authors', value: 'authors' },
+                    { name: 'Configuration', value: 'configuration' },
+                    { name: 'Formattings', value: 'formattings' },
+                    { name: 'Groups', value: 'groups' },
+                    { name: 'Packs', value: 'packs' },
+                    { name: 'Rules', value: 'rules' },
+                    { name: 'Sets', value: 'sets' }
+                )),
     async execute(context) {
         if (!Authorized(context, true)) return;
         
         try {
             switch (context.options.getString('list')) {
                 case 'all':
+                    await ArtistDao.UpdateArtistList();
                     await AuthorDao.RetrieveAllAuthors();
                     await FormattingDao.RetrieveAllFormattings();
                     await GroupDao.RetrieveAllGroups();
@@ -41,7 +44,7 @@ module.exports = {
                     await SetDao.RetrieveAllSets();
                     SendContentAsEmbed(context, 'All lists updated!', null, true);
                     break;
-                case 'authors':
+                case 'artists':
                     await ArtistDao.UpdateArtistList();
                     SendContentAsEmbed(context, 'Artists list updated!', null, true);
                     break;

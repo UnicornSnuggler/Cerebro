@@ -1,4 +1,4 @@
-const { Formatters } = require('discord.js');
+const { bold, spoiler } = require('discord.js');
 const { FormattingDao } = require('../dao/formattingDao');
 const { SYMBOLS } = require('../constants');
 
@@ -54,10 +54,10 @@ exports.FormatText = function(text, exclusion = null) {
 
                     switch (formatting.Operation) {
                         case 'Bold':
-                            replacedText = Formatters.bold(matches[key]);
+                            replacedText = bold(matches[key]);
                             break;
                         case 'Emphasis':
-                            replacedText = Formatters.bold(ItalicizeText(matches[key]));
+                            replacedText = bold(ItalicizeText(matches[key]));
                             break;
                         case 'Italic':
                             replacedText = ItalicizeText(matches[key]);
@@ -97,7 +97,7 @@ exports.QuoteText = function(text) {
 }
 
 exports.SpoilerIfIncomplete = function(text, incomplete) {
-    return incomplete ? Formatters.spoiler(text) : text;
+    return incomplete ? spoiler(text) : text;
 }
 
 exports.SuperscriptNumber = function(number) {

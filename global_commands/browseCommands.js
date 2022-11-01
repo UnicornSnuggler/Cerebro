@@ -1,5 +1,4 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
-const { MessageActionRow, MessageSelectMenu } = require('discord.js');
+const { ActionRowBuilder, SelectMenuBuilder, SlashCommandBuilder, ComponentType } = require('discord.js');
 const { AuthorDao } = require('../dao/authorDao');
 const { CardDao } = require('../dao/cardDao');
 const { PackDao } = require('../dao/packDao');
@@ -13,7 +12,7 @@ const { GetUserIdFromContext } = require('../utilities/userHelper');
 
 const SelectBox = async function(context, collectionEntities, type) {
     try {
-        let selector = new MessageSelectMenu()
+        let selector = new SelectMenuBuilder()
             .setCustomId('selector')
             .setPlaceholder(`No ${type} selected...`);
 
@@ -37,12 +36,12 @@ const SelectBox = async function(context, collectionEntities, type) {
             }]);
         }
 
-        let components = new MessageActionRow().addComponents(selector);
+        let components = new ActionRowBuilder().addComponents(selector);
 
         let promise = SendContentAsEmbed(context, prompt, [components]);
         
         promise.then((message) => {
-            let collector = message.createMessageComponentCollector({ componentType: 'SELECT_MENU', time: SELECT_TIMEOUT * SECOND_MILLIS });
+            let collector = message.createMessageComponentCollector({ componentType: ComponentType.StringSelect, time: SELECT_TIMEOUT * SECOND_MILLIS });
 
             collector.on('collect', async i => {
                 let userId = GetUserIdFromContext(context);

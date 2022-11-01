@@ -1,4 +1,4 @@
-const { MessageEmbed } = require("discord.js");
+const { PermissionsBitField, EmbedBuilder } = require("discord.js");
 const { COLORS, PRODUCTION_BOT, WIZARD, ACOLYTE } = require("../constants");
 const { ConfigurationDao } = require("../dao/configurationDao");
 const { ReportError } = require("./errorHelper");
@@ -20,9 +20,9 @@ exports.Authorized = function(context, adminLocked = false) {
     
         if (context.guildId) {
             let guild = context.client.guilds.resolve(context.guildId);
-            let permissions = guild.me.permissionsIn(context.channelId);
+            let permissions = guild.members.me.permissionsIn(context.channelId);
 
-            if (permissions && (!permissions.has('VIEW_CHANNEL') || !permissions.has('SEND_MESSAGES') || !permissions.has('MANAGE_MESSAGES'))) {
+            if (permissions && (!permissions.has(PermissionsBitField.Flags.ViewChannel) || !permissions.has(PermissionsBitField.Flags.SendMessages) || !permissions.has(PermissionsBitField.Flags.ManageMessages))) {
                 SendContentAsEmbed(context, "I don't have sufficient permissions here!", null, true);
                 return false;
             }
@@ -36,7 +36,7 @@ exports.Authorized = function(context, adminLocked = false) {
 }
 
 let CreateEmbed = exports.CreateEmbed = function(content, color = COLORS.Default, title = null) {
-    const embed = new MessageEmbed()
+    const embed = new EmbedBuilder()
         .setColor(color)
         .setDescription(content);
 
