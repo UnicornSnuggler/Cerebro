@@ -3,10 +3,11 @@ const { CardEntity } = require('../models/cardEntity');
 const { NavigationCollection } = require('../models/navigationCollection');
 const { GetBaseId, ShareFaces, ShareGroups, BuildCollectionFromBatch } = require('../utilities/cardHelper');
 const { CreateDocumentStore, DeriveDatabase } = require('../utilities/documentStoreHelper');
-const { OFFICIAL, UNOFFICIAL, ALL } = require('../constants');
+const { OFFICIAL, ALL } = require('../constants');
 const { EscapeRegex } = require('../utilities/stringHelper');
 const { SetDao } = require('./setDao');
 
+// Deprecated, but retaining for historical reference
 const TrimDuplicates = function(cards) {
     let results = [];
 
@@ -141,7 +142,7 @@ class CardDao {
         return collection;
     }
 
-    static async RetrieveByName(terms, origin, trimDuplicates = true) {
+    static async RetrieveByName(terms, origin) {
         const session = this.store.openSession();
 
         terms = terms.toLowerCase();
@@ -232,7 +233,7 @@ class CardDao {
                 return card.Name.toLowerCase() === terms || (card.Subname != null && card.Subname.toLowerCase() === terms) || card.Id.toLowerCase() === terms;
             });
 
-            return matches.length > 0 ? matches : results;
+            return matches.length > 0 && !wildcard ? matches : results;
         }
 
         return [];
@@ -289,7 +290,7 @@ class CardDao {
         else return null;
     }
 
-    static async RetrieveRandomCard(encounter = false) {
+    static async RetrieveRandomCard(encounter = false, classifications = null, omitIdentityLocking = false) {
         const session = this.store.openSession();
 
         let query = session.query({ indexName: `${ALL}${CardEntity.COLLECTION}` })
@@ -304,8 +305,17 @@ class CardDao {
         if (encounter) {
             query = query.whereEquals('Classification', 'Encounter');
         }
+        else if (classifications) {
+            query = query.whereIn('Classification', classifications);
+        }
         else {
             query = query.whereNotEquals('Classification', 'Encounter');
+        }
+
+        if (omitIdentityLocking) {
+            query = query.andAlso()
+                .not()
+                .whereRegex('Rules', 'Play only if your identity has');
         }
 
         let documents = await query.randomOrdering()
@@ -315,7 +325,7 @@ class CardDao {
         return new CardEntity(documents[0]);
     }
 
-    static async RetrieveWithFilters(origin, author, boost, classification, cost, incomplete, pack, resource, set, text, traits, type, trimDuplicates = true) {
+    static async RetrieveWithFilters(origin, author, boost, classification, cost, incomplete, pack, resource, set, text, traits, type) {
         const session = this.store.openSession();
         let query = session.query({ indexName: `${ALL}${CardEntity.COLLECTION}` });
 
@@ -448,7 +458,7 @@ class CardDao {
                 results.push(new CardEntity(document));
             }
 
-            return trimDuplicates ? TrimDuplicates(results) : results;
+            return results;
         }
         else return [];
     }

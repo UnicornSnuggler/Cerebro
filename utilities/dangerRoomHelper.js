@@ -1,4 +1,7 @@
-const { GLITCH_CHANCE, DONOR_GLITCH_CHANCE } = require("../constants");
+const { GLITCH_CHANCE, DONOR_GLITCH_CHANCE, MASOCHIST } = require("../constants");
+const { PackDao } = require("../dao/packDao");
+const { SetDao } = require("../dao/setDao");
+const { ChooseRandomElements } = require("./arrayHelper");
 
 const GLITCH_FILTERS = {
     mustHaveModulars: 0,
@@ -70,6 +73,74 @@ const GLITCHES = [
         filters: null
     }
 ];
+
+exports.GenerateHero = function(unofficial = false, heroExclusions = null, aspectExclusions = null, glitches = true) {
+    let heroChoices = SetDao.SETS.filter(x =>
+        (unofficial || x.Official) &&
+        (!heroExclusions || !heroExclusions.includes(x.Id)) &&
+        x.CanSimulate &&
+        x.Type === 'Hero Set' &&
+        !PackDao.PACKS.find(y => y.Id === x.PackId).Incomplete
+    );
+
+    let randomHero = ChooseRandomElements(heroChoices, 1)[0];
+
+    let pack = PackDao.PACKS.find(x => x.Id === randomHero.PackId);
+
+    let aspectChoices = 1;
+
+    if (randomHero.Deviation) {
+        switch (randomHero.Name) {
+            case 'Adam Warlock':
+                aspectChoices = 4;
+                break;
+            case 'Spider-Woman':
+                aspectChoices = 2;
+                break;
+            default:
+                break;
+        }
+    }
+
+    let aspects = ['Aggression', 'Justice', 'Leadership', 'Protection'];
+
+    if (unofficial) {
+        aspects.push('Determination');
+    }
+
+    if (aspectExclusions && aspectChoices === 1) {
+        aspects = aspects.filter(x => !aspectExclusions.includes(x));
+    }
+
+    let randomAspects = ChooseRandomElements(aspects, aspectChoices);
+    randomAspects.sort((a, b) => a > b ? 1 : -1);
+
+    let contributions = [];
+
+    if (unofficial) {
+        if (randomHero.AuthorId) {
+            contributions.push({
+                authorId: randomHero.AuthorId,
+                packName: `${pack.Name} ${pack.Type}`,
+                packId: pack.Id
+            });
+        }
+    
+        if (randomAspects.includes('Determination')) {
+            contributions.push({
+                authorId: MASOCHIST,
+                packName: 'Determination Supplements',
+                packId: 'Determination'
+            });
+        }
+    }
+
+    return {
+        hero: randomHero,
+        aspects: randomAspects,
+        contributions: contributions
+    };
+}
 
 exports.RandomizeGlitches = function(scenarios, heroes, donor = false) {
     let randomNumber = Math.random();

@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
+const { SlashCommandBuilder } = require('discord.js');
 const { CardResultLogEntity } = require('../models/cardResultLogEntity');
 const { CollectionResultLogEntity } = require('../models/collectionResultLogEntity');
 const { CommandLogEntity } = require('../models/commandLogEntity');
@@ -17,26 +17,32 @@ module.exports = {
             option.setName('scale')
             .setDescription('The scale of the statistics you\'d like to view.')
             .setRequired(true)
-			.addChoice('server', 'server')
-			.addChoice('global', 'global')
-			.addChoice('personal', 'personal'))
+			.addChoices(
+                {name: 'server', value: 'server' },
+                {name: 'global', value: 'global' },
+                {name: 'personal', value: 'personal' }
+            ))
         .addStringOption(option => 
             option.setName('timeframe')
             .setDescription('The age of the statistics you\'d like to view.')
             .setRequired(true)
-            .addChoice('daily', 'daily')
-            .addChoice('weekly', 'weekly')
-            .addChoice('monthly', 'monthly')
-            .addChoice('yearly', 'yearly')
-            .addChoice('all-time', 'all-time'))
+            .addChoices(
+                { name: 'daily', value: 'daily' },
+                { name: 'weekly', value: 'weekly' },
+                { name: 'monthly', value: 'monthly' },
+                { name: 'yearly', value: 'yearly' },
+                { name: 'all-time', value: 'all-time' }
+            ))
         .addStringOption(option => 
             option.setName('type')
             .setDescription('The type of statistics you\'d like to view.')
             .setRequired(true)
-			.addChoice('cards', 'cards')
-			.addChoice('packs', 'packs')
-			.addChoice('sets', 'sets')
-			.addChoice('users', 'users')),
+			.addChoices(
+			    { name: 'cards', value: 'cards' },
+			    { name: 'packs', value: 'packs' },
+			    { name: 'sets', value: 'sets' },
+			    { name: 'users', value: 'users' }
+            )),
     async execute(context) {
         if (!Authorized(context)) return;
         

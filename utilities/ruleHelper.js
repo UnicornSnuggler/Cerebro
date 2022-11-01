@@ -1,4 +1,4 @@
-const { MessageEmbed } = require('discord.js');
+const { EmbedBuilder } = require('discord.js');
 const { FormatSymbols, FormatText } = require('./stringHelper');
 const { COLORS } = require('../constants');
 
@@ -7,7 +7,7 @@ const BuildRuleImagePath = exports.BuildRuleImagePath = function(rule) {
 }
 
 exports.BuildEmbed = function(rule) {
-    let embed = new MessageEmbed();
+    let embed = new EmbedBuilder();
 
     let imagePath = BuildRuleImagePath(rule);
 

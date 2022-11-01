@@ -1,4 +1,4 @@
-const { MessageEmbed } = require('discord.js');
+const { EmbedBuilder } = require('discord.js');
 const { CardDao } = require('../dao/cardDao');
 const { LogDao } = require('../dao/logDao');
 const { PackDao } = require('../dao/packDao');
@@ -41,7 +41,7 @@ const BuildBaseOrganizedEntity = function(context, collection, packId, setId) {
 
 exports.BuildCardResultsEmbed = async function(results, scale, timeframe) {
     try {
-        let embed = new MessageEmbed();
+        let embed = new EmbedBuilder();
 
         embed.setColor(COLORS["Basic"]);
         embed.setTitle(`${CapitalizedTitleElement(scale)} ${CapitalizedTitleElement(timeframe)} Card Statistics`);
@@ -93,7 +93,7 @@ exports.BuildCardResultsEmbed = async function(results, scale, timeframe) {
 }
 
 exports.BuildPackResultsEmbed = function(results, scale, timeframe) {
-    let embed = new MessageEmbed();
+    let embed = new EmbedBuilder();
 
     embed.setColor(COLORS["Basic"]);
     embed.setTitle(`${CapitalizedTitleElement(scale)} ${CapitalizedTitleElement(timeframe)} Pack Statistics`);
@@ -127,7 +127,7 @@ exports.BuildPackResultsEmbed = function(results, scale, timeframe) {
 }
 
 exports.BuildSetResultsEmbed = function(results, scale, timeframe) {
-    let embed = new MessageEmbed();
+    let embed = new EmbedBuilder();
 
     embed.setColor(COLORS["Basic"]);
     embed.setTitle(`${CapitalizedTitleElement(scale)} ${CapitalizedTitleElement(timeframe)} Set Statistics`);
@@ -161,7 +161,7 @@ exports.BuildSetResultsEmbed = function(results, scale, timeframe) {
 }
 
 exports.BuildUserResultsEmbed = function(results, scale, timeframe) {
-    let embed = new MessageEmbed();
+    let embed = new EmbedBuilder();
 
     embed.setColor(COLORS["Basic"]);
     embed.setTitle(`${CapitalizedTitleElement(scale)} ${CapitalizedTitleElement(timeframe)} User Statistics`);
