@@ -28,7 +28,7 @@ const createImage = async function(cards) {
             canvasContext.drawImage(image, positionX, positionY, IMAGE_WIDTH, IMAGE_HEIGHT);
         }
         
-        let attachment = new AttachmentBuilder(canvas.toBuffer('image/jpeg', {quality: 1.0, progressive: true}), {name: 'DOTD.jpg', description: 'Deck of the Day Image'});
+        let attachment = new AttachmentBuilder(canvas.toBuffer('image/jpeg', {quality: 1.0, progressive: true}), {name: 'DOTW.jpg', description: 'Deck of the Week Image'});
 
         return attachment;
     }
@@ -37,17 +37,17 @@ const createImage = async function(cards) {
     }
 }
 
-exports.deckOfTheDayLoop = async function deckOfTheDayLoop(client) {
-    for (let [guildId, data] of Object.entries(ConfigurationDao.CONFIGURATION.DeckOfTheDay)) {
+exports.deckOfTheWeekLoop = async function deckOfTheWeekLoop(client) {
+    for (let [guildId, data] of Object.entries(ConfigurationDao.CONFIGURATION.DeckOfTheWeek)) {
         let guild = client.guilds.resolve(guildId);
 
         if (guild) {
-            await deckOfTheDay(guild, data.channels, data.role);
+            await deckOfTheWeek(guild, data.channels, data.role);
         }
     }
 }
 
-const deckOfTheDay = exports.deckOfTheDay = async function(guild, channels, role) {
+const deckOfTheWeek = exports.deckOfTheWeek = async function(guild, channels, role) {
     try {
         let heroData = GenerateHero();
         
@@ -57,10 +57,10 @@ const deckOfTheDay = exports.deckOfTheDay = async function(guild, channels, role
         
         let card = await CardDao.RetrieveRandomCard(false, heroData.aspects, true);
         
-        let baseEmbed = CreateEmbed(`The hero for the **Deck of the Day** is [${hero.Name}](${BuildCardImagePath(hero)}) ([${alterEgo.Name}](${BuildCardImagePath(alterEgo)})) and the chosen aspect${heroData.aspects.length > 1 ? 's are' : ' is'} ${CreateStringFromArray(heroData.aspects.map(x => `**${x}**`))}!\n\n` +
+        let baseEmbed = CreateEmbed(`The hero for the **Deck of the Week** is [${hero.Name}](${BuildCardImagePath(hero)}) ([${alterEgo.Name}](${BuildCardImagePath(alterEgo)})) and the chosen aspect${heroData.aspects.length > 1 ? 's are' : ' is'} ${CreateStringFromArray(heroData.aspects.map(x => `**${x}**`))}!\n\n` +
             `The extra credit card is the ${card.Classification} ${card.Type} [${card.Name}](${BuildCardImagePath(card)}). Try using it in your build!`,
             COLORS[card.Classification],
-            `Deck of the Day — ${GetDateString()}`
+            `Deck of the Week — ${GetDateString()}`
         );
 
         let attachment = await createImage([hero, alterEgo, card]);
@@ -72,10 +72,10 @@ const deckOfTheDay = exports.deckOfTheDay = async function(guild, channels, role
                 let permissions = guild.members.me.permissionsIn(channelId);
 
                 if (permissions.has(PermissionsBitField.Flags.ViewChannel) && permissions.has(PermissionsBitField.Flags.SendMessages) && permissions.has(PermissionsBitField.Flags.ManageMessages)) {
-                    let ping = `It's time for the **Deck of the Day**!`;
+                    let ping = `It's time for the **Deck of the Week**!`;
 
                     if (role) {
-                        ping = ping.replace('\*\*Deck of the Day\*\*', `<@&${role}>`);
+                        ping = ping.replace('\*\*Deck of the Week\*\*', `<@&${role}>`);
                     }
 
                     if (permissions.has(PermissionsBitField.Flags.CreatePublicThreads)) {
