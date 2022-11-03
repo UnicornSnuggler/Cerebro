@@ -18,7 +18,7 @@ const { QueueCompiledResult, CreateSelectBox } = require('./utilities/cardHelper
 const { LogCardResult, LogCommand } = require('./utilities/logHelper');
 const { ArtistDao } = require('./dao/artistDao');
 const { GetUserIdFromContext } = require('./utilities/userHelper');
-const { deckOfTheDayLoop } = require('./utilities/deckOfTheDayHelper');
+const { deckOfTheWeekLoop } = require('./utilities/deckOfTheWeekHelper');
 
 const client = new Client({ intents: [GatewayIntentBits.DirectMessages, GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMembers, GatewayIntentBits.MessageContent], partials: [Partials.Channel] });
 
@@ -36,7 +36,21 @@ function millisUntilEight() {
 
     if (millis < 0) millis += DAY_MILLIS;
 
-    console.log(`There are ${millis/SECOND_MILLIS} seconds until the first 'Card of the Day' and 'Deck of the Day' messages...`);
+    console.log(`There are ${millis/SECOND_MILLIS} seconds until the next 'Card of the Day' message...`);
+    
+    return millis;
+}
+
+function millisUntilMonday() {
+    let now = new Date();
+    let nextMonday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 13, 0, 0, 0);
+    nextMonday.setDate(nextMonday.getDate() + (1 + 7 - nextMonday.getDay()) % 7);
+
+    let millis = nextMonday - now;
+
+    if (millis < 0) millis += DAY_MILLIS * 7;
+
+    console.log(`There are ${millis/SECOND_MILLIS} seconds until the next 'Deck of the Week' message...`);
     
     return millis;
 }
@@ -55,12 +69,17 @@ client.on('ready', async () => {
 
     setTimeout(function() {
         cardOfTheDayLoop(client);
-        deckOfTheDayLoop(client);
         setInterval(function() {
             cardOfTheDayLoop(client);
-            deckOfTheDayLoop(client);
         }, DAY_MILLIS)
     }, millisUntilEight());
+
+    setTimeout(function() {
+        deckOfTheWeekLoop(client);
+        setInterval(function() {
+            deckOfTheWeekLoop(client);
+        }, DAY_MILLIS * 7)
+    }, millisUntilMonday());
 });
 
 client.on('messageCreate', context => {

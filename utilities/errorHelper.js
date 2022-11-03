@@ -19,22 +19,21 @@ exports.ReportError = async function(context, error) {
             
             if (user) {
                 let timestamp = context.createdTimestamp.toString().slice(0, 10);
-                let content = context.content;
+                let content = context.content ?? `/${context.commandName}`;
                 let channel = context.channel;
                 let guild = context.guild;
-                let author = context.author;
+                let user = context.author ?? context.user;
 
                 let errorEmbed = new EmbedBuilder()
                     .setColor(COLORS.Default)
-                    .setTitle('An Error Has Occurred...');
+                    .setTitle('An Error Has Occurred...')
+                    .setDescription(`\`\`\`${error.stack}\`\`\``);
 
                 errorEmbed.addFields([
-                    { name: 'Triggering User', value: `${author}` },
-                    { name: 'Source', value: guild ? `${guild.name} — ${channel}` : 'DM' },
-                    { name: 'Timestamp', value: `<t:${timestamp}:f>` },
-                    { name: 'Content', value: `\`${content}\`` },
-                    { name: 'Error Type', value: `\`${error.name}\`` },
-                    { name: 'Error Message', value: `\`\`\`${error.stack}\`\`\`` }
+                    { name: 'Triggering User', value: `<@${user.id}>` },
+                    { name: 'Source', value: guild ? `${guild.name} — ${channel}` : 'DM Channel' },
+                    { name: 'Initial Interaction', value: `\`${content}\`` },
+                    { name: 'Timestamp', value: `<t:${timestamp}:f>` }
                 ]);
                 
                 await user.send({
@@ -44,6 +43,6 @@ exports.ReportError = async function(context, error) {
         }
     }
     catch (e) {
-        console.error(`An error occurred while reporting an error...\n\n${e}`);
+        console.error(`An error occurred while reporting an error...\n\n${e.stack}`);
     }
 }

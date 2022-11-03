@@ -1,6 +1,5 @@
 require('dotenv').config()
-const { REST } = require('@discordjs/rest');
-const { Routes } = require('discord-api-types/v9');
+const { Routes, REST } = require('discord.js');
 const fs = require('fs');
 
 const globalCommands = [];
