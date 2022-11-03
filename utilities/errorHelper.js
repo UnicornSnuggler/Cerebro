@@ -17,10 +17,25 @@ exports.ReportError = async function(context, error) {
             
             let user = await GetUser(context, WIZARD);
             
-            if (user && user !== context.user) {
+            if (user) {
+                let timestamp = context.createdTimestamp.toString().slice(0, 10);
+                let content = context.content;
+                let channel = context.channel;
+                let guild = context.guild;
+                let author = context.author;
+
                 let errorEmbed = new EmbedBuilder()
-                .setColor(COLORS.Default)
-                .setDescription(`An error has occurred!\n\n\`${error.name}\``);
+                    .setColor(COLORS.Default)
+                    .setTitle('An Error Has Occurred...');
+
+                errorEmbed.addFields([
+                    { name: 'Triggering User', value: `${author}` },
+                    { name: 'Source', value: guild ? `${guild.name} — ${channel}` : 'DM' },
+                    { name: 'Timestamp', value: `<t:${timestamp}:f>` },
+                    { name: 'Content', value: `\`${content}\`` },
+                    { name: 'Error Type', value: `\`${error.name}\`` },
+                    { name: 'Error Message', value: `\`\`\`${error.stack}\`\`\`` }
+                ]);
                 
                 await user.send({
                     embeds: [errorEmbed]
