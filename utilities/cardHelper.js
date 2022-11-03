@@ -191,7 +191,9 @@ const BuildRulesEmbed = exports.BuildRulesEmbed = function(card, alternateArt = 
     let ruleEntries = EvaluateRules(card);
 
     for (let ruleEntry of ruleEntries) {
-        embed.addField(FormatSymbols(ruleEntry.title), FormatSymbols(ruleEntry.description));
+        embed.addFields([
+            { name: FormatSymbols(ruleEntry.title), value: FormatSymbols(ruleEntry.description) }
+        ]);
     }
 
     embed.setColor(COLORS[(card.Type == 'Villain' || card.Type == 'Main Scheme' ? 'Villain' : card.Classification)]);

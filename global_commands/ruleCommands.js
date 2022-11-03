@@ -37,7 +37,7 @@ const { GetUserIdFromContext } = require('../utilities/userHelper');
             }
             
             selector.addOptions([{
-                description: description ? `${description.substring(0, 50)}...` : '',
+                description: description ? `${description.substring(0, 50)}...` : undefined,
                 emoji: emoji,
                 label: title,
                 value: rule.Id
