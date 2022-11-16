@@ -9,6 +9,8 @@ const { FormattingDao } = require('./dao/formattingDao');
 
 const app = express();
 
+app.use(express.json());
+
 function DefaultHeaders(res) {
     res.setHeader('Content-Type', 'application/json')
         .setHeader('Access-Control-Allow-Origin', '*');
@@ -30,6 +32,8 @@ app.get('/artists', async function(req, res) {
 });
 
 app.get('/cards', async function(req, res) {
+    let body = req.body;
+
     DefaultHeaders(res);
     
     let results = [];
@@ -80,6 +84,13 @@ app.get('/cards', async function(req, res) {
         sets = sets.concat(await SetDao.RetrieveWithFilters(origin, setOption, null));
         
         setIds = sets.map(x => x.Id);
+
+        if (body.setIds) {
+            setIds = setIds.concat(body.setIds);
+        }
+    }
+    else if (body.setIds) {
+        setIds = body.setIds;
     }
 
     if ((!packOption || packIds.length > 0) && (!setOption || setIds.length > 0)) {
