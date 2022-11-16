@@ -334,7 +334,16 @@ class CardDao {
         }
 
         if (classification) {
-            if (classification === 'player') {
+            if (classification === 'aspect') {
+                query = query.openSubclause()
+                    .not()
+                    .whereRegex('Classification', 'encounter')
+                    .andAlso()
+                    .not()
+                    .whereRegex('Classification', 'hero')
+                    .closeSubclause();
+            }
+            else if (classification === 'player') {
                 query = query.openSubclause()
                     .not()
                     .whereRegex('Classification', 'encounter')

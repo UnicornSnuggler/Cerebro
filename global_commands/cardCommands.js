@@ -161,6 +161,7 @@ module.exports = {
                 .setRequired(false)
                 .addChoices(
                     { name: 'aggression', value: 'aggression' },
+                    { name: 'aspect', value: 'aspect' },
                     { name: 'basic', value: 'basic' },
                     { name: 'determination', value: 'determination' },
                     { name: 'encounter', value: 'encounter' },
@@ -303,7 +304,10 @@ module.exports = {
                     if (results) {
                         if (author) results = results.filter(card => card.AuthorId === author);
                         if (classification) {
-                            if (classification === 'player') {
+                            if (classification === 'aspect') {
+                                results = results.filter(card => card.Classification.toLowerCase() !== 'encounter' && card.Classification.toLowerCase() !== 'hero');
+                            }
+                            else if (classification === 'player') {
                                 results = results.filter(card => card.Classification.toLowerCase() !== 'encounter');
                             }
                             else {
