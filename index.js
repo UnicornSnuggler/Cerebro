@@ -19,6 +19,7 @@ const { LogCardResult, LogCommand } = require('./utilities/logHelper');
 const { ArtistDao } = require('./dao/artistDao');
 const { GetUserIdFromContext } = require('./utilities/userHelper');
 const { deckOfTheWeekLoop } = require('./utilities/deckOfTheWeekHelper');
+const { ValidateQuerySyntax } = require('./utilities/queryHelper');
 
 const client = new Client({ intents: [GatewayIntentBits.DirectMessages, GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMembers, GatewayIntentBits.MessageContent], partials: [Partials.Channel] });
 
@@ -87,6 +88,19 @@ client.on('messageCreate', context => {
 
     if (context.mentions.users.find(x => x === client.user)) {
         context.react('💕');
+    }
+
+    if (context.content.startsWith('### ')) {
+        let response = ValidateQuerySyntax(context.content.replace('### ', ''));
+
+        if (response.result) {
+            SendContentAsEmbed(context, `Your query was successfully validated! The trimmed and formatted rendition can be seen below:\n\`\`\`${response.output}\`\`\``);
+        }
+        else {
+            SendContentAsEmbed(context, `There was an issue validating your query... Details can be found below:\n\`\`\`${response.output}\`\`\``);
+        }
+
+        
     }
 
     let queries = [];

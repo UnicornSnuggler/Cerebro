@@ -6,8 +6,11 @@ const express = require('express');
 const { OFFICIAL, ALL, UNOFFICIAL, FALSE, TRUE } = require('./constants');
 const { ArtistDao } = require('./dao/artistDao');
 const { FormattingDao } = require('./dao/formattingDao');
+const { ValidateQuerySyntax } = require('./utilities/queryHelper');
 
 const app = express();
+
+app.use(express.json());
 
 function DefaultHeaders(res) {
     res.setHeader('Content-Type', 'application/json')
@@ -30,6 +33,8 @@ app.get('/artists', async function(req, res) {
 });
 
 app.get('/cards', async function(req, res) {
+    let body = req.body;
+
     DefaultHeaders(res);
     
     let results = [];
@@ -80,6 +85,13 @@ app.get('/cards', async function(req, res) {
         sets = sets.concat(await SetDao.RetrieveWithFilters(origin, setOption, null));
         
         setIds = sets.map(x => x.Id);
+
+        if (body.setIds) {
+            setIds = setIds.concat(body.setIds);
+        }
+    }
+    else if (body.setIds) {
+        setIds = body.setIds;
     }
 
     if ((!packOption || packIds.length > 0) && (!setOption || setIds.length > 0)) {
@@ -197,6 +209,36 @@ app.get('/sets', async function(req, res) {
     res.end(JSON.stringify(results));
 });
 
+app.get('/query', async function(req, res) {
+    DefaultHeaders(res);
+
+    let input = req.query.input;
+
+    if (!input) {
+        res.status(400)
+            .end(JSON.stringify({ error: `The 'input' parameter is required...` }));
+
+        return;
+    }
+
+    let validation = ValidateQuerySyntax(input);
+
+    if (!validation.result) {
+        res.status(400)
+            .end(JSON.stringify({ error: `Query syntax error: ${validation.output}` }));
+
+        return;
+    }
+
+    let results = await CardDao.RetrieveWithAdvancedQueryLanguage(validation.output);
+
+    results.sort(function(a, b) {
+        return a.Id - b.Id;
+    });
+
+    res.end(JSON.stringify(results));
+});
+
 app.get('*', function(req, res) {
     let errors = [
         'These are not the URLs you\'re looking for...',
@@ -205,7 +247,7 @@ app.get('*', function(req, res) {
         'The page that was here is mad at you and doesn\'t want to see you right now...',
         'You don\'t belong here...',
         'This URL ain\'t big enough for the two of us...'
-    ]
+    ];
 
     res.status(404)
         .end(JSON.stringify({ error: errors[Math.floor(Math.random() * errors.length)] }));
