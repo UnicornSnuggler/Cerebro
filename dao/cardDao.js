@@ -3,7 +3,7 @@ const { CardEntity } = require('../models/cardEntity');
 const { NavigationCollection } = require('../models/navigationCollection');
 const { GetBaseId, ShareFaces, ShareGroups, BuildCollectionFromBatch } = require('../utilities/cardHelper');
 const { CreateDocumentStore, DeriveDatabase } = require('../utilities/documentStoreHelper');
-const { OFFICIAL, ALL } = require('../constants');
+const { OFFICIAL, ALL, FILTERS } = require('../constants');
 const { EscapeRegex } = require('../utilities/stringHelper');
 const { SetDao } = require('./setDao');
 
@@ -228,6 +228,10 @@ class CardDao {
             for (let document of documents) {
                 results.push(new CardEntity(document));
             }
+
+            results.sort(function(a, b) {
+                return a.Id - b.Id;
+            });
 
             let matches = results.filter(function(card) {
                 return card.Name.toLowerCase() === terms || (card.Subname != null && card.Subname.toLowerCase() === terms) || card.Id.toLowerCase() === terms;
@@ -467,10 +471,81 @@ class CardDao {
                 results.push(new CardEntity(document));
             }
 
+            results.sort(function(a, b) {
+                return a.Id - b.Id;
+            });
+
+            return results;
+        }
+        else return [];
+    }
+
+    static async RetrieveWithAdvancedQueryLanguage(input) {
+        const session = this.store.openSession();
+        let query = session.query({ indexName: `${ALL}${CardEntity.COLLECTION}` });
+
+        let replacements = {};
+
+        let convertedInput = input.toLowerCase().replaceAll(/(?<property>[a-z]+?):((?<!(?<!\\)\\)\"(?<query>.*?)(?<!(?<!\\)\\)\")/gmi, function(match, property, query) {
+            let key = `{${Object.keys(replacements).length}}`;
+            let convertedProperty = FILTERS.find(x => x.verbose === property || x.shorthand === property);
+            let formattedQuery = query.replaceAll(/(?<!(?<!\\)\\)\"/gmi, '');
+            
+            replacements[key] = {
+                property: convertedProperty.property,
+                query: formattedQuery
+            };
+    
+            return key;
+        });
+
+        for (let index = 0; index < convertedInput.length; index++) {
+            if (convertedInput[index] === '(') {
+                query = query.openSubclause(); 
+            }
+            else if (convertedInput[index] === ')') {
+                query = query.closeSubclause();
+            }
+            else if (convertedInput[index] === '&') {
+                query = query.andAlso();
+            }
+            else if (convertedInput[index] === '|') {
+                query = query.orElse();
+            }
+            else {
+                let endingIndex = convertedInput.indexOf('}', index);
+                let designation = convertedInput.substring(index, endingIndex + 1);
+                let entry = replacements[designation];
+
+                index = endingIndex;
+
+                if (!['PackIds', 'SetIds'].includes(entry.property)) {
+                    query = query.whereRegex(entry.property, entry.query);
+                }
+                else {
+                    query = query.whereEquals(entry.property, entry.query);
+                }
+            }
+        }
+
+        let documents = await query.all();
+    
+        if (documents.length > 0) {    
+            let results = [];
+    
+            for (let document of documents) {
+                results.push(new CardEntity(document));
+            }
+
+            results.sort(function(a, b) {
+                return a.Id - b.Id;
+            });
+
             return results;
         }
         else return [];
     }
 }
+
 
 module.exports = { CardDao }

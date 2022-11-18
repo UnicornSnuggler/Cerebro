@@ -6,6 +6,7 @@ const express = require('express');
 const { OFFICIAL, ALL, UNOFFICIAL, FALSE, TRUE } = require('./constants');
 const { ArtistDao } = require('./dao/artistDao');
 const { FormattingDao } = require('./dao/formattingDao');
+const { ValidateQuerySyntax } = require('./utilities/queryHelper');
 
 const app = express();
 
@@ -208,6 +209,36 @@ app.get('/sets', async function(req, res) {
     res.end(JSON.stringify(results));
 });
 
+app.get('/query', async function(req, res) {
+    DefaultHeaders(res);
+
+    let input = req.query.input;
+
+    if (!input) {
+        res.status(400)
+            .end(JSON.stringify({ error: `The 'input' parameter is required...` }));
+
+        return;
+    }
+
+    let validation = ValidateQuerySyntax(input);
+
+    if (!validation.result) {
+        res.status(400)
+            .end(JSON.stringify({ error: `Query syntax error: ${validation.output}` }));
+
+        return;
+    }
+
+    let results = await CardDao.RetrieveWithAdvancedQueryLanguage(validation.output);
+
+    results.sort(function(a, b) {
+        return a.Id - b.Id;
+    });
+
+    res.end(JSON.stringify(results));
+});
+
 app.get('*', function(req, res) {
     let errors = [
         'These are not the URLs you\'re looking for...',
@@ -216,7 +247,7 @@ app.get('*', function(req, res) {
         'The page that was here is mad at you and doesn\'t want to see you right now...',
         'You don\'t belong here...',
         'This URL ain\'t big enough for the two of us...'
-    ]
+    ];
 
     res.status(404)
         .end(JSON.stringify({ error: errors[Math.floor(Math.random() * errors.length)] }));

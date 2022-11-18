@@ -11,6 +11,89 @@ exports.COLORS = {
     Villain: 'BA00D6'
 };
 
+exports.FILTERS = [
+    {
+        'verbose': 'authorid',
+        'shorthand': 'au',
+        'property': 'AuthorId'
+    },
+    {
+        'verbose': 'boost',
+        'shorthand': 'b',
+        'property': 'Boost'
+    },
+    {
+        'verbose': 'cost',
+        'shorthand': 'co',
+        'property': 'Cost'
+    },
+    {
+        'verbose': 'classification',
+        'shorthand': 'cl',
+        'property': 'Classification'
+    },
+    {
+        'verbose': 'groupid',
+        'shorthand': 'gi',
+        'property': 'GroupId'
+    },
+    {
+        'verbose': 'incomplete',
+        'shorthand': 'i',
+        'property': 'Incomplete'
+    },
+    {
+        'verbose': 'name',
+        'shorthand': 'n',
+        'property': 'Name'
+    },
+    {
+        'verbose': 'official',
+        'shorthand': 'o',
+        'property': 'Official'
+    },
+    {
+        'verbose': 'packid',
+        'shorthand': 'pi',
+        'property': 'PackIds'
+    },
+    {
+        'verbose': 'resource',
+        'shorthand': 're',
+        'property': 'Resource'
+    },
+    {
+        'verbose': 'rules',
+        'shorthand': 'ru',
+        'property': 'Rules'
+    },
+    {
+        'verbose': 'setid',
+        'shorthand': 'si',
+        'property': 'SetIds'
+    },
+    {
+        'verbose': 'special',
+        'shorthand': 'sp',
+        'property': 'Special'
+    },
+    {
+        'verbose': 'subname',
+        'shorthand': 'sn',
+        'property': 'Subname'
+    },
+    {
+        'verbose': 'traits',
+        'shorthand': 'tr',
+        'property': 'Traits'
+    },
+    {
+        'verbose': 'type',
+        'shorthand': 'ty',
+        'property': 'Type'
+    }
+];
+
 exports.IMAGE_WIDTH = 300;
 exports.IMAGE_HEIGHT = 423;
 exports.IMAGES_PER_ROW = 5;
