@@ -15,9 +15,9 @@ exports.ReportError = async function(context, error) {
                 embeds: [replyEmbed]
             });
             
-            let user = await GetUser(context, WIZARD);
+            let wizard = await GetUser(context, WIZARD);
             
-            if (user) {
+            if (wizard) {
                 let timestamp = context.createdTimestamp.toString().slice(0, 10);
                 let content = context.content ?? `/${context.commandName}`;
                 let channel = context.channel;
@@ -36,7 +36,7 @@ exports.ReportError = async function(context, error) {
                     { name: 'Timestamp', value: `<t:${timestamp}:f>` }
                 ]);
                 
-                await user.send({
+                await wizard.send({
                     embeds: [errorEmbed]
                 });
             }
