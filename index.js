@@ -90,19 +90,6 @@ client.on('messageCreate', context => {
         context.react('💕');
     }
 
-    if (context.content.startsWith('### ')) {
-        let response = ValidateQuerySyntax(context.content.replace('### ', ''));
-
-        if (response.result) {
-            SendContentAsEmbed(context, `Your query was successfully validated! The trimmed and formatted rendition can be seen below:\n\`\`\`${response.output}\`\`\``);
-        }
-        else {
-            SendContentAsEmbed(context, `There was an issue validating your query... Details can be found below:\n\`\`\`${response.output}\`\`\``);
-        }
-
-        
-    }
-
     let queries = [];
 
     let matches = context.content.match(/({{.+?}}|<<.+?>>)/gi);
