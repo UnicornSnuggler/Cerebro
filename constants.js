@@ -38,6 +38,11 @@ exports.FILTERS = [
         'property': 'GroupId'
     },
     {
+        'verbose': 'id',
+        'shorthand': 'd',
+        'property': 'id()'
+    },
+    {
         'verbose': 'incomplete',
         'shorthand': 'i',
         'property': 'Incomplete'
