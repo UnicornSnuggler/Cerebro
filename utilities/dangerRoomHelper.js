@@ -29,6 +29,13 @@ const GLITCHES = [
         ]
     },
     {
+        code: 273,
+        summary: 'Assault on the homefront',
+        description: 'You start the game with a copy of the Avengers Mansion support in play. After resolving scheme setup, exhaust and confuse your identity.',
+        hero: true,
+        filters: null
+    },
+    {
         code: 404,
         summary: 'Specialization not found',
         description: 'You must only include **Basic** aspect cards in your deck. Ignore any deck-building requirements specified by your assigned identity.',

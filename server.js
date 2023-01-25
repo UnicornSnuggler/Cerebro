@@ -213,6 +213,7 @@ app.get('/query', async function(req, res) {
     DefaultHeaders(res);
 
     let input = req.query.input;
+    let decodedInput = decodeURI(input);
 
     if (!input) {
         res.status(400)
@@ -221,7 +222,7 @@ app.get('/query', async function(req, res) {
         return;
     }
 
-    let validation = ValidateQuerySyntax(input);
+    let validation = ValidateQuerySyntax(decodedInput);
 
     if (!validation.result) {
         res.status(400)
@@ -241,12 +242,17 @@ app.get('/query', async function(req, res) {
 
 app.get('*', function(req, res) {
     let errors = [
-        'These are not the URLs you\'re looking for...',
-        'You\'ve reached the void of space...',
-        'You need to work on your typing skills...',
-        'The page that was here is mad at you and doesn\'t want to see you right now...',
-        'You don\'t belong here...',
-        'This URL ain\'t big enough for the two of us...'
+        `These are not the URLs you're looking for...`,
+        `You've reached the void of space...`,
+        `You need to work on your typing skills...`,
+        `The page that was here is mad at you and doesn't want to see you right now...`,
+        `You don't belong here...`,
+        `This URL ain't big enough for the two of us...`,
+        `I would do anything for you...but I won't do that...`,
+        `I'd like to speak to your manager...`,
+        `Do you realize what you've done?! ...nothing. This page doesn't exist...`,
+        `I'm afraid this is the end of the line for you, bucko...`,
+        `Do you feel lucky, punk? Well...you shouldn't...`
     ];
 
     res.status(404)
