@@ -1,4 +1,4 @@
-const { italic, bold, escapeMarkdown, ActionRowBuilder, ButtonBuilder, ButtonStyle, SelectMenuBuilder, AttachmentBuilder, EmbedBuilder, ComponentType } = require('discord.js');
+const { italic, bold, escapeMarkdown, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, AttachmentBuilder, EmbedBuilder, ComponentType } = require('discord.js');
 const { PackDao } = require('../dao/packDao');
 const { RuleDao } = require('../dao/ruleDao');
 const { ConfigurationDao } = require('../dao/configurationDao');
@@ -275,7 +275,7 @@ const BuildStats = exports.BuildStats = function(card) {
 }
 
 exports.CreateSelectBox = function(cards) {
-    let selector = new SelectMenuBuilder()
+    let selector = new StringSelectMenuBuilder()
         .setCustomId('selector')
         .setPlaceholder('No card selected...');
     
