@@ -99,6 +99,8 @@ exports.FILTERS = [
     }
 ];
 
+exports.IMAGE_WIDTH = 300;
+exports.IMAGE_HEIGHT = 423;
 exports.MAX_ATTACHMENTS = 10;
 
 exports.DEFAULT_ART_TOGGLE = true;
