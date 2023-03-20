@@ -99,11 +99,7 @@ exports.FILTERS = [
     }
 ];
 
-exports.IMAGE_WIDTH = 300;
-exports.IMAGE_HEIGHT = 423;
-exports.IMAGES_PER_ROW = 5;
-exports.MAX_ATTACHMENTS = 6;
-exports.MAX_IMAGES = this.MAX_ATTACHMENTS * this.IMAGES_PER_ROW;
+exports.MAX_ATTACHMENTS = 10;
 
 exports.DEFAULT_ART_TOGGLE = true;
 
@@ -117,7 +113,7 @@ exports.DAY_MILLIS = 86400000;
 exports.MINUTE_MILLIS = 60000;
 exports.SECOND_MILLIS = 1000;
 
-exports.INTERACT_TIMEOUT = 30;
+exports.INTERACT_TIMEOUT = 60;
 exports.SELECT_TIMEOUT = 45;
 exports.PROMPT_TIMEOUT = 5;
 
@@ -138,7 +134,6 @@ exports.INTERACT_APOLOGY = 'Sorry, but you can\'t interact with another user\'s 
 exports.LOAD_APOLOGY = 'Please wait while result details are being retrieved. Art rendering will likely result in longer load times.';
 exports.STATISTICS_APOLOGY = 'Please wait while pertinent data is being retrieved...';
 exports.TIMEOUT_APOLOGY = 'The interaction timeout was reached...';
-exports.MAX_IMAGES_APOLOGY = `*(No more than ${this.MAX_IMAGES} images can be displayed at a time... Your response has been trimmed accordingly.)*`;
 
 exports.ARTIST_EMOJI = ':paintbrush:'
 exports.RELEASED_EMOJI = '<:affirmative:939594005317025832>';

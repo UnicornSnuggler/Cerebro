@@ -11,6 +11,13 @@ const GLITCH_FILTERS = {
 
 const GLITCHES = [
     {
+        code: 032,
+        summary: 'Isolation protocol',
+        description: 'You may not include any non-identity-specific allies during deck-building.',
+        hero: true,
+        filters: null
+    },
+    {
         code: 106,
         summary: 'Memory partition corruption',
         description: 'You must only include cards from one of your assigned aspects during deck-building. Ignore any deck-building requirements specified by your assigned identity.',
@@ -20,6 +27,13 @@ const GLITCHES = [
         ]
     },
     {
+        code: 129,
+        summary: 'Cerebral enhancement',
+        description: 'Your identity gains the ***Psionic*** trait.',
+        hero: true,
+        filters: null
+    },
+    {
         code: 207,
         summary: 'Training curriculum overload',
         description: 'You may choose an additional aspect. If you do, you must include an equal number of cards from that aspect and your assigned aspect in your deck.',
@@ -27,6 +41,20 @@ const GLITCHES = [
         filters: [
             GLITCH_FILTERS.onlyOneAspect
         ]
+    },
+    {
+        code: 252,
+        summary: 'Symbiotic stowaway',
+        description: 'You start the game with a copy of the Symbiote Suit upgrade in play. After resolving scheme setup, set your hit point dial to half of your identity\'s maximum hit points *(rounded down)*.',
+        hero: true,
+        filters: null
+    },
+    {
+        code: 273,
+        summary: 'Assault on the homefront',
+        description: 'You start the game with a copy of the Avengers Mansion support in play. After resolving scheme setup, exhaust and confuse your identity.',
+        hero: true,
+        filters: null
     },
     {
         code: 404,
@@ -43,11 +71,27 @@ const GLITCHES = [
         filters: null
     },
     {
+        code: 963,
+        summary: 'Gravitational fluctuation',
+        description: 'Your identity gains the ***Aerial*** trait.',
+        hero: true,
+        filters: null
+    },
+    {
         code: 115,
         summary: 'Adamantium theft',
         description: 'Each minion enters play with a tough status card.',
         hero: false,
         filters: null
+    },
+    {
+        code: 333,
+        summary: 'Power imbalance',
+        description: 'Set up the villain(s) as though you were playing on standard mode, but include the expert modular set when creating the encounter deck.',
+        hero: false,
+        filters: [
+            GLITCH_FILTERS.mustHaveModulars
+        ]
     },
     {
         code: 351,
@@ -59,9 +103,23 @@ const GLITCHES = [
         ]
     },
     {
+        code: 666,
+        summary: 'Summoning ritual',
+        description: 'After resolving scheme setup, discard cards from the top of the encounter deck until a minion is discarded and put that minion into play engaged with the first player. Then, shuffle the encounter discard pile into the encounter deck.',
+        hero: false,
+        filters: null
+    },
+    {
         code: 683,
         summary: 'Delayed response time',
         description: 'After resolving scheme setup, place 1 acceleration token on the main scheme.',
+        hero: false,
+        filters: null
+    },
+    {
+        code: 777,
+        summary: 'Stroke of luck',
+        description: 'After resolving scheme setup, find the Shadow of the Past treachery and remove it from the game.',
         hero: false,
         filters: null
     },
@@ -143,8 +201,11 @@ exports.GenerateHero = function(unofficial = false, heroExclusions = null, aspec
 }
 
 exports.RandomizeGlitches = function(scenarios, heroes, donor = false) {
+    let now = new Date();
+    let foolish = now.getDate() == 1 && now.getMonth() == 3;
+
     let randomNumber = Math.random();
-    let chance = (donor ? DONOR_GLITCH_CHANCE : GLITCH_CHANCE) / 100;
+    let chance = (donor ? DONOR_GLITCH_CHANCE : GLITCH_CHANCE) * (foolish ? 10 : 1) / 100;
 
     if (randomNumber > chance) {
         return;

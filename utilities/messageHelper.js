@@ -58,7 +58,7 @@ exports.DirectMessageUser = async function(user, message) {
     }
 }
 
-exports.RemoveComponents = async function(message, content, removeFiles = true) {
+exports.RemoveComponents = async function(message, embedContent, removeFiles = true, removeContent = false) {
     try {
         let messageOptions = {
             components: []
@@ -68,8 +68,12 @@ exports.RemoveComponents = async function(message, content, removeFiles = true) 
             messageOptions.attachments = [];
             messageOptions.files = [];
         }
+
+        if (removeContent) {
+            messageOptions.content = null;
+        }
         
-        if (content) messageOptions.embeds = [CreateEmbed(content)];
+        if (embedContent) messageOptions.embeds = [CreateEmbed(embedContent)];
         
         await message.edit(messageOptions);
     }
