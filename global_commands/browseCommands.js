@@ -1,4 +1,4 @@
-const { ActionRowBuilder, SelectMenuBuilder, SlashCommandBuilder, ComponentType } = require('discord.js');
+const { ActionRowBuilder, StringSelectMenuBuilder, SlashCommandBuilder, ComponentType } = require('discord.js');
 const { AuthorDao } = require('../dao/authorDao');
 const { CardDao } = require('../dao/cardDao');
 const { PackDao } = require('../dao/packDao');
@@ -12,7 +12,7 @@ const { GetUserIdFromContext } = require('../utilities/userHelper');
 
 const SelectBox = async function(context, collectionEntities, type) {
     try {
-        let selector = new SelectMenuBuilder()
+        let selector = new StringSelectMenuBuilder()
             .setCustomId('selector')
             .setPlaceholder(`No ${type} selected...`);
 

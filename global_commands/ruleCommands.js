@@ -1,4 +1,4 @@
-const { ActionRowBuilder, SelectMenuBuilder, SlashCommandBuilder, ComponentType } = require('discord.js');
+const { ActionRowBuilder, StringSelectMenuBuilder, SlashCommandBuilder, ComponentType } = require('discord.js');
 const { RuleDao } = require('../dao/ruleDao');
 const { LogCommand, LogRuleResult } = require('../utilities/logHelper');
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed, SendMessageWithOptions, Authorized } = require('../utilities/messageHelper');
@@ -9,7 +9,7 @@ const { GetUserIdFromContext } = require('../utilities/userHelper');
 
     const SelectBox = async function(context, rules) {
         try {
-        let selector = new SelectMenuBuilder()
+        let selector = new StringSelectMenuBuilder()
             .setCustomId('selector')
             .setPlaceholder('No rule selected...');
 
