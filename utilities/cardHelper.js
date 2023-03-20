@@ -5,7 +5,7 @@ const { ConfigurationDao } = require('../dao/configurationDao');
 const { CreateEmbed, RemoveComponents, SendMessageWithOptions } = require('../utilities/messageHelper');
 const { Summary } = require('./printingHelper');
 const { FormatSymbols, FormatText, SpoilerIfIncomplete, QuoteText, ItalicizeText } = require('./stringHelper');
-const { RELEASED_EMOJI, COLORS, ID_LENGTH, INTERACT_APOLOGY, LOAD_APOLOGY, SYMBOLS, INTERACT_TIMEOUT, TINKERER_EMOJI, WARNING_EMOJI, REVIEWING_EMOJI, SECOND_MILLIS, MAX_ATTACHMENTS, IMAGES_PER_ROW, IMAGE_WIDTH, IMAGE_HEIGHT, MAX_IMAGES_APOLOGY, ARTIST_EMOJI } = require('../constants');
+const { RELEASED_EMOJI, COLORS, ID_LENGTH, INTERACT_APOLOGY, LOAD_APOLOGY, SYMBOLS, INTERACT_TIMEOUT, TINKERER_EMOJI, WARNING_EMOJI, REVIEWING_EMOJI, SECOND_MILLIS, MAX_ATTACHMENTS, ARTIST_EMOJI } = require('../constants');
 const { NavigationCollection } = require('../models/navigationCollection');
 const { SetDao } = require('../dao/setDao');
 const { ReportError } = require('./errorHelper');
@@ -570,119 +570,152 @@ const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, current
     }
 }
 
-exports.QueueCompiledResult = function(context, cards, message = null, missing = null) {
+let QueueCompiledResult = exports.QueueCompiledResult = async function(context, cards, message = null, missing = null, pageNumber = 0) {
     try {
         let spoilerOverride = (!context.guildId || (ConfigurationDao.CONFIGURATION.SpoilerExceptions[context.guildId] && ConfigurationDao.CONFIGURATION.SpoilerExceptions[context.guildId].includes(context.channelId)));
 
+        let content = [];
         let overload = false;
+        let navigationRow = new ActionRowBuilder();
+        let subset = cards;
         
-        if (cards.length > MAX_ATTACHMENTS * IMAGES_PER_ROW) {
+        if (cards.length > MAX_ATTACHMENTS) {
             overload = true;
+
+            let startIndex = pageNumber * MAX_ATTACHMENTS;
+            let endIndex = startIndex + MAX_ATTACHMENTS < cards.length ? startIndex + MAX_ATTACHMENTS : cards.length;
+            let totalPages = Math.ceil(cards.length / MAX_ATTACHMENTS);
             
-            cards = cards.slice(0, MAX_ATTACHMENTS * IMAGES_PER_ROW);
+            subset = cards.slice(startIndex, endIndex);
+
+            content.push(`**Page \`${pageNumber + 1}\` of \`${totalPages}\`** — Cards ${startIndex + 1} through ${endIndex}`);
+            
+            if (pageNumber > 1)
+                navigationRow.addComponents(new ButtonBuilder()
+                    .setCustomId('firstPage')
+                    .setLabel(`First Page`)
+                    .setStyle(ButtonStyle.Secondary));
+
+            if (startIndex != 0)
+                navigationRow.addComponents(new ButtonBuilder()
+                    .setCustomId('previousPage')
+                    .setLabel(`Previous Page`)
+                    .setStyle(ButtonStyle.Primary));
+
+            if (endIndex != cards.length)
+                navigationRow.addComponents(new ButtonBuilder()
+                    .setCustomId('nextPage')
+                    .setLabel(`Next Page`)
+                    .setStyle(ButtonStyle.Primary));
+
+            if (totalPages > 2 && pageNumber < totalPages - 2)
+                navigationRow.addComponents(new ButtonBuilder()
+                    .setCustomId('lastPage')
+                    .setLabel(`Last Page`)
+                    .setStyle(ButtonStyle.Secondary));
+
+            navigationRow.addComponents(new ButtonBuilder()
+                .setCustomId('clearComponents')
+                .setLabel('Clear Buttons')
+                .setStyle(ButtonStyle.Danger));
         }
         
-        let rows = [];
         let attachments = [];
-        let superPromises = [];
-        
-        for (let i = 0; i < cards.length; i += IMAGES_PER_ROW) {
-            rows.push(cards.slice(i, i + IMAGES_PER_ROW < cards.length ? i + IMAGES_PER_ROW : cards.length));
-        }
-        
-        for (let row of rows) {
-            let promises = [];
-            
-            let width = IMAGE_WIDTH * row.length;
-            let height = IMAGE_HEIGHT;
-            
-            let canvas = Canvas.createCanvas(width, height);
-            let canvasContext = canvas.getContext('2d');
 
-            let spoiler = !spoilerOverride && row.some(x => x.Incomplete);
-            
-            for (let x = 0; x < row.length; x++) {
-                let imagePath = BuildCardImagePath(row[x], row[x].Id);
-                let promise = Canvas.loadImage(imagePath);
-                
-                promise.then(async function(image) {
-                    try {
-                        if (image.width > image.height) {
-                            let subCanvas = Canvas.createCanvas(image.height, image.width);
-                            let subContext = subCanvas.getContext('2d');
-                            
-                            subContext.translate(image.height / 2, image.width / 2);
-                            subContext.rotate(270 * Math.PI / 180);
-                            subContext.drawImage(image, -image.width / 2, -image.height / 2);
-                            subContext.translate(-image.height / 2, -image.width / 2);
-    
-                            image = subCanvas;
-                        }
-                        
-                        let positionX = IMAGE_WIDTH * x;
-                        let positionY = 0;
-                        
-                        canvasContext.drawImage(image, positionX, positionY, IMAGE_WIDTH, IMAGE_HEIGHT);
-                    }
-                    catch (e) {
-                        ReportError(context, e);
-                    }
-                });
-                
-                promises.push(promise);
-            }
-            
-            let superPromise = Promise.all(promises);
-            
-            superPromise.then(function() {
-                let attachment = new AttachmentBuilder(canvas.toBuffer('image/jpeg', {quality: 0.8, progressive: true}), {name: `${spoiler ? 'SPOILER_' : ''}Row_${rows.indexOf(row)}.jpg`, description: 'Bulk Query Image'});
-                
-                attachments.push(attachment);
+        for (let card of subset) {
+            attachments.push({
+                attachment: BuildCardImagePath(card),
+                name: `${(!spoilerOverride && card.Incomplete) ? 'SPOILER_' : ''}${card.Id}.jpg`,
+                spoiler: (!spoilerOverride && card.Incomplete)
             });
-            
-            superPromises.push(superPromise);
+        }
+
+        if (missing) {
+            let entry = `The following quer${missing.length === 1 ? 'y' : 'ies'} timed out, ${missing.length === 1 ? 'was' : 'were'} canceled, or returned no results:\n\`\`\``;
+        
+            for (let query of missing) {
+                entry += `• ${query}\n`;
+            }
+
+            entry += '```';
+        
+            content.push(entry);
         }
         
-        Promise.all(superPromises).then(async function() {
-            try {
-                attachments = attachments.sort((a, b) => a.name > b.name ? 1 : -1);
+        let messageOptions = {
+            content: content.length ? content.join('\n\n') : null,
+            components: overload ? [navigationRow] : [],
+            embeds: [],
+            files: attachments,
+            fetchReply: true,
+            failIfNotExists: false
+        };
 
-                let content = [];
+        let promise;
+        
+        if (message) promise = message.edit(messageOptions);
+        else promise = context.channel.send(messageOptions);
 
-                if (overload) {
-                    content.push(MAX_IMAGES_APOLOGY);
-                }
-
-                if (missing) {
-                    let entry = `The following quer${missing.length === 1 ? 'y' : 'ies'} timed out, ${missing.length === 1 ? 'was' : 'were'} canceled, or returned no results:\n\`\`\``;
-                
-                    for (let query of missing) {
-                        entry += `• ${query}\n`;
-                    }
-
-                    entry += '```';
-                
-                    content.push(entry);
-                }
-                
-                let messageOptions = {
-                    content: content.length ? content.join('\n\n') : null,
-                    embeds: [],
-                    files: attachments,
-                    fetchReply: true,
-                    failIfNotExists: false
-                };
-                
-                if (message) {
-                    await message.edit(messageOptions);
-                }
-                else {
-                    await context.channel.send(messageOptions);
-                }
+        promise.then((message) => {
+            if (!overload) {
+                return;
             }
-            catch (e) {
-                ReportError(context, e);
-            }
+
+            const collector = message.createMessageComponentCollector({ componentType: ComponentType.Button, time: INTERACT_TIMEOUT * SECOND_MILLIS });
+
+            collector.on('collect', i => {
+                let userId = GetUserIdFromContext(context);
+
+                if (i.user.id === userId) {
+                    if (i.customId != 'clearComponents') collector.stop('navigation');
+
+                    i.deferUpdate()
+                    .then(async () => {
+                        let nextPageNumber = pageNumber;
+
+                        switch (i.customId) {
+                            case 'firstPage':
+                                nextPageNumber = 0;
+                                                                
+                                break;
+                            case 'previousPage':
+                                nextPageNumber = pageNumber - 1;
+                                                                
+                                break;
+                            case 'nextPage':
+                                nextPageNumber = pageNumber + 1;
+                                
+                                break;
+                            case 'lastPage':
+                                nextPageNumber = Math.ceil(cards.length / MAX_ATTACHMENTS) - 1;
+                                
+                                break;
+                            case 'clearComponents':
+                                collector.stop('cancellation');
+                                return;
+                            default:
+                                break;
+                        }
+
+                        QueueCompiledResult(context, cards, message, missing, nextPageNumber);
+                    });
+                }
+                else i.reply({embeds: [CreateEmbed(INTERACT_APOLOGY)], ephemeral: true});
+            });
+
+            collector.on('end', (i, reason) => {
+                let content = null;
+                let removeFiles = false;
+                let removeContent = false;
+
+                if (reason === 'navigation') {
+                    content = LOAD_APOLOGY;
+                    removeFiles = true;
+                    removeContent = true;
+                }
+                
+                RemoveComponents(message, content, removeFiles, removeContent);
+            });
         });
     }
     catch(e) {
