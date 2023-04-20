@@ -11,6 +11,17 @@ exports.COLORS = {
     Villain: 'BA00D6'
 };
 
+exports.STATUS_CODES = {
+    OK: 200,
+    CREATED: 201,
+    NO_CONTENT: 204,
+    BAD_REQUEST: 400,
+    UNAUTHORIZED: 401,
+    NOT_FOUND: 404,
+    CONFLICT: 409,
+    INTERNAL_SERVER_ERROR: 500
+}
+
 exports.FILTERS = [
     {
         'verbose': 'authorid',
@@ -137,6 +148,16 @@ exports.LOAD_APOLOGY = 'Please wait while result details are being retrieved. Ar
 exports.STATISTICS_APOLOGY = 'Please wait while pertinent data is being retrieved...';
 exports.TIMEOUT_APOLOGY = 'The interaction timeout was reached...';
 
+exports.DUPLICATE_CODE = 11000;
+exports.VALIDATION_CODE = 121;
+
+exports.BAD_ID_APOLOGY = 'The user ID provided is not a valid object ID...';
+exports.DUPLICATE_APOLOGY = 'The provided email address has already been used to create an existing user object...';
+exports.ID_NOT_FOUND_APOLOGY = 'The user ID provided was not found...';
+exports.UNAUTHORIZED_APOLOGY = 'The \'Authorization\' header must be populated with a valid bearer token...';
+exports.UNKNOWN_APOLOGY = 'An unknown error occurred...';
+exports.VALIDATION_APOLOGY = 'One or more schema validation issues were found...';
+
 exports.ARTIST_EMOJI = ':paintbrush:'
 exports.RELEASED_EMOJI = '<:affirmative:939594005317025832>';
 exports.REVIEWING_EMOJI = ':mag:';
@@ -160,3 +181,17 @@ exports.SYMBOLS = {
     '{x}': '<:mc_mutant_genesis:984586842475221062>',
     '{y}': '<:mc_amplify:939593942788374648>'
 };
+
+exports.ERROR_MESSAGES = [
+    `These are not the URLs you're looking for...`,
+    `You've reached the void of space...`,
+    `You need to work on your typing skills...`,
+    `The page that was here is mad at you and doesn't want to see you right now...`,
+    `You don't belong here...`,
+    `This URL ain't big enough for the two of us...`,
+    `I would do anything for you...but I won't do that...`,
+    `I'd like to speak to your manager...`,
+    `Do you realize what you've done?! ...nothing. This page doesn't exist...`,
+    `I'm afraid this is the end of the line for you, bucko...`,
+    `Do you feel lucky, punk? Well...you shouldn't...`
+];

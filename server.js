@@ -1,12 +1,16 @@
 const { CardDao } = require('./dao/cardDao');
 const { PackDao } = require('./dao/packDao');
 const { SetDao } = require('./dao/setDao');
-const { ResourceConverter } = require('./utilities/cardHelper');
-const express = require('express');
-const { OFFICIAL, ALL, UNOFFICIAL, FALSE, TRUE } = require('./constants');
+const { UserDao } = require('./dao/userDao');
+const { OFFICIAL, ALL, UNOFFICIAL, FALSE, TRUE, UNAUTHORIZED_APOLOGY, VALIDATION_APOLOGY, VALIDATION_ERRORS, DUPLICATE_CODE, DUPLICATE_APOLOGY, VALIDATION_CODE, STATUS_CODES, ERROR_MESSAGES, BAD_ID_APOLOGY, ID_NOT_FOUND_APOLOGY } = require('./constants');
 const { ArtistDao } = require('./dao/artistDao');
 const { FormattingDao } = require('./dao/formattingDao');
 const { ValidateQuerySyntax } = require('./utilities/queryHelper');
+
+const axios = require('axios');
+const express = require('express');
+const { UserEntity } = require('./models/userEntity');
+const { ObjectId } = require('mongodb/lib/bson');
 
 const app = express();
 
@@ -42,7 +46,7 @@ app.get('/cards', async function(req, res) {
     let origin = req.query.origin?.toLowerCase() || ALL;
 
     if (![ALL, OFFICIAL, UNOFFICIAL].includes(origin)) {
-        res.status(400)
+        res.status(STATUS_CODES.BAD_REQUEST)
             .end(JSON.stringify({ error: `The 'origin' parameter must be '${ALL}', '${OFFICIAL}', or '${UNOFFICIAL}'...` }));
 
         return;
@@ -51,7 +55,7 @@ app.get('/cards', async function(req, res) {
     let incomplete = req.query.incomplete?.toLowerCase();
 
     if (incomplete && ![FALSE, TRUE].includes(incomplete)) {
-        res.status(400)
+        res.status(STATUS_CODES.BAD_REQUEST)
             .end(JSON.stringify({ error: `The 'incomplete' parameter must be '${FALSE}' or '${TRUE}'...` }));
 
         return;
@@ -158,7 +162,7 @@ app.get('/packs', async function(req, res) {
     let origin = req.query.origin?.toLowerCase() || OFFICIAL;
 
     if (![ALL, OFFICIAL, UNOFFICIAL].includes(origin)) {
-        res.status(400)
+        res.status(STATUS_CODES.BAD_REQUEST)
             .end(JSON.stringify({ error: `The 'origin' parameter must be '${ALL}', '${OFFICIAL}', or '${UNOFFICIAL}'...` }));
 
         return;
@@ -167,7 +171,7 @@ app.get('/packs', async function(req, res) {
     let incomplete = req.query.incomplete?.toLowerCase();
 
     if (incomplete && ![FALSE, TRUE].includes(incomplete)) {
-        res.status(400)
+        res.status(STATUS_CODES.BAD_REQUEST)
             .end(JSON.stringify({ error: `The 'incomplete' parameter must be '${FALSE}' or '${TRUE}'...` }));
 
         return;
@@ -191,7 +195,7 @@ app.get('/sets', async function(req, res) {
     let origin = req.query.origin?.toLowerCase() || OFFICIAL;
 
     if (![ALL, OFFICIAL, UNOFFICIAL].includes(origin)) {
-        res.status(400)
+        res.status(STATUS_CODES.BAD_REQUEST)
             .end(JSON.stringify({ error: `The 'origin' parameter must be '${ALL}', '${OFFICIAL}', or '${UNOFFICIAL}'...` }));
 
         return;
@@ -216,7 +220,7 @@ app.get('/query', async function(req, res) {
     let decodedInput = decodeURI(input);
 
     if (!input) {
-        res.status(400)
+        res.status(STATUS_CODES.BAD_REQUEST)
             .end(JSON.stringify({ error: `The 'input' parameter is required...` }));
 
         return;
@@ -225,7 +229,7 @@ app.get('/query', async function(req, res) {
     let validation = ValidateQuerySyntax(decodedInput);
 
     if (!validation.result) {
-        res.status(400)
+        res.status(STATUS_CODES.BAD_REQUEST)
             .end(JSON.stringify({ error: `Query syntax error: ${validation.output}` }));
 
         return;
@@ -240,23 +244,199 @@ app.get('/query', async function(req, res) {
     res.end(JSON.stringify(results));
 });
 
-app.get('*', function(req, res) {
-    let errors = [
-        `These are not the URLs you're looking for...`,
-        `You've reached the void of space...`,
-        `You need to work on your typing skills...`,
-        `The page that was here is mad at you and doesn't want to see you right now...`,
-        `You don't belong here...`,
-        `This URL ain't big enough for the two of us...`,
-        `I would do anything for you...but I won't do that...`,
-        `I'd like to speak to your manager...`,
-        `Do you realize what you've done?! ...nothing. This page doesn't exist...`,
-        `I'm afraid this is the end of the line for you, bucko...`,
-        `Do you feel lucky, punk? Well...you shouldn't...`
-    ];
+app.delete('/users/:userId', async function(req, res) {
+    DefaultHeaders(res);
 
-    res.status(404)
-        .end(JSON.stringify({ error: errors[Math.floor(Math.random() * errors.length)] }));
+    let authorized = await validateToken(req);
+
+    if (!authorized) {
+        res.status(STATUS_CODES.UNAUTHORIZED)
+            .end(JSON.stringify({ error: UNAUTHORIZED_APOLOGY }));
+
+        return;
+    }
+
+    let userId = req.params.userId;
+
+    if (!ObjectId.isValid(userId)) {
+        res.status(STATUS_CODES.BAD_REQUEST)
+            .end(JSON.stringify({ error: BAD_ID_APOLOGY }));
+
+        return;
+    }
+    
+    const result = await UserDao.DeleteUser(userId);
+
+    if (!result.acknowledged) {
+        res.status(STATUS_CODES.INTERNAL_SERVER_ERROR)
+            .end(JSON.stringify({ error: `An unknown error has occurred...` }));
+        
+        return;
+    }
+    else if (result.deletedCount == 0) {
+        res.status(STATUS_CODES.NOT_FOUND)
+            .end(JSON.stringify({ error: ID_NOT_FOUND_APOLOGY }));
+
+        return;
+    }
+
+    res.status(STATUS_CODES.NO_CONTENT)
+        .end();
+});
+
+app.get('/users', async function(req, res) {
+    DefaultHeaders(res);
+
+    let authorized = await validateToken(req);
+
+    let id = req.query.id;
+    let emailAddress = req.query.emailAddress;
+
+    let results = [];
+
+    if (id || emailAddress) {
+        let user = await UserDao.RetrieveUserWithFilters(id, emailAddress, !authorized);
+
+        if (user) {
+            results.push(user);
+        }
+    }
+    else {
+        let users = await UserDao.RetrieveAllUsers(!authorized);
+
+        if (users) {
+            results = users;
+        }
+    }
+
+    res.end(JSON.stringify(results));
+});
+
+app.post('/users', async function(req, res) {
+    DefaultHeaders(res);
+
+    let authorized = await validateToken(req);
+
+    if (!authorized) {
+        res.status(STATUS_CODES.UNAUTHORIZED)
+            .end(JSON.stringify({ error: UNAUTHORIZED_APOLOGY }));
+
+        return;
+    }
+
+    const user = req.body;
+
+    const formattedUser = new UserEntity(user);
+
+    formattedUser.created = Date.now();
+    formattedUser.updated = Date.now();
+    
+    const result = await UserDao.StoreNewUser(formattedUser);
+
+    if (!result.acknowledged) {
+        if (result.code == DUPLICATE_CODE) {
+            res.status(STATUS_CODES.CONFLICT)
+                .end(JSON.stringify({ error: DUPLICATE_APOLOGY }));
+        }
+        else if (result.code == VALIDATION_CODE) {
+            let formattedErrors = formatValidationErrors(result.errInfo.details.schemaRulesNotSatisfied);
+
+            res.status(STATUS_CODES.BAD_REQUEST)
+                .end(JSON.stringify({ error: VALIDATION_APOLOGY, validationErrors: formattedErrors }));
+        }
+        else {
+            res.status(STATUS_CODES.INTERNAL_SERVER_ERROR)
+                .end(JSON.stringify({ error: `An unknown error has occurred...` }));
+        }
+
+        return;
+    }
+
+    const updatedUser = await UserDao.RetrieveUserWithFilters(result.insertedId, null, false);
+
+    res.status(STATUS_CODES.CREATED)
+        .end(JSON.stringify(updatedUser));
+});
+
+app.put('/users/:userId', async function(req, res) {
+    DefaultHeaders(res);
+
+    let authorized = await validateToken(req);
+
+    if (!authorized) {
+        res.status(STATUS_CODES.UNAUTHORIZED)
+            .end(JSON.stringify({ error: UNAUTHORIZED_APOLOGY }));
+
+        return;
+    }
+
+    let userId = req.params.userId;
+    
+    if (!ObjectId.isValid(userId)) {
+        res.status(STATUS_CODES.BAD_REQUEST)
+            .end(JSON.stringify({ error: BAD_ID_APOLOGY }));
+
+        return;
+    }
+
+    const user = req.body;
+
+    const formattedUser = new UserEntity(user);
+
+    delete formattedUser._id;
+
+    formattedUser.updated = Date.now();
+    
+    const result = await UserDao.UpdateUser(userId, formattedUser);
+
+    if (!result.acknowledged) {
+        if (result.code == DUPLICATE_CODE) {
+            res.status(STATUS_CODES.CONFLICT)
+                .end(JSON.stringify({ error: DUPLICATE_APOLOGY }));
+        }
+        else if (result.code == VALIDATION_CODE) {
+            let formattedErrors = formatValidationErrors(result.errInfo.details.schemaRulesNotSatisfied);
+
+            res.status(STATUS_CODES.BAD_REQUEST)
+                .end(JSON.stringify({ error: VALIDATION_APOLOGY, validationErrors: formattedErrors }));
+        }
+        else {
+            res.status(STATUS_CODES.INTERNAL_SERVER_ERROR)
+                .end(JSON.stringify({ error: `An unknown error has occurred...` }));
+        }
+
+        return;
+    }
+    else if (result.matchedCount == 0) {
+        res.status(STATUS_CODES.NOT_FOUND)
+            .end(JSON.stringify({ error: ID_NOT_FOUND_APOLOGY }));
+
+        return;
+    }
+
+    const updatedUser = await UserDao.RetrieveUserWithFilters(userId, null, false);
+
+    res.end(JSON.stringify(updatedUser));
+});
+
+app.delete('*', function(req, res) {
+    res.status(STATUS_CODES.NOT_FOUND)
+        .end(JSON.stringify({ error: ERROR_MESSAGES[Math.floor(Math.random() * ERROR_MESSAGES.length)] }));
+});
+
+app.get('*', function(req, res) {
+    res.status(STATUS_CODES.NOT_FOUND)
+        .end(JSON.stringify({ error: ERROR_MESSAGES[Math.floor(Math.random() * ERROR_MESSAGES.length)] }));
+});
+
+app.post('*', function(req, res) {
+    res.status(STATUS_CODES.NOT_FOUND)
+        .end(JSON.stringify({ error: ERROR_MESSAGES[Math.floor(Math.random() * ERROR_MESSAGES.length)] }));
+});
+
+app.put('*', function(req, res) {
+    res.status(STATUS_CODES.NOT_FOUND)
+        .end(JSON.stringify({ error: ERROR_MESSAGES[Math.floor(Math.random() * ERROR_MESSAGES.length)] }));
 });
 
 var server = app.listen(process.env.PORT || 80, '0.0.0.0', function() {
@@ -265,3 +445,40 @@ var server = app.listen(process.env.PORT || 80, '0.0.0.0', function() {
 
     console.log("API listening at %s:%s", host, port);
 });
+
+function formatValidationErrors(rules) {
+    let validationErrors = [];
+
+    rules.forEach(rule => {
+        if (rule.operatorName == 'properties') {
+            rule.propertiesNotSatisfied.forEach(property => {
+                validationErrors.push(`'${property.propertyName}' ${property.description}...`);
+            });
+        }
+        else if (rule.operatorName == 'required') {
+            rule.missingProperties.forEach(property => {
+                validationErrors.push(`'${property}' is required...`);
+            });
+        }
+    });
+    
+    return validationErrors;
+};
+
+async function validateToken(req) {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return false;
+    }
+
+    const token = authHeader.substring(7, authHeader.length);
+    
+    const request = await axios.get('https://api.github.com/user', {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+    
+    return request.data.id.toString() == process.env.githubUserId;
+};
