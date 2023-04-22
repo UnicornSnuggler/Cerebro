@@ -54,20 +54,20 @@ class UserDao {
         return users;
     }
 
-    static async RetrieveUserWithFilters(id, emailAddress, limited) {
+    static async RetrieveUserWithFilters(limited, filters) {
         let user = null;
         
         try {
             await this.mongoClient.connect();
 
             let query = {};
-
-            if (id) {
-                query._id = new ObjectId(id);
+            
+            if (filters.hasOwnProperty('_id')) {
+                query._id = new ObjectId(filters._id);
             }
 
-            if (emailAddress) {
-                query.emailAddress = emailAddress;
+            if (filters.hasOwnProperty('emailAddress')) {
+                query.emailAddress = filters.emailAddress;
             }
 
             const options = limited ? this.limitedProjection : {};

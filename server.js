@@ -102,8 +102,6 @@ app.get('/artists', async function(req, res) {
 });
 
 app.get('/cards', async function(req, res) {
-    let body = req.body;
-
     DefaultHeaders(res);
     
     let results = [];
@@ -150,17 +148,10 @@ app.get('/cards', async function(req, res) {
     let setIds = null;
     
     if (setOption) {
-        let sets = await SetDao.RetrieveWithFilters(origin, null, setOption);
-        sets = sets.concat(await SetDao.RetrieveWithFilters(origin, setOption, null));
+        let sets = await SetDao.RetrieveWithFilters(origin, { id: setOption });
+        sets = sets.concat(await SetDao.RetrieveWithFilters(origin, { name: setOption }));
         
         setIds = sets.map(x => x.Id);
-
-        if (body.setIds) {
-            setIds = setIds.concat(body.setIds);
-        }
-    }
-    else if (body.setIds) {
-        setIds = body.setIds;
     }
 
     if ((!packOption || packIds.length > 0) && (!setOption || setIds.length > 0)) {
@@ -266,10 +257,13 @@ app.get('/sets', async function(req, res) {
         return;
     }
 
-    let id = req.query.id?.toLowerCase();
-    let name = req.query.name?.toLowerCase();
+    let filters = {};
 
-    let results = await SetDao.RetrieveWithFilters(origin, id, name);
+    if (req.query.hasOwnProperty('id')) filters.id = req.query.id.toLowerCase();
+    if (req.query.hasOwnProperty('name')) filters.name = req.query.name.toLowerCase();
+    if (req.query.hasOwnProperty('type')) filters.type = req.query.type.toLowerCase();
+
+    let results = await SetDao.RetrieveWithFilters(origin, filters);
 
     results.sort(function(a, b) {
         return a.Name - b.Name;
@@ -588,13 +582,15 @@ app.get('/users', async function(req, res) {
 
     let authorized = await ValidateToken(req);
 
-    let id = req.query.hasOwnProperty('id') ? req.query.id : null;
-    let emailAddress = req.query.hasOwnProperty('emailAddress') ? req.query.emailAddress : null;
+    let filters = {};
+
+    if (req.query.hasOwnProperty('id')) filters._id = req.query.id;
+    if (req.query.hasOwnProperty('emailAddress')) filters.emailAddress = req.query.emailAddress;
 
     let results = [];
 
-    if (id || emailAddress) {
-        let user = await UserDao.RetrieveUserWithFilters(id, emailAddress, !authorized);
+    if (Object.keys(filters).length > 0) {
+        let user = await UserDao.RetrieveUserWithFilters(!authorized, filters);
 
         if (user) {
             results.push(user);
@@ -651,7 +647,7 @@ app.post('/users', async function(req, res) {
         return;
     }
 
-    const createdUser = await UserDao.RetrieveUserWithFilters(result.insertedId, null, false);
+    const createdUser = await UserDao.RetrieveUserWithFilters(false, { _id: result.insertedId });
 
     res.status(STATUS_CODES.CREATED)
         .end(JSON.stringify(createdUser));
@@ -713,7 +709,7 @@ app.put('/users/:userId', async function(req, res) {
         return;
     }
 
-    const updatedUser = await UserDao.RetrieveUserWithFilters(userId, null, false);
+    const updatedUser = await UserDao.RetrieveUserWithFilters(false, { _id: userId });
 
     res.end(JSON.stringify(updatedUser));
 });
