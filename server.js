@@ -11,15 +11,80 @@ const axios = require('axios');
 const express = require('express');
 const { UserEntity } = require('./models/userEntity');
 const { ObjectId } = require('mongodb/lib/bson');
+const { DeckEntity } = require('./models/deckEntity');
+const { DeckDao } = require('./dao/deckDao');
 
 const app = express();
 
 app.use(express.json());
 
+// Support functions
+
 function DefaultHeaders(res) {
     res.setHeader('Content-Type', 'application/json')
         .setHeader('Access-Control-Allow-Origin', '*');
 }
+
+function EvaluateValidationError(validationErrors, property, parent, root) {
+    if (property.operatorName == 'properties') {
+        property.propertiesNotSatisfied.forEach(subProperty => {
+            subProperty.details.forEach(detail => {
+                validationErrors = EvaluateValidationError(validationErrors, detail, subProperty, `${root ? `${root}.` : ''}${subProperty.propertyName}`);
+            });
+        });
+    }
+    else if (property.operatorName == 'required') {
+        property.missingProperties.forEach(subProperty => {
+            validationErrors.push(`'${root ? `${root}.` : ''}${subProperty}' is required...`);
+        });
+    }
+    else if (property.operatorName == 'items') {
+        property.details.forEach(detail => {
+            validationErrors = EvaluateValidationError(validationErrors, detail, property, `${root ? `${root}.` : ''}item`);
+        });
+    }
+    else if (property.operatorName == 'bsonType') {
+        validationErrors.push(`'${root}' ${parent.description}...`);
+    }
+    else if (property.operatorName == 'minItems') {
+        validationErrors.push(`'${root}' array requires at least ${property.specifiedAs.minItems} item(s)...`);
+    }
+    else if (property.operatorName == 'minimum') {
+        validationErrors.push(`'${root}' must be equal to ${property.specifiedAs.minimum} or greater...`);
+    }
+
+    return validationErrors;
+}
+
+function FormatValidationErrors(rules) {
+    let validationErrors = [];
+
+    rules.forEach(rule => {
+        validationErrors = EvaluateValidationError(validationErrors, rule, null, null);
+    });
+    
+    return validationErrors;
+};
+
+async function ValidateToken(req) {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return false;
+    }
+
+    const token = authHeader.substring(7, authHeader.length);
+    
+    const request = await axios.get('https://api.github.com/user', {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+    
+    return request.data.id.toString() == process.env.githubUserId;
+};
+
+// RavenDB endpoints
 
 app.get('/artists', async function(req, res) {
     DefaultHeaders(res);
@@ -244,10 +309,244 @@ app.get('/query', async function(req, res) {
     res.end(JSON.stringify(results));
 });
 
+// /decks endpoints
+
+app.delete('/decks/:deckId', async function(req, res) {
+    DefaultHeaders(res);
+
+    let authorized = await ValidateToken(req);
+
+    if (!authorized) {
+        res.status(STATUS_CODES.UNAUTHORIZED)
+            .end(JSON.stringify({ error: UNAUTHORIZED_APOLOGY }));
+
+        return;
+    }
+
+    let deckId = req.params.deckId;
+
+    if (!ObjectId.isValid(deckId)) {
+        res.status(STATUS_CODES.BAD_REQUEST)
+            .end(JSON.stringify({ error: BAD_ID_APOLOGY }));
+
+        return;
+    }
+    
+    const result = await DeckDao.DeleteDeck(deckId);
+
+    if (!result.acknowledged) {
+        res.status(STATUS_CODES.INTERNAL_SERVER_ERROR)
+            .end(JSON.stringify({ error: `An unknown error has occurred...` }));
+        
+        return;
+    }
+    else if (result.deletedCount == 0) {
+        res.status(STATUS_CODES.NOT_FOUND)
+            .end(JSON.stringify({ error: ID_NOT_FOUND_APOLOGY }));
+
+        return;
+    }
+
+    res.status(STATUS_CODES.NO_CONTENT)
+        .end();
+});
+
+app.get('/decks', async function(req, res) {
+    DefaultHeaders(res);
+
+    let filters = {};
+
+    if (req.query.hasOwnProperty('id')) filters._id = req.query.id;
+    if (req.query.hasOwnProperty('authorId')) filters.authorId = req.query.authorId;
+    if (req.query.hasOwnProperty('heroSetId')) filters.heroSetId = req.query.heroSetId;
+    if (req.query.hasOwnProperty('isOfficial')) filters.isOfficial = req.query.isOfficial;
+    if (req.query.hasOwnProperty('isPublic')) filters.isPublic = req.query.isPublic;
+    if (req.query.hasOwnProperty('title')) filters.title = req.query.title;
+
+    if ((filters._id && !ObjectId.isValid(filters._id)) || (filters.authorId && !ObjectId.isValid(filters.authorId))) {
+        res.status(STATUS_CODES.BAD_REQUEST)
+            .end(JSON.stringify({ error: BAD_ID_APOLOGY }));
+
+        return;
+    }
+
+    let results = [];
+
+    if (Object.keys(filters).length > 0) {
+        let deck = await DeckDao.RetrieveDeckWithFilters(true, filters);
+
+        if (deck) {
+            results.push(deck);
+        }
+    }
+    else {
+        let decks = await DeckDao.RetrieveAllDecks();
+
+        if (decks) {
+            results = decks;
+        }
+    }
+
+    res.end(JSON.stringify(results));
+});
+
+app.get('/decks/:deckId', async function(req, res) {
+    DefaultHeaders(res);
+
+    let deckId = req.params.deckId;
+
+    if (!ObjectId.isValid(deckId)) {
+        res.status(STATUS_CODES.BAD_REQUEST)
+            .end(JSON.stringify({ error: BAD_ID_APOLOGY }));
+
+        return;
+    }
+
+    const result = await DeckDao.RetrieveDeckWithFilters(false, { _id: deckId });
+
+    if (result.matchedCount == 0) {
+        res.status(STATUS_CODES.NOT_FOUND)
+            .end(JSON.stringify({ error: ID_NOT_FOUND_APOLOGY }));
+
+        return;
+    }
+
+    res.end(JSON.stringify(result));
+});
+
+app.post('/decks', async function(req, res) {
+    DefaultHeaders(res);
+
+    let authorized = await ValidateToken(req);
+
+    if (!authorized) {
+        res.status(STATUS_CODES.UNAUTHORIZED)
+            .end(JSON.stringify({ error: UNAUTHORIZED_APOLOGY }));
+
+        return;
+    }
+
+    const deck = req.body;
+
+    if (!ObjectId.isValid(deck.authorId)) {
+        res.status(STATUS_CODES.BAD_REQUEST)
+            .end(JSON.stringify({ error: BAD_ID_APOLOGY }));
+
+        return;
+    }
+
+    deck.authorId = new ObjectId(deck.authorId);
+
+    const formattedDeck = new DeckEntity(deck);
+
+    formattedDeck.created = Date.now();
+    formattedDeck.updated = Date.now();
+    
+    const result = await DeckDao.StoreNewDeck(formattedDeck);
+
+    if (!result.acknowledged) {
+        if (result.code == DUPLICATE_CODE) {
+            res.status(STATUS_CODES.CONFLICT)
+                .end(JSON.stringify({ error: DUPLICATE_APOLOGY }));
+        }
+        else if (result.code == VALIDATION_CODE) {
+            let formattedErrors = FormatValidationErrors(result.errInfo.details.schemaRulesNotSatisfied);
+
+            res.status(STATUS_CODES.BAD_REQUEST)
+                .end(JSON.stringify({ error: VALIDATION_APOLOGY, validationErrors: formattedErrors }));
+        }
+        else {
+            res.status(STATUS_CODES.INTERNAL_SERVER_ERROR)
+                .end(JSON.stringify({ error: `An unknown error has occurred...` }));
+        }
+
+        return;
+    }
+
+    const createdDeck = await DeckDao.RetrieveDeckWithFilters(false, { _id: result.insertedId });
+
+    res.status(STATUS_CODES.CREATED)
+        .end(JSON.stringify(createdDeck));
+});
+
+app.put('/decks/:deckId', async function(req, res) {
+    DefaultHeaders(res);
+
+    let authorized = await ValidateToken(req);
+
+    if (!authorized) {
+        res.status(STATUS_CODES.UNAUTHORIZED)
+            .end(JSON.stringify({ error: UNAUTHORIZED_APOLOGY }));
+
+        return;
+    }
+
+    let deckId = req.params.deckId;
+    
+    if (!ObjectId.isValid(deckId)) {
+        res.status(STATUS_CODES.BAD_REQUEST)
+            .end(JSON.stringify({ error: BAD_ID_APOLOGY }));
+
+        return;
+    }
+
+    const deck = req.body;
+
+    if (deck.hasOwnProperty('authorId')) {
+        if (!ObjectId.isValid(deck.authorId)) {
+            res.status(STATUS_CODES.BAD_REQUEST)
+                .end(JSON.stringify({ error: BAD_ID_APOLOGY }));
+
+            return;
+        }
+
+        deck.authorId = new ObjectId(deck.authorId);
+    }
+
+    const formattedDeck = new DeckEntity(deck);
+
+    delete formattedDeck._id;
+
+    formattedDeck.updated = Date.now();
+    
+    const result = await DeckDao.UpdateDeck(deckId, formattedDeck);
+
+    if (!result.acknowledged) {
+        if (result.code == DUPLICATE_CODE) {
+            res.status(STATUS_CODES.CONFLICT)
+                .end(JSON.stringify({ error: DUPLICATE_APOLOGY }));
+        }
+        else if (result.code == VALIDATION_CODE) {
+            let formattedErrors = FormatValidationErrors(result.errInfo.details.schemaRulesNotSatisfied);
+
+            res.status(STATUS_CODES.BAD_REQUEST)
+                .end(JSON.stringify({ error: VALIDATION_APOLOGY, validationErrors: formattedErrors }));
+        }
+        else {
+            res.status(STATUS_CODES.INTERNAL_SERVER_ERROR)
+                .end(JSON.stringify({ error: `An unknown error has occurred...` }));
+        }
+
+        return;
+    }
+    else if (result.matchedCount == 0) {
+        res.status(STATUS_CODES.NOT_FOUND)
+            .end(JSON.stringify({ error: ID_NOT_FOUND_APOLOGY }));
+
+        return;
+    }
+
+    const updatedDeck = await DeckDao.RetrieveDeckWithFilters(false, { _id: deckId });
+
+    res.end(JSON.stringify(updatedDeck));
+});
+
+// /users endpoints
+
 app.delete('/users/:userId', async function(req, res) {
     DefaultHeaders(res);
 
-    let authorized = await validateToken(req);
+    let authorized = await ValidateToken(req);
 
     if (!authorized) {
         res.status(STATUS_CODES.UNAUTHORIZED)
@@ -287,10 +586,10 @@ app.delete('/users/:userId', async function(req, res) {
 app.get('/users', async function(req, res) {
     DefaultHeaders(res);
 
-    let authorized = await validateToken(req);
+    let authorized = await ValidateToken(req);
 
-    let id = req.query.id;
-    let emailAddress = req.query.emailAddress;
+    let id = req.query.hasOwnProperty('id') ? req.query.id : null;
+    let emailAddress = req.query.hasOwnProperty('emailAddress') ? req.query.emailAddress : null;
 
     let results = [];
 
@@ -315,7 +614,7 @@ app.get('/users', async function(req, res) {
 app.post('/users', async function(req, res) {
     DefaultHeaders(res);
 
-    let authorized = await validateToken(req);
+    let authorized = await ValidateToken(req);
 
     if (!authorized) {
         res.status(STATUS_CODES.UNAUTHORIZED)
@@ -339,7 +638,7 @@ app.post('/users', async function(req, res) {
                 .end(JSON.stringify({ error: DUPLICATE_APOLOGY }));
         }
         else if (result.code == VALIDATION_CODE) {
-            let formattedErrors = formatValidationErrors(result.errInfo.details.schemaRulesNotSatisfied);
+            let formattedErrors = FormatValidationErrors(result.errInfo.details.schemaRulesNotSatisfied);
 
             res.status(STATUS_CODES.BAD_REQUEST)
                 .end(JSON.stringify({ error: VALIDATION_APOLOGY, validationErrors: formattedErrors }));
@@ -352,16 +651,16 @@ app.post('/users', async function(req, res) {
         return;
     }
 
-    const updatedUser = await UserDao.RetrieveUserWithFilters(result.insertedId, null, false);
+    const createdUser = await UserDao.RetrieveUserWithFilters(result.insertedId, null, false);
 
     res.status(STATUS_CODES.CREATED)
-        .end(JSON.stringify(updatedUser));
+        .end(JSON.stringify(createdUser));
 });
 
 app.put('/users/:userId', async function(req, res) {
     DefaultHeaders(res);
 
-    let authorized = await validateToken(req);
+    let authorized = await ValidateToken(req);
 
     if (!authorized) {
         res.status(STATUS_CODES.UNAUTHORIZED)
@@ -395,7 +694,7 @@ app.put('/users/:userId', async function(req, res) {
                 .end(JSON.stringify({ error: DUPLICATE_APOLOGY }));
         }
         else if (result.code == VALIDATION_CODE) {
-            let formattedErrors = formatValidationErrors(result.errInfo.details.schemaRulesNotSatisfied);
+            let formattedErrors = FormatValidationErrors(result.errInfo.details.schemaRulesNotSatisfied);
 
             res.status(STATUS_CODES.BAD_REQUEST)
                 .end(JSON.stringify({ error: VALIDATION_APOLOGY, validationErrors: formattedErrors }));
@@ -418,6 +717,8 @@ app.put('/users/:userId', async function(req, res) {
 
     res.end(JSON.stringify(updatedUser));
 });
+
+// Invalid paths
 
 app.delete('*', function(req, res) {
     res.status(STATUS_CODES.NOT_FOUND)
@@ -445,40 +746,3 @@ var server = app.listen(process.env.PORT || 80, '0.0.0.0', function() {
 
     console.log("API listening at %s:%s", host, port);
 });
-
-function formatValidationErrors(rules) {
-    let validationErrors = [];
-
-    rules.forEach(rule => {
-        if (rule.operatorName == 'properties') {
-            rule.propertiesNotSatisfied.forEach(property => {
-                validationErrors.push(`'${property.propertyName}' ${property.description}...`);
-            });
-        }
-        else if (rule.operatorName == 'required') {
-            rule.missingProperties.forEach(property => {
-                validationErrors.push(`'${property}' is required...`);
-            });
-        }
-    });
-    
-    return validationErrors;
-};
-
-async function validateToken(req) {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return false;
-    }
-
-    const token = authHeader.substring(7, authHeader.length);
-    
-    const request = await axios.get('https://api.github.com/user', {
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
-    });
-    
-    return request.data.id.toString() == process.env.githubUserId;
-};

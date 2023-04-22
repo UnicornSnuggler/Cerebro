@@ -151,9 +151,9 @@ exports.TIMEOUT_APOLOGY = 'The interaction timeout was reached...';
 exports.DUPLICATE_CODE = 11000;
 exports.VALIDATION_CODE = 121;
 
-exports.BAD_ID_APOLOGY = 'The user ID provided is not a valid object ID...';
+exports.BAD_ID_APOLOGY = 'The object ID provided is not a valid object ID...';
 exports.DUPLICATE_APOLOGY = 'The provided email address has already been used to create an existing user object...';
-exports.ID_NOT_FOUND_APOLOGY = 'The user ID provided was not found...';
+exports.ID_NOT_FOUND_APOLOGY = 'The object ID provided was not found...';
 exports.UNAUTHORIZED_APOLOGY = 'The \'Authorization\' header must be populated with a valid bearer token...';
 exports.UNKNOWN_APOLOGY = 'An unknown error occurred...';
 exports.VALIDATION_APOLOGY = 'One or more schema validation issues were found...';

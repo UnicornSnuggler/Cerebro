@@ -7,10 +7,10 @@ class UserEntity extends BaseMongoEntity {
     constructor (document) {
         super(document);
 
-        if (document.username) this.username = document.username;
-        if (document.emailAddress) this.emailAddress = document.emailAddress;
-        if (document.passwordHash) this.passwordHash = document.passwordHash;
-        if (document.discordId) this.discordId = document.discordId;
+        if (document.hasOwnProperty('discordId')) this.discordId = document.discordId;
+        if (document.hasOwnProperty('emailAddress')) this.emailAddress = document.emailAddress;
+        if (document.hasOwnProperty('passwordHash')) this.passwordHash = document.passwordHash;
+        if (document.hasOwnProperty('username')) this.username = document.username;
     }
 }
 

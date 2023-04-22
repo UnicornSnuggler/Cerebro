@@ -75,7 +75,7 @@ class UserDao {
             user = await this.mongoClient.db(UserEntity.DATABASE).collection(UserEntity.COLLECTION).findOne(query, options);
         }
         catch (e) {
-            console.error(`An error occurred while retrieving all users!\n${e}`);
+            console.error(`An error occurred while retrieving a user with filters!\n${e}`);
         }
         finally {
             await this.mongoClient.close();
