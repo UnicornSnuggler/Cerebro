@@ -9,6 +9,7 @@ const { ValidateQuerySyntax } = require('./utilities/queryHelper');
 
 const axios = require('axios');
 const express = require('express');
+const cors = require('cors');
 const { UserEntity } = require('./models/userEntity');
 const { ObjectId } = require('mongodb/lib/bson');
 const { DeckEntity } = require('./models/deckEntity');
@@ -16,6 +17,7 @@ const { DeckDao } = require('./dao/deckDao');
 
 const app = express();
 
+app.use(cors());
 app.use(express.json());
 
 // Support functions
@@ -398,7 +400,7 @@ app.get('/decks/:deckId', async function(req, res) {
 
     const result = await DeckDao.RetrieveDeckWithFilters(false, { _id: deckId });
 
-    if (result.matchedCount == 0) {
+    if (!result) {
         res.status(STATUS_CODES.NOT_FOUND)
             .end(JSON.stringify({ error: ID_NOT_FOUND_APOLOGY }));
 
