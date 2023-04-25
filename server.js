@@ -68,6 +68,20 @@ function FormatValidationErrors(rules) {
     return validationErrors;
 };
 
+function RetrieveQueryParameter(req, parameter, lowercase = true) {
+    if (!req.query.hasOwnProperty(parameter)) {
+        return null;
+    }
+    
+    let input = req.query[parameter];
+
+    if (Array.isArray(input)) {
+        input = input[0];
+    }
+
+    return lowercase ? input.toLowerCase() : input;
+}
+
 async function ValidateToken(req) {
     const authHeader = req.headers.authorization;
 
@@ -91,8 +105,8 @@ async function ValidateToken(req) {
 app.get('/artists', async function(req, res) {
     DefaultHeaders(res);
     
-    let id = req.query.id;
-    let name = req.query.name?.toLowerCase();
+    let id = RetrieveQueryParameter(req, 'id');
+    let name = RetrieveQueryParameter(req, 'name');
 
     let results = await ArtistDao.RetrieveWithFilters(id, name);
 
@@ -108,7 +122,7 @@ app.get('/cards', async function(req, res) {
     
     let results = [];
     
-    let origin = req.query.origin?.toLowerCase() || ALL;
+    let origin = RetrieveQueryParameter(req, 'origin') || ALL;
 
     if (![ALL, OFFICIAL, UNOFFICIAL].includes(origin)) {
         res.status(STATUS_CODES.BAD_REQUEST)
@@ -117,7 +131,7 @@ app.get('/cards', async function(req, res) {
         return;
     }
     
-    let incomplete = req.query.incomplete?.toLowerCase();
+    let incomplete = RetrieveQueryParameter(req, 'incomplete');
 
     if (incomplete && ![FALSE, TRUE].includes(incomplete)) {
         res.status(STATUS_CODES.BAD_REQUEST)
@@ -126,17 +140,17 @@ app.get('/cards', async function(req, res) {
         return;
     }
 
-    let author = req.query.author;
-    let boost = req.query.boost;
-    let classification = req.query.classification?.toLowerCase();
-    let cost = req.query.cost;
-    let name = req.query.name?.toLowerCase();
-    let resource = req.query.resource?.toLowerCase();
-    let text = req.query.text?.toLowerCase();
-    let traits = req.query.traits?.split(',').map(x => x.toLowerCase().replace(/[^a-z0-9]/gmi, ''));
-    let type = req.query.type?.toLowerCase();
+    let author = RetrieveQueryParameter(req, 'author', false);
+    let boost = RetrieveQueryParameter(req, 'boost', false);
+    let classification = RetrieveQueryParameter(req, 'classification');
+    let cost = RetrieveQueryParameter(req, 'cost', false);
+    let name = RetrieveQueryParameter(req, 'name');
+    let resource = RetrieveQueryParameter(req, 'resource');
+    let text = RetrieveQueryParameter(req, 'text');
+    let traits = RetrieveQueryParameter(req, 'traits', false)?.split(',').map(x => x.toLowerCase().replace(/[^a-z0-9]/gmi, ''));
+    let type = RetrieveQueryParameter(req, 'type');
 
-    let packOption = req.query.pack?.toLowerCase();
+    let packOption = RetrieveQueryParameter(req, 'pack');
     let packIds = null;
     
     if (packOption) {
@@ -146,7 +160,7 @@ app.get('/cards', async function(req, res) {
         packIds = packs.map(x => x.Id);
     }
     
-    let setOption = req.query.set?.toLowerCase();
+    let setOption = RetrieveQueryParameter(req, 'set');
     let setIds = null;
     
     if (setOption) {
@@ -217,7 +231,7 @@ app.get('/formattings', async function(req, res) {
 app.get('/packs', async function(req, res) {
     DefaultHeaders(res);
 
-    let origin = req.query.origin?.toLowerCase() || OFFICIAL;
+    let origin = RetrieveQueryParameter(req, 'origin') || OFFICIAL;
 
     if (![ALL, OFFICIAL, UNOFFICIAL].includes(origin)) {
         res.status(STATUS_CODES.BAD_REQUEST)
@@ -226,7 +240,7 @@ app.get('/packs', async function(req, res) {
         return;
     }
     
-    let incomplete = req.query.incomplete?.toLowerCase();
+    let incomplete = RetrieveQueryParameter(req, 'incomplete');
 
     if (incomplete && ![FALSE, TRUE].includes(incomplete)) {
         res.status(STATUS_CODES.BAD_REQUEST)
@@ -235,8 +249,8 @@ app.get('/packs', async function(req, res) {
         return;
     }
 
-    let id = req.query.id?.toLowerCase();
-    let name = req.query.name?.toLowerCase();
+    let id = RetrieveQueryParameter(req, 'id');
+    let name = RetrieveQueryParameter(req, 'name');
 
     let results = await PackDao.RetrieveWithFilters(origin, id, incomplete, name);
 
@@ -250,7 +264,7 @@ app.get('/packs', async function(req, res) {
 app.get('/sets', async function(req, res) {
     DefaultHeaders(res);
 
-    let origin = req.query.origin?.toLowerCase() || OFFICIAL;
+    let origin = RetrieveQueryParameter(req, 'origin') || OFFICIAL;
 
     if (![ALL, OFFICIAL, UNOFFICIAL].includes(origin)) {
         res.status(STATUS_CODES.BAD_REQUEST)
@@ -261,9 +275,9 @@ app.get('/sets', async function(req, res) {
 
     let filters = {};
 
-    if (req.query.hasOwnProperty('id')) filters.id = req.query.id.toLowerCase();
-    if (req.query.hasOwnProperty('name')) filters.name = req.query.name.toLowerCase();
-    if (req.query.hasOwnProperty('type')) filters.type = req.query.type.toLowerCase();
+    if (req.query.hasOwnProperty('id')) filters.id = RetrieveQueryParameter(req, 'id');
+    if (req.query.hasOwnProperty('name')) filters.name = RetrieveQueryParameter(req, 'name');
+    if (req.query.hasOwnProperty('type')) filters.type = RetrieveQueryParameter(req, 'type');
 
     let results = await SetDao.RetrieveWithFilters(origin, filters);
 
@@ -277,7 +291,7 @@ app.get('/sets', async function(req, res) {
 app.get('/query', async function(req, res) {
     DefaultHeaders(res);
 
-    let input = req.query.input;
+    let input = RetrieveQueryParameter(req, 'input', false);
     let decodedInput = decodeURI(input);
 
     if (!input) {
@@ -352,12 +366,12 @@ app.get('/decks', async function(req, res) {
 
     let filters = {};
 
-    if (req.query.hasOwnProperty('id')) filters._id = req.query.id;
-    if (req.query.hasOwnProperty('authorId')) filters.authorId = req.query.authorId;
-    if (req.query.hasOwnProperty('heroSetId')) filters.heroSetId = req.query.heroSetId;
-    if (req.query.hasOwnProperty('isOfficial')) filters.isOfficial = req.query.isOfficial;
-    if (req.query.hasOwnProperty('isPublic')) filters.isPublic = req.query.isPublic;
-    if (req.query.hasOwnProperty('title')) filters.title = req.query.title;
+    if (req.query.hasOwnProperty('id')) filters._id = RetrieveQueryParameter(req, 'id', false);
+    if (req.query.hasOwnProperty('authorId')) filters.authorId = RetrieveQueryParameter(req, 'authorId', false);
+    if (req.query.hasOwnProperty('heroSetId')) filters.heroSetId = RetrieveQueryParameter(req, 'heroSetId', false);
+    if (req.query.hasOwnProperty('isOfficial')) filters.isOfficial = RetrieveQueryParameter(req, 'isOfficial', false);
+    if (req.query.hasOwnProperty('isPublic')) filters.isPublic = RetrieveQueryParameter(req, 'isPublic', false);
+    if (req.query.hasOwnProperty('title')) filters.title = RetrieveQueryParameter(req, 'title', false);
 
     if ((filters._id && !ObjectId.isValid(filters._id)) || (filters.authorId && !ObjectId.isValid(filters.authorId))) {
         res.status(STATUS_CODES.BAD_REQUEST)
@@ -586,8 +600,8 @@ app.get('/users', async function(req, res) {
 
     let filters = {};
 
-    if (req.query.hasOwnProperty('id')) filters._id = req.query.id;
-    if (req.query.hasOwnProperty('emailAddress')) filters.emailAddress = req.query.emailAddress;
+    if (req.query.hasOwnProperty('id')) filters._id = RetrieveQueryParameter(req, 'id', false);
+    if (req.query.hasOwnProperty('emailAddress')) filters.emailAddress = RetrieveQueryParameter(req, 'emailAddress', false);
 
     let results = [];
 
