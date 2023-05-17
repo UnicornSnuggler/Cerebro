@@ -2,7 +2,7 @@ const { CardDao } = require('./dao/cardDao');
 const { PackDao } = require('./dao/packDao');
 const { SetDao } = require('./dao/setDao');
 const { UserDao } = require('./dao/userDao');
-const { OFFICIAL, ALL, UNOFFICIAL, FALSE, TRUE, UNAUTHORIZED_APOLOGY, VALIDATION_APOLOGY, VALIDATION_ERRORS, DUPLICATE_CODE, DUPLICATE_APOLOGY, VALIDATION_CODE, STATUS_CODES, ERROR_MESSAGES, BAD_ID_APOLOGY, ID_NOT_FOUND_APOLOGY } = require('./constants');
+const { OFFICIAL, ALL, UNOFFICIAL, FALSE, TRUE, UNAUTHORIZED_APOLOGY, VALIDATION_APOLOGY, VALIDATION_ERRORS, DUPLICATE_CODE, DUPLICATE_APOLOGY, VALIDATION_CODE, STATUS_CODES, ERROR_MESSAGES, BAD_ID_APOLOGY, ID_NOT_FOUND_APOLOGY, USER_NOT_FOUND_APOLOGY, INVALID_PASSWORD_APOLOGY } = require('./constants');
 const { ArtistDao } = require('./dao/artistDao');
 const { FormattingDao } = require('./dao/formattingDao');
 const { ValidateQuerySyntax } = require('./utilities/queryHelper');
@@ -728,6 +728,59 @@ app.put('/users/:userId', async function(req, res) {
     const updatedUser = await UserDao.RetrieveUserWithFilters(false, { _id: userId });
 
     res.end(JSON.stringify(updatedUser));
+});
+
+app.post('/users/login', async function(req, res) {
+    DefaultHeaders(res);
+
+    let authorized = await ValidateToken(req);
+
+    if (!authorized) {
+        res.status(STATUS_CODES.UNAUTHORIZED)
+            .end(JSON.stringify({ error: UNAUTHORIZED_APOLOGY }));
+
+        return;
+    }
+
+    const user = req.body;
+
+    const formattedUser = new UserEntity(user);
+
+    let errors = [];
+
+    if (!formattedUser.username && !formattedUser.emailAddress) {
+        errors.push(`Either the 'username' or 'emailAddress' property must be populated...`);
+    }
+
+    if (!formattedUser.passwordHash) {
+        errors.push(`The 'passwordHash' property must be populated...`);
+    }
+
+    if (errors.length > 0) {
+        res.status(STATUS_CODES.BAD_REQUEST)
+            .end(JSON.stringify({ error: VALIDATION_APOLOGY, validationErrors: errors }));
+
+        return;
+    }
+    
+    const result = await UserDao.RetrieveUserWithFilters(false, formattedUser);
+
+    if (!result) {
+        res.status(STATUS_CODES.NOT_FOUND)
+            .end(JSON.stringify({ error: USER_NOT_FOUND_APOLOGY }));
+
+        return;
+    }
+    else if (result.passwordHash != formattedUser.passwordHash) {
+        res.status(STATUS_CODES.UNAUTHORIZED)
+            .end(JSON.stringify({ error: INVALID_PASSWORD_APOLOGY }));
+
+        return;
+    }
+    else {
+        res.status(STATUS_CODES.OK)
+            .end(JSON.stringify(result));
+    }
 });
 
 // Invalid paths

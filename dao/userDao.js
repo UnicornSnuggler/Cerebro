@@ -70,6 +70,10 @@ class UserDao {
                 query.emailAddress = filters.emailAddress;
             }
 
+            if (filters.hasOwnProperty('username')) {
+                query.username = filters.username;
+            }
+
             const options = limited ? this.limitedProjection : {};
 
             user = await this.mongoClient.db(UserEntity.DATABASE).collection(UserEntity.COLLECTION).findOne(query, options);

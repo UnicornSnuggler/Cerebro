@@ -154,8 +154,10 @@ exports.VALIDATION_CODE = 121;
 exports.BAD_ID_APOLOGY = 'The object ID provided is not a valid object ID...';
 exports.DUPLICATE_APOLOGY = 'The provided email address has already been used to create an existing user object...';
 exports.ID_NOT_FOUND_APOLOGY = 'The object ID provided was not found...';
+exports.INVALID_PASSWORD_APOLOGY = 'The password provided is incorrect...';
 exports.UNAUTHORIZED_APOLOGY = 'The \'Authorization\' header must be populated with a valid bearer token...';
 exports.UNKNOWN_APOLOGY = 'An unknown error occurred...';
+exports.USER_NOT_FOUND_APOLOGY = 'The requested user was not found...';
 exports.VALIDATION_APOLOGY = 'One or more schema validation issues were found...';
 
 exports.ARTIST_EMOJI = ':paintbrush:'
