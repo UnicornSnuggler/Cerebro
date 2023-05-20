@@ -2,13 +2,13 @@ const { ActionRowBuilder, StringSelectMenuBuilder, SlashCommandBuilder, Componen
 const { RuleDao } = require('../dao/ruleDao');
 const { LogCommand, LogRuleResult } = require('../utilities/logHelper');
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed, SendMessageWithOptions, Authorized } = require('../utilities/messageHelper');
-const { BuildEmbed } = require('../utilities/ruleHelper');
+const { BuildEmbed, BuildTemporaryApologyEmbed } = require('../utilities/ruleHelper');
 const { SYMBOLS, INTERACT_APOLOGY, LOAD_APOLOGY, SELECT_TIMEOUT, TIMEOUT_APOLOGY, SECOND_MILLIS } = require('../constants');
 const { ReportError } = require('../utilities/errorHelper');
 const { GetUserIdFromContext } = require('../utilities/userHelper');
 
-    const SelectBox = async function(context, rules) {
-        try {
+const SelectBox = async function(context, rules) {
+    try {
         let selector = new StringSelectMenuBuilder()
             .setCustomId('selector')
             .setPlaceholder('No rule selected...');
@@ -67,7 +67,7 @@ const { GetUserIdFromContext } = require('../utilities/userHelper');
             
                             let messageOptions = {
                                 components: [],
-                                embeds: [embed]
+                                embeds: [BuildTemporaryApologyEmbed(), embed]
                             };
             
                             message.edit(messageOptions);
@@ -127,7 +127,7 @@ module.exports = {
 
                 new Promise(() => LogRuleResult(context, rule));
 
-                SendMessageWithOptions(context, { embeds: [BuildEmbed(rule)] });
+                SendMessageWithOptions(context, { embeds: [BuildTemporaryApologyEmbed(), BuildEmbed(rule)] });
             }
             else if (results.length > 1) SelectBox(context, results);
         }

@@ -43,7 +43,7 @@ class SetDao {
         return results;
     }
 
-    static async RetrieveWithFilters(origin = ALL, id = null, name = null) {
+    static async RetrieveWithFilters(origin = ALL, filters) {
         const session = this.store.openSession();
         let query = session.query({ indexName: `${ALL}${SetEntity.COLLECTION}` });
         
@@ -53,15 +53,21 @@ class SetDao {
             query = query.whereEquals('Official', origin === OFFICIAL);
         }
         
-        if (id) {
+        if (filters.hasOwnProperty('id')) {
             query = query.openSubclause()
-                .whereRegex('id()', id)
+                .whereRegex('id()', filters.id)
                 .closeSubclause();
         }
 
-        if (name) {
+        if (filters.hasOwnProperty('name')) {
             query = query.openSubclause()
-                .whereRegex('Name', name)
+                .whereRegex('Name', filters.name)
+                .closeSubclause();
+        }
+
+        if (filters.hasOwnProperty('type')) {
+            query = query.openSubclause()
+                .whereRegex('Type', filters.type)
                 .closeSubclause();
         }
 

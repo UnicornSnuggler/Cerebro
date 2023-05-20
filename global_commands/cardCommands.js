@@ -234,6 +234,7 @@ module.exports = {
                     { name: 'main scheme', value: 'main scheme' },
                     { name: 'minion', value: 'minion' },
                     { name: 'obligation', value: 'obligation' },
+                    { name: 'player side scheme', value: 'player side scheme' },
                     { name: 'resource', value: 'resource' },
                     { name: 'side scheme', value: 'side scheme' },
                     { name: 'support', value: 'support' },
