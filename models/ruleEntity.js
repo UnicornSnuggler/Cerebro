@@ -11,6 +11,7 @@ class RuleEntity extends BaseQualifiedEntity {
         this.Description = document.Description;
         this.Footer = document.Footer;
         this.Incomplete = document.Incomplete;
+        this.Queries = document.Queries;
         this.Reference = document.Reference;
         this.Regex = document.Regex;
         this.Terms = document.Terms;

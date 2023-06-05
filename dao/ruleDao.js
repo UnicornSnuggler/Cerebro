@@ -8,6 +8,15 @@ class RuleDao {
     
     static KEYWORDS_AND_ICONS = [];
 
+    static async AddQuery(rule) {
+        let session = this.store.openSession();
+        let ruleEntity = await session.load(rule.Id);
+
+        ruleEntity.Queries += 1;
+
+        await session.saveChanges();
+    }
+
     static async RetrieveKeywordsAndSchemeIcons() {
         console.log(`Starting to load keywords and scheme icons from the database...`);
 

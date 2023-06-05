@@ -22,6 +22,7 @@ class CardEntity extends BaseAuthoredEntity {
         this.Incomplete = document.Incomplete;
         this.Name = document.Name;
         this.Printings = document.Printings;
+        this.Queries = document.Queries;
         this.Recover = document.Recover;
         this.Resource = document.Resource;
         this.Rules = document.Rules;
