@@ -12,6 +12,7 @@ const { COLORS } = require('../constants');
 const { CapitalizedTitleElement } = require('./stringHelper');
 const { ReportError } = require('./errorHelper');
 const { GetUserIdFromContext } = require('./userHelper');
+const { RuleDao } = require('../dao/ruleDao');
 
 const BuildBaseEntity = function(context, collection) {
     let userId = GetUserIdFromContext(context);
@@ -210,14 +211,8 @@ const DeriveEmbedDescription = function(resultEntries, summary) {
 }
 
 exports.LogCardResult = async function(context, card) {
-    let collection = `all${CardResultLogEntity.COLLECTION}`;
-    let firstPrinting = GetPrintingByArtificialId(card, card.Id);
-    let entity = BuildBaseOrganizedEntity(context, collection, firstPrinting.PackId, firstPrinting.SetId);
-
-    entity.CardId = card.Id;
-
     try {
-        await LogDao.StoreLogEntity(entity);
+        await CardDao.AddQuery(card);
     }
     catch (e) {
         ReportError(context, e);
@@ -255,13 +250,20 @@ exports.LogCommand = async function(context, command, options) {
 }
 
 exports.LogRuleResult = async function(context, rule) {
-    let collection = `all${RuleResultLogEntity.COLLECTION}`;
-    let entity = BuildBaseEntity(context, collection);
+    // let collection = `all${RuleResultLogEntity.COLLECTION}`;
+    // let entity = BuildBaseEntity(context, collection);
 
-    entity.RuleId = rule.Id;
+    // entity.RuleId = rule.Id;
+
+    // try {
+    //     await LogDao.StoreLogEntity(entity);
+    // }
+    // catch (e) {
+    //     ReportError(context, e);
+    // }
 
     try {
-        await LogDao.StoreLogEntity(entity);
+        await RuleDao.AddQuery(rule);
     }
     catch (e) {
         ReportError(context, e);

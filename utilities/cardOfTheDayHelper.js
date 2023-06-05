@@ -25,7 +25,6 @@ const cardOfTheDay = exports.cardOfTheDay = async function(guild, channels, role
         let encounter = now.getMonth() === 9 && now.getDate() >= 18;
 
         let card = await CardDao.RetrieveRandomCard(encounter);
-        let queryCount = await LogDao.RetrieveLogCountByCardId(card.Id);
         let firstPrinting = GetPrintingByArtificialId(card, card.Id);
         let pack = PackDao.PACKS.find(x => x.Id === firstPrinting.PackId);
         let reprints = card.Printings.length - 1;
@@ -33,7 +32,7 @@ const cardOfTheDay = exports.cardOfTheDay = async function(guild, channels, role
         let baseEmbed = CreateEmbed(`The **${encounter ? 'Spooky ' : ''}Card of the Day** is [${card.Name}](${BuildCardImagePath(card)})!\n\n` +
             `This card first debuted in the **${pack.Name}${pack.Type !== 'Core Set' ? ` ${pack.Type}` : ''}**.\n` +
             `${reprints > 0 ? `It has since been reprinted ${reprints} time${reprints === 1 ? '' : 's'}.` : 'It has never been reprinted.'}\n\n` +
-            `${queryCount > 0 ? `Cerebro users have collectively queried for this card ${queryCount} time${queryCount === 1 ? '' : 's'}.` : 'Cerebro users have never queried for this card.'}`,
+            `${card.Queries > 0 ? `Cerebro users have collectively queried for this card ${card.Queries} time${card.Queries === 1 ? '' : 's'}.` : 'Cerebro users have never queried for this card.'}`,
             COLORS[card.Classification],
             `Card of the Day — ${GetDateString()}${encounter ? ' :ghost:' : ''}`
         );

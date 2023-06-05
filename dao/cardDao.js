@@ -37,6 +37,15 @@ class CardDao {
 
     static store = CreateDocumentStore(DeriveDatabase(CardEntity.DATABASE_SUFFIX)).initialize();
 
+    static async AddQuery(card) {
+        let session = this.store.openSession();
+        let cardEntity = await session.load(card.Id);
+
+        cardEntity.Queries += 1;
+
+        await session.saveChanges();
+    }
+
     static async FindFaces(card) {
         let baseId = GetBaseId(card);
 
