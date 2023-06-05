@@ -250,18 +250,6 @@ exports.LogCommand = async function(context, command, options) {
 }
 
 exports.LogRuleResult = async function(context, rule) {
-    // let collection = `all${RuleResultLogEntity.COLLECTION}`;
-    // let entity = BuildBaseEntity(context, collection);
-
-    // entity.RuleId = rule.Id;
-
-    // try {
-    //     await LogDao.StoreLogEntity(entity);
-    // }
-    // catch (e) {
-    //     ReportError(context, e);
-    // }
-
     try {
         await RuleDao.AddQuery(rule);
     }

@@ -47,6 +47,12 @@ module.exports = {
         if (!Authorized(context)) return;
         
         try {
+            let temporaryEmbed = CreateEmbed('This slash command is currently undergoing a rework due to a reconfiguration of logging methodologies... Thank you for your patience!');
+            
+            await SendMessageWithOptions(context, { embeds: [temporaryEmbed] });
+            
+            return;
+
             let scale = context.options.getString('scale');
             let timeframe = context.options.getString('timeframe');
             let type = context.options.getString('type');
