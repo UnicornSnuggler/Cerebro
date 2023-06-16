@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { COLORS, MASOCHIST, WIZARD, ACOLYTE } = require('../constants');
+const { COLORS, MASOCHIST, WIZARD, ACOLYTE, MOJOMANIA } = require('../constants');
 const { ConfigurationDao } = require('../dao/configurationDao');
 const { PackDao } = require('../dao/packDao');
 const { SetDao } = require('../dao/setDao');
@@ -61,6 +61,16 @@ const GenerateScenario = function(unofficial = false, scenarioExclusions = null,
             (!randomScenario.Requires || !randomScenario.Requires.includes(x.Id)) &&
             !PackDao.PACKS.find(y => y.Id === x.PackId).Incomplete
         );
+
+        if (randomScenario.Deviation) {
+            switch (randomScenario.Name) {
+                case 'Spiral':
+                    modularChoices = modularChoices.filter(x => x.PackId === MOJOMANIA);
+                    break;
+                default:
+                    break;
+            }
+        }
         
         let randomModulars = ChooseRandomElements(modularChoices, randomScenario.Modulars);
     
@@ -102,8 +112,8 @@ const GenerateScenario = function(unofficial = false, scenarioExclusions = null,
     };
 }
 
-const GenerateModulars = function(number, unofficial = false) {
-    let randomModulars = ChooseRandomElements(GetModularChoices(unofficial), number);
+const GenerateModulars = function(number, mojo, unofficial = false) {
+    let randomModulars = ChooseRandomElements(GetModularChoices(mojo, unofficial), number);
 
     let contributions = [];
 
@@ -125,12 +135,13 @@ const GenerateModulars = function(number, unofficial = false) {
     };
 }
 
-const GetModularChoices = function(unofficial) {
+const GetModularChoices = function(mojo, unofficial) {
     return SetDao.SETS.filter(x =>
         (unofficial || x.Official) &&
         x.Type === 'Modular Set' &&
         x.CanSimulate &&
-        !PackDao.PACKS.find(y => y.Id === x.PackId).Incomplete
+        !PackDao.PACKS.find(y => y.Id === x.PackId).Incomplete &&
+        (!mojo || x.PackId === MOJOMANIA)
     );
 }
 
@@ -165,7 +176,12 @@ module.exports = {
                 .addIntegerOption(option =>
                     option
                         .setName('modulars')
-                        .setDescription('The number of modular sets to randomize. Defaults to 1 if unspecified.')
+                        .setDescription('The number of modular sets to randomize. Defaults to `1`.')
+                        .setRequired(false))
+                .addBooleanOption(option =>
+                    option
+                        .setName('mojo')
+                        .setDescription('Whether to select only modular sets from the MojoMania scenario pack. Defaults to `false`.')
                         .setRequired(false))),
     async execute(context) {
         if (!Authorized(context)) return;
@@ -200,6 +216,7 @@ module.exports = {
             let subCommand = context.options.getSubcommand();
             let heroesOption = context.options.getInteger('heroes');
             let modularsOption = context.options.getInteger('modulars');
+            let mojoOption = context.options.getBoolean('mojo');
             let command = `/danger-room`;
 
             new Promise(() => LogCommand(context, command, null));
@@ -341,7 +358,7 @@ module.exports = {
                 });
             }
             else if (subCommand === 'environment') {
-                let maxModulars = GetModularChoices(unofficial).length;
+                let maxModulars = GetModularChoices(mojoOption ?? false, unofficial).length;
 
                 if (modularsOption != null && (modularsOption < 1 || modularsOption > maxModulars)) {
                     let replyEmbed = CreateEmbed(`You must specify a number of modulars between 1 and ${maxModulars}...`);
@@ -355,7 +372,7 @@ module.exports = {
                     return;
                 }
 
-                let results = GenerateModulars(modularsOption ?? 1, unofficial);
+                let results = GenerateModulars(modularsOption ?? 1, mojoOption ?? false, unofficial);
 
                 let content = '**D**:> Synthesizing environmental composite...' +
                 `${results.modulars.map(x => `\n**D**:> Grafted **${x.Name}**${TagUnofficial(results.contributions, x.PackId)}.`).join('')}` +
