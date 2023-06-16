@@ -67,7 +67,7 @@ const SelectBox = async function(context, rules) {
             
                             let messageOptions = {
                                 components: [],
-                                embeds: [BuildTemporaryApologyEmbed(), embed]
+                                embeds: [embed]
                             };
             
                             message.edit(messageOptions);
@@ -127,7 +127,7 @@ module.exports = {
 
                 new Promise(() => LogRuleResult(context, rule));
 
-                SendMessageWithOptions(context, { embeds: [BuildTemporaryApologyEmbed(), BuildEmbed(rule)] });
+                SendMessageWithOptions(context, { embeds: [BuildEmbed(rule)] });
             }
             else if (results.length > 1) SelectBox(context, results);
         }
