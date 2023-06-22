@@ -28,7 +28,7 @@ module.exports = {
                     'Queries for unofficial cards are made by wrapping the name of the card being queried in two sets of angle brackets — `<<like this>>`.\n' +
                     '[Read more](https://github.com/UnicornSnuggler/Cerebro/wiki/Card-Commands#wrapper-syntax).' },
                 { name: 'Advanced Card Queries', value: 'The `/card` command can be used to perform in-depth queries for cards based on a series of filters. ' +
-                    'Cards can be filtered by their respective `aspect`, `author`, `cost`, `name`, `resource`, `text`, `traits`, and `type` values.\n' +
+                    'Cards can be filtered by their respective `author`, `classification` *(aspect)*, `cost`, `name`, `resource`, `text`, `traits`, and `type` values.\n' +
                     '[Read more](https://github.com/UnicornSnuggler/Cerebro/wiki/Card-Commands#querying).' },
                 { name: 'Browse Collections', value: 'Sets and packs can be browsed using the `/browse` command. ' +
                     'Card results will be returned with two buttons — `Previous Card` and `Next Card` — that can be used to navigate between all of the cards in the queried collection.\n' +
