@@ -7,6 +7,7 @@ exports.COLORS = {
     Hero: '2337CF',
     Justice: 'F9FC26',
     Leadership: '67CAFE',
+    Pool: 'D67FB2',
     Protection: '6BEE5E',
     Villain: 'BA00D6'
 };
