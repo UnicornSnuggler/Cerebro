@@ -102,7 +102,7 @@ const BuildEmbed = exports.BuildEmbed = function(card, alternateArt = null, spoi
 
     let image = BuildCardImagePath(card, alternateArt ?? card.Id);
 
-    embed.setColor(COLORS[(card.Type == 'Villain' || card.Type == 'Main Scheme' ? 'Villain' : card.Classification)]);
+    embed.setColor(COLORS[(card.Type == 'Villain' || card.Type == 'Main Scheme' ? 'Villain' : card.Classification.replace('\'', ''))]);
     embed.setTitle(SpoilerIfIncomplete((card.Unique ? SYMBOLS['{u}'] : '') + card.Name + (card.Subname ? ` — ${card.Subname}` : '' ), card.Incomplete && !spoilerFree));
     embed.setURL(image);
     embed.setDescription(description.join('\n\n'));
@@ -196,7 +196,7 @@ const BuildRulesEmbed = exports.BuildRulesEmbed = function(card, alternateArt = 
         ]);
     }
 
-    embed.setColor(COLORS[(card.Type == 'Villain' || card.Type == 'Main Scheme' ? 'Villain' : card.Classification)]);
+    embed.setColor(COLORS[(card.Type == 'Villain' || card.Type == 'Main Scheme' ? 'Villain' : card.Classification.replace('\'', ''))]);
     embed.setTitle(SpoilerIfIncomplete((card.Unique ? SYMBOLS['{u}'] : '') + card.Name + (card.Subname != null ? ` — ${card.Subname}` : '' ), card.Incomplete && !spoilerFree));
     embed.setURL(image);
     embed.setFooter({ text: BuildFooter(card, spoilerFree) });

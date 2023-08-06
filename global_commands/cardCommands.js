@@ -166,6 +166,7 @@ module.exports = {
                 .setDescription('Query cards by their aspect or other classification.')
                 .setRequired(false)
                 .addChoices(
+                    { name: '\'pool', value: '\'pool' },
                     { name: 'aggression', value: 'aggression' },
                     { name: 'aspect', value: 'aspect' },
                     { name: 'basic', value: 'basic' },
