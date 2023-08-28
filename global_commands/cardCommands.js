@@ -2,7 +2,7 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder, inlin
 const { CardDao } = require('../dao/cardDao');
 const { PackDao } = require('../dao/packDao');
 const { SetDao } = require('../dao/setDao');
-const { FindUniqueArts, Imbibe, BuildCollectionFromBatch, ResourceConverter, CreateSelectBox, QueueCompiledResult } = require('../utilities/cardHelper');
+const { FindUniqueArts, Imbibe, BuildCollectionFromBatch, ResourceConverter, CreateSelectBox, QueueCompiledResult, IsCampaignCard } = require('../utilities/cardHelper');
 const { LogCardResult, LogCommand } = require('../utilities/logHelper');
 const { CreateEmbed, RemoveComponents, SendContentAsEmbed, Authorized } = require('../utilities/messageHelper');
 const { LOAD_APOLOGY, INTERACT_APOLOGY, SELECT_TIMEOUT, SECOND_MILLIS, DEFAULT_ART_TOGGLE } = require('../constants');
@@ -183,6 +183,11 @@ module.exports = {
                 .setName('cost')
                 .setDescription('Query cards by their cost.')
                 .setRequired(false))
+        .addBooleanOption(option =>
+            option
+                .setName('excludecampaign')
+                .setDescription('Whether to filter out campaign cards from query results. Defaults to `false`.')
+                .setRequired(false))
         .addStringOption(option =>
             option
                 .setName('name')
@@ -257,6 +262,9 @@ module.exports = {
             let classification = classificationOption ? classificationOption.toLowerCase() : null;
             
             let cost = context.options.getString('cost');
+
+            let excludeCampaignOption = context.options.getBoolean('excludecampaign');
+            let excludeCampaign = excludeCampaignOption ?? false;
             
             let nameOption = context.options.getString('name');
             let name = nameOption ? nameOption.toLowerCase() : null;
@@ -323,6 +331,7 @@ module.exports = {
                             }
                         }
                         if (cost) results = results.filter(card => card.Cost && card.Cost.toLowerCase() === cost);
+                        if (excludeCampaign) results = results.filter(card => !IsCampaignCard(card));
                         if (packIds) {
                             results = results.filter(card => card.Printings.some(printing => packIds.includes(printing.PackId)));
                         }
@@ -343,7 +352,7 @@ module.exports = {
                     }
                 }
                 else {
-                    results = await CardDao.RetrieveWithFilters(origin, author, null, classification, cost, null, packIds, resource, setIds, text, traits, type);
+                    results = await CardDao.RetrieveWithFilters(origin, author, null, classification, cost, excludeCampaign, null, packIds, resource, setIds, text, traits, type);
                 }
             }
             

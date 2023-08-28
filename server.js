@@ -14,6 +14,7 @@ const { UserEntity } = require('./models/userEntity');
 const { ObjectId } = require('mongodb/lib/bson');
 const { DeckEntity } = require('./models/deckEntity');
 const { DeckDao } = require('./dao/deckDao');
+const { IsCampaignCard } = require('./utilities/cardHelper');
 
 const app = express();
 
@@ -144,6 +145,12 @@ app.get('/cards', async function(req, res) {
     let boost = RetrieveQueryParameter(req, 'boost', false);
     let classification = RetrieveQueryParameter(req, 'classification');
     let cost = RetrieveQueryParameter(req, 'cost', false);
+    let excludeCampaign = RetrieveQueryParameter(req, 'excludeCampaign');
+
+    if (excludeCampaign) {
+        await SetDao.RetrieveAllSets();
+    }
+
     let name = RetrieveQueryParameter(req, 'name');
     let resource = RetrieveQueryParameter(req, 'resource');
     let text = RetrieveQueryParameter(req, 'text');
@@ -186,6 +193,7 @@ app.get('/cards', async function(req, res) {
                     }
                 }
                 if (cost) results = results.filter(card => card.Cost && card.Cost.toLowerCase() === cost);
+                if (excludeCampaign) results = results.filter(card => !IsCampaignCard(card, true));
                 if (incomplete) results = results.filter(card => card.Incomplete === (incomplete === 'true'));
                 if (packIds) results = results.filter(card => card.Printings.some(printing => packIds.includes(printing.PackId)));
                 if (resource) {
@@ -203,7 +211,7 @@ app.get('/cards', async function(req, res) {
             }
         }
         else {
-            results = await CardDao.RetrieveWithFilters(origin, author, boost, classification, cost, incomplete, packIds, resource, setIds, text, traits, type, false);
+            results = await CardDao.RetrieveWithFilters(origin, author, boost, classification, cost, excludeCampaign, incomplete, packIds, resource, setIds, text, traits, type, false);
         }
     }
 

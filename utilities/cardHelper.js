@@ -351,6 +351,17 @@ const GetPrintingByArtificialId = exports.GetPrintingByArtificialId = function(c
     return card.Printings.find(x => x.ArtificialId === artificialId);
 }
 
+exports.IsCampaignCard = function(card) {
+    let result = false;
+    let campaignSets = SetDao.CAMPAIGN_SET_IDS;
+
+    card.Printings.forEach(printing => {
+        if (campaignSets.includes(printing.SetId)) result = true;
+    });
+
+    return result;
+}
+
 exports.ResourceConverter = {
     'energy': '{e}',
     'mental': '{m}',
