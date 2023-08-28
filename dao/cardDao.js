@@ -1,7 +1,7 @@
 const { GroupDao } = require('./groupDao');
 const { CardEntity } = require('../models/cardEntity');
 const { NavigationCollection } = require('../models/navigationCollection');
-const { GetBaseId, ShareFaces, ShareGroups, BuildCollectionFromBatch } = require('../utilities/cardHelper');
+const { GetBaseId, ShareFaces, ShareGroups, BuildCollectionFromBatch, IsCampaignCard } = require('../utilities/cardHelper');
 const { CreateDocumentStore, DeriveDatabase } = require('../utilities/documentStoreHelper');
 const { OFFICIAL, ALL, FILTERS } = require('../constants');
 const { EscapeRegex } = require('../utilities/stringHelper');
@@ -338,7 +338,7 @@ class CardDao {
         return new CardEntity(documents[0]);
     }
 
-    static async RetrieveWithFilters(origin, author, boost, classification, cost, incomplete, pack, resource, set, text, traits, type) {
+    static async RetrieveWithFilters(origin, author, boost, classification, cost, excludeCampaign, incomplete, pack, resource, set, text, traits, type) {
         const session = this.store.openSession();
         let query = session.query({ indexName: `${ALL}${CardEntity.COLLECTION}` });
 
@@ -414,7 +414,7 @@ class CardDao {
                 query = query.openSubclause()
                     .negateNext()
                     .whereExists('Resource')
-                    .closeSubclause();                    
+                    .closeSubclause();
             }
             else {
                 query = query.openSubclause()
@@ -473,11 +473,13 @@ class CardDao {
     
         let documents = await query.all();
     
-        if (documents.length > 0) {    
+        if (documents.length > 0) {
             let results = [];
     
             for (let document of documents) {
-                results.push(new CardEntity(document));
+                let newCard = new CardEntity(document);
+                
+                if (!excludeCampaign || !IsCampaignCard(newCard)) results.push(newCard);
             }
 
             results.sort(function(a, b) {

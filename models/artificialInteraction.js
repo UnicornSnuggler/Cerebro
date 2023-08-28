@@ -12,6 +12,10 @@ class ArtificialInteraction {
             }
         };
 
+        this.getBoolean = function(_) {
+            return null;
+        }
+
         this.getMentionable = function(_) {
             return null;
         }

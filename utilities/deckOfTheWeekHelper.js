@@ -51,7 +51,7 @@ const deckOfTheWeek = exports.deckOfTheWeek = async function(guild, channels, ro
     try {
         let heroData = GenerateHero();
         
-        let heroSet = await CardDao.RetrieveWithFilters(OFFICIAL, null, null, null, null, false, null, null, [heroData.hero.Id], null, null, null, false);
+        let heroSet = await CardDao.RetrieveWithFilters(OFFICIAL, null, null, null, null, null, false, null, null, [heroData.hero.Id], null, null, null, false);
         let hero = heroSet.filter(x => x.Type == 'Hero')[0];
         let alterEgo = heroSet.filter(x => x.Type == 'Alter-Ego')[0];
         
