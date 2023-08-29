@@ -451,9 +451,6 @@ const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, current
             else embeds.push(BuildRulesEmbed(card, artificialId, spoilerOverride || spoilerToggle));
         }
         else {
-            let printing = GetPrintingByArtificialId(card, artificialId);
-            let pack = PackDao.PACKS.find(x => x.Id === printing.PackId);
-
             files.push({
                 attachment: BuildCardImagePath(card, artificialId),
                 name: `${(!spoilerOverride && (!spoilerToggle && card.SpoilerTag)) ? 'SPOILER_' : ''}${artificialId}.jpg`,

@@ -13,9 +13,13 @@ const { GetUserIdFromContext } = require('../utilities/userHelper');
 const SelectBox = async function(context, cards) {
     try {
         cards.sort((a, b) => {
-            if (a.Id < b.Id) return -1;
-            if (a.Id > b.Id) return 1;
-            else return 0;
+            if (a.Name < b.Name) return -1;
+            if (a.Name > b.Name) return 1;
+            else {
+                if (a.Id < b.Id) return -1;
+                if (a.Id > b.Id) return 1;
+                else return 0
+            };
         });
 
         let prompt = `${cards.length} results were found for the given query!`;
