@@ -130,7 +130,7 @@ exports.MINUTE_MILLIS = 60000;
 exports.SECOND_MILLIS = 1000;
 
 exports.INTERACT_TIMEOUT = 60;
-exports.SELECT_TIMEOUT = 45;
+exports.SELECT_TIMEOUT = 60;
 exports.PROMPT_TIMEOUT = 5;
 
 exports.ID_LENGTH = 5;

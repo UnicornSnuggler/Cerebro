@@ -11,6 +11,7 @@ class PackEntity extends BaseCollectionEntity {
         this.Incomplete = document.Incomplete;
         this.Number = document.Number;
         this.ReleaseStatus = document.ReleaseStatus;
+        this.SpoilerTag = document.SpoilerTag;
     }
 }
 

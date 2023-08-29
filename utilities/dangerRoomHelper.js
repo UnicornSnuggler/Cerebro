@@ -138,7 +138,7 @@ exports.GenerateHero = function(unofficial = false, heroExclusions = null, aspec
         (!heroExclusions || !heroExclusions.includes(x.Id)) &&
         x.CanSimulate &&
         x.Type === 'Hero Set' &&
-        !PackDao.PACKS.find(y => y.Id === x.PackId).Incomplete
+        !PackDao.PACKS.find(y => y.Id === x.PackId).SpoilerTag
     );
 
     let randomHero = ChooseRandomElements(heroChoices, 1)[0];
