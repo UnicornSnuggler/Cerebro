@@ -12,6 +12,12 @@ const { GetUserIdFromContext } = require('../utilities/userHelper');
 
 const SelectBox = async function(context, cards) {
     try {
+        cards.sort((a, b) => {
+            if (a.Id < b.Id) return -1;
+            if (a.Id > b.Id) return 1;
+            else return 0;
+        });
+
         let prompt = `${cards.length} results were found for the given query!`;
         let items = cards;
 
@@ -59,12 +65,6 @@ const SelectBox = async function(context, cards) {
                         }
                         if (i.customId === 'showAll') {
                             collector.stop('selection');
-
-                            cards.sort((a, b) => {
-                                if (a.Id < b.Id) return -1;
-                                if (a.Id > b.Id) return 1;
-                                else return 0;
-                            });
             
                             i.deferUpdate()
                             .then(() => {

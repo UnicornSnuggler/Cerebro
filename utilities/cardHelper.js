@@ -4,7 +4,7 @@ const { RuleDao } = require('../dao/ruleDao');
 const { ConfigurationDao } = require('../dao/configurationDao');
 const { CreateEmbed, RemoveComponents, SendMessageWithOptions } = require('../utilities/messageHelper');
 const { Summary } = require('./printingHelper');
-const { FormatSymbols, FormatText, SpoilerIfIncomplete, QuoteText, ItalicizeText } = require('./stringHelper');
+const { FormatSymbols, FormatText, SpoilerIfSpoilerTagged, QuoteText, ItalicizeText } = require('./stringHelper');
 const { RELEASED_EMOJI, COLORS, ID_LENGTH, INTERACT_APOLOGY, LOAD_APOLOGY, SYMBOLS, INTERACT_TIMEOUT, TINKERER_EMOJI, WARNING_EMOJI, REVIEWING_EMOJI, SECOND_MILLIS, MAX_ATTACHMENTS, ARTIST_EMOJI } = require('../constants');
 const { NavigationCollection } = require('../models/navigationCollection');
 const { SetDao } = require('../dao/setDao');
@@ -50,14 +50,14 @@ const BuildEmbed = exports.BuildEmbed = function(card, alternateArt = null, spoi
 
     if (card.Traits) subheader.push(ItalicizeText(bold(card.Traits.join(', '))));
 
-    description.push(SpoilerIfIncomplete(subheader.join('\n'), card.Incomplete && !spoilerFree));
+    description.push(SpoilerIfSpoilerTagged(subheader.join('\n'), card.SpoilerTag && !spoilerFree));
 
     let stats = BuildStats(card);
 
     if (stats.length > 0) {
         stats = FormatSymbols(stats);
 
-        description.push(SpoilerIfIncomplete(stats, card.Incomplete && !spoilerFree));
+        description.push(SpoilerIfSpoilerTagged(stats, card.SpoilerTag && !spoilerFree));
     }
 
     let body = [];
@@ -65,19 +65,19 @@ const BuildEmbed = exports.BuildEmbed = function(card, alternateArt = null, spoi
     if (card.Rules) {
         let formattedRules = FormatText(card.Rules, card.Name);
 
-        body.push(QuoteText(SpoilerIfIncomplete(formattedRules, card.Incomplete && !spoilerFree)));
+        body.push(QuoteText(SpoilerIfSpoilerTagged(formattedRules, card.SpoilerTag && !spoilerFree)));
     }
 
     if (card.Special) {
         let formattedSpecial = FormatText(card.Special, card.Name);
 
-        body.push(QuoteText(SpoilerIfIncomplete(formattedSpecial, card.Incomplete && !spoilerFree)));
+        body.push(QuoteText(SpoilerIfSpoilerTagged(formattedSpecial, card.SpoilerTag && !spoilerFree)));
     }
 
     if (card.Flavor) {
         let escapedFlavor = escapeMarkdown(card.Flavor);
 
-        body.push(SpoilerIfIncomplete(ItalicizeText(escapedFlavor), card.Incomplete && !spoilerFree));
+        body.push(SpoilerIfSpoilerTagged(ItalicizeText(escapedFlavor), card.SpoilerTag && !spoilerFree));
     }
 
     if (card.ArtificialPackId) {
@@ -103,7 +103,7 @@ const BuildEmbed = exports.BuildEmbed = function(card, alternateArt = null, spoi
     let image = BuildCardImagePath(card, alternateArt ?? card.Id);
 
     embed.setColor(COLORS[(card.Type == 'Villain' || card.Type == 'Main Scheme' ? 'Villain' : card.Classification.replace('\'', ''))]);
-    embed.setTitle(SpoilerIfIncomplete((card.Unique ? SYMBOLS['{u}'] : '') + card.Name + (card.Subname ? ` — ${card.Subname}` : '' ), card.Incomplete && !spoilerFree));
+    embed.setTitle(SpoilerIfSpoilerTagged((card.Unique ? SYMBOLS['{u}'] : '') + card.Name + (card.Subname ? ` — ${card.Subname}` : '' ), card.SpoilerTag && !spoilerFree));
     embed.setURL(image);
     embed.setDescription(description.join('\n\n'));
     embed.setFooter({ text: BuildFooter(card, spoilerFree) });
@@ -111,7 +111,7 @@ const BuildEmbed = exports.BuildEmbed = function(card, alternateArt = null, spoi
     let printing = GetPrintingByArtificialId(card, alternateArt ?? card.Id);
     let pack = PackDao.PACKS.find(x => x.Id === printing.PackId);
     
-    if (spoilerFree || (!card.Incomplete && !pack.Incomplete)) embed.setThumbnail(image);
+    if (spoilerFree || !card.SpoilerTag) embed.setThumbnail(image);
 
     return embed;
 }
@@ -197,14 +197,14 @@ const BuildRulesEmbed = exports.BuildRulesEmbed = function(card, alternateArt = 
     }
 
     embed.setColor(COLORS[(card.Type == 'Villain' || card.Type == 'Main Scheme' ? 'Villain' : card.Classification.replace('\'', ''))]);
-    embed.setTitle(SpoilerIfIncomplete((card.Unique ? SYMBOLS['{u}'] : '') + card.Name + (card.Subname != null ? ` — ${card.Subname}` : '' ), card.Incomplete && !spoilerFree));
+    embed.setTitle(SpoilerIfSpoilerTagged((card.Unique ? SYMBOLS['{u}'] : '') + card.Name + (card.Subname != null ? ` — ${card.Subname}` : '' ), card.SpoilerTag && !spoilerFree));
     embed.setURL(image);
     embed.setFooter({ text: BuildFooter(card, spoilerFree) });
 
     let printing = GetPrintingByArtificialId(card, alternateArt ?? card.Id);
     let pack = PackDao.PACKS.find(x => x.Id === printing.PackId);
     
-    if (spoilerFree || (!card.Incomplete && !pack.Incomplete)) embed.setThumbnail(image);
+    if (spoilerFree || !card.SpoilerTag) embed.setThumbnail(image);
 
     return embed;
 }
@@ -418,7 +418,7 @@ const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, current
                 .setLabel('Toggle Rules')
                 .setStyle(ButtonStyle.Secondary));
 
-        if (!spoilerOverride && card.Incomplete)
+        if (!spoilerOverride && card.SpoilerTag)
             toggleRow.addComponents(new ButtonBuilder()
                 .setCustomId('toggleSpoiler')
                 .setLabel('Unveil Secretly')
@@ -456,8 +456,8 @@ const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, current
 
             files.push({
                 attachment: BuildCardImagePath(card, artificialId),
-                name: `${(!spoilerOverride && (!spoilerToggle && (card.Incomplete || pack.Incomplete))) ? 'SPOILER_' : ''}${artificialId}.jpg`,
-                spoiler: (!spoilerOverride && (!spoilerToggle && (card.Incomplete || pack.Incomplete)))
+                name: `${(!spoilerOverride && (!spoilerToggle && card.SpoilerTag)) ? 'SPOILER_' : ''}${artificialId}.jpg`,
+                spoiler: (!spoilerOverride && (!spoilerToggle && card.SpoilerTag))
             });
         }
 
@@ -636,8 +636,8 @@ let QueueCompiledResult = exports.QueueCompiledResult = async function(context, 
         for (let card of subset) {
             attachments.push({
                 attachment: BuildCardImagePath(card),
-                name: `${(!spoilerOverride && card.Incomplete) ? 'SPOILER_' : ''}${card.Id}.jpg`,
-                spoiler: (!spoilerOverride && card.Incomplete)
+                name: `${(!spoilerOverride && card.SpoilerTag) ? 'SPOILER_' : ''}${card.Id}.jpg`,
+                spoiler: (!spoilerOverride && card.SpoilerTag)
             });
         }
 

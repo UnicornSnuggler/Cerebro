@@ -96,8 +96,8 @@ exports.QuoteText = function(text) {
     return text.split('\n').map(line => `> ${line}`).join('\n');
 }
 
-exports.SpoilerIfIncomplete = function(text, incomplete) {
-    return incomplete ? spoiler(text) : text;
+exports.SpoilerIfSpoilerTagged = function(text, spoilerTag) {
+    return spoilerTag ? spoiler(text) : text;
 }
 
 exports.SuperscriptNumber = function(number) {
