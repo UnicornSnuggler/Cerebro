@@ -72,13 +72,13 @@ exports.ValidateQuerySyntax = function(input) {
         if (character === '(') {
             parentheses += 1;
 
-            if (previousCharacter && !['(', '&', '|'].includes(previousCharacter)) {
+            if (previousCharacter && !['(', '&', '|', '-'].includes(previousCharacter)) {
                 response.output = `Syntax error at index '${index}': '${previousCharacter}${character}'`;
 
                 return response;
             }
 
-            if (nextCharacter && !['(', '{'].includes(nextCharacter)) {
+            if (nextCharacter && !['(', '{', '-'].includes(nextCharacter)) {
                 response.output = `Syntax error at index '${index + 1}': '${character}${nextCharacter}'`;
 
                 return response;
