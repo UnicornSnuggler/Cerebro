@@ -19,7 +19,6 @@ const { LogCardResult, LogCommand } = require('./utilities/logHelper');
 const { ArtistDao } = require('./dao/artistDao');
 const { GetUserIdFromContext } = require('./utilities/userHelper');
 const { deckOfTheWeekLoop } = require('./utilities/deckOfTheWeekHelper');
-const { ValidateQuerySyntax } = require('./utilities/queryHelper');
 
 const client = new Client({ intents: [GatewayIntentBits.DirectMessages, GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMembers, GatewayIntentBits.MessageContent], partials: [Partials.Channel] });
 

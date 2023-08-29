@@ -54,7 +54,7 @@ exports.ValidateQuerySyntax = function(input) {
 
     filterStrippedString = filterStrippedString.replaceAll(' ', '');
 
-    let errors = filterStrippedString.replace(/[()&|]|{[0-9]+}/gmi, '');
+    let errors = filterStrippedString.replace(/[()&|\-]|{[0-9]+}/gmi, '');
 
     if (errors.length !== 0) {
         response.output = `Illegal characters found: '${[...new Set([...errors])].join('')}'`;
@@ -106,6 +106,19 @@ exports.ValidateQuerySyntax = function(input) {
                 return response;
             }
         }
+        else if (character === '-') {
+            if (!nextCharacter) {
+                response.output = `Syntax error at index '${index}': '${character}'`;
+
+                return response;
+            }
+
+            if (!['(', '{'].includes(nextCharacter)) {
+                response.output = `Syntax error at index '${index + 1}': '${character}${nextCharacter}'`;
+
+                return response;
+            }
+        }
         else if (['&', '|'].includes(character)) {
             if (!previousCharacter || !nextCharacter) {
                 response.output = `Syntax error at index '${index}': '${character}'`;
@@ -119,7 +132,7 @@ exports.ValidateQuerySyntax = function(input) {
                 return response;
             }
 
-            if (!['(', '{'].includes(nextCharacter)) {
+            if (!['(', '{', '-'].includes(nextCharacter)) {
                 response.output = `Syntax error at index '${index + 1}': '${character}${nextCharacter}'`;
 
                 return response;
