@@ -63,7 +63,11 @@ const deckOfTheWeek = exports.deckOfTheWeek = async function(guild, channels, ro
             `Deck of the Week — ${GetDateString()}`
         );
 
-        let attachment = await createImage([hero, alterEgo, card]);
+        let attachments = [
+            BuildCardImagePath(hero),
+            BuildCardImagePath(alterEgo),
+            BuildCardImagePath(card)
+        ];
 
         channels.forEach(channelId => {
             let channel = guild.channels.resolve(channelId);
@@ -89,7 +93,7 @@ const deckOfTheWeek = exports.deckOfTheWeek = async function(guild, channels, ro
                             .then(thread => {
                                 thread.send({
                                     content: ping,
-                                    files: [attachment],
+                                    files: attachments,
                                     allowedMentions: {
                                         parse: ['roles']
                                     }
@@ -100,7 +104,7 @@ const deckOfTheWeek = exports.deckOfTheWeek = async function(guild, channels, ro
                     else {
                         channel.send({
                             content: ping,
-                            files: [attachment],
+                            files: attachments,
                             allowedMentions: {
                                 parse: ['roles']
                             },

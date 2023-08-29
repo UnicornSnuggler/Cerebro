@@ -43,7 +43,7 @@ const GenerateScenario = function(unofficial = false, scenarioExclusions = null,
         (!scenarioExclusions || !scenarioExclusions.includes(x.Id)) &&
         x.CanSimulate &&
         x.Type === 'Villain Set' &&
-        !PackDao.PACKS.find(y => y.Id === x.PackId).Incomplete
+        !PackDao.PACKS.find(y => y.Id === x.PackId).SpoilerTag
     );
 
     let randomScenario = ChooseRandomElements(scenarioChoices, 1)[0];
@@ -59,7 +59,7 @@ const GenerateScenario = function(unofficial = false, scenarioExclusions = null,
             x.CanSimulate &&
             x.Type === 'Modular Set' &&
             (!randomScenario.Requires || !randomScenario.Requires.includes(x.Id)) &&
-            !PackDao.PACKS.find(y => y.Id === x.PackId).Incomplete
+            !PackDao.PACKS.find(y => y.Id === x.PackId).SpoilerTag
         );
 
         if (randomScenario.Deviation) {
@@ -140,7 +140,7 @@ const GetModularChoices = function(mojo, unofficial) {
         (unofficial || x.Official) &&
         x.Type === 'Modular Set' &&
         x.CanSimulate &&
-        !PackDao.PACKS.find(y => y.Id === x.PackId).Incomplete &&
+        !PackDao.PACKS.find(y => y.Id === x.PackId).SpoilerTag &&
         (!mojo || x.PackId === MOJOMANIA)
     );
 }
