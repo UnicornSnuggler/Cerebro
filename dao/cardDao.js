@@ -523,6 +523,9 @@ class CardDao {
             else if (convertedInput[index] === '|') {
                 query = query.orElse();
             }
+            else if (convertedInput[index] === '-') {
+                query = query.not();
+            }
             else {
                 let endingIndex = convertedInput.indexOf('}', index);
                 let designation = convertedInput.substring(index, endingIndex + 1);
