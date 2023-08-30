@@ -15,7 +15,6 @@ class CardEntity extends BaseAuthoredEntity {
         this.Classification = document.Classification;
         this.Cost = document.Cost;
         this.Defense = document.Defense;
-        this.Flavor = document.Flavor;
         this.GroupId = document.GroupId;
         this.Hand = document.Hand;
         this.Health = document.Health;
