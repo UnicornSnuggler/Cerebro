@@ -74,8 +74,10 @@ const BuildEmbed = exports.BuildEmbed = function(card, alternateArt = null, spoi
         body.push(QuoteText(SpoilerIfSpoilerTagged(formattedSpecial, card.SpoilerTag && !spoilerFree)));
     }
 
-    if (card.Flavor) {
-        let escapedFlavor = escapeMarkdown(card.Flavor);
+    let currentPrinting = GetPrintingByArtificialId(card, alternateArt ?? card.Id);
+
+    if (currentPrinting.Flavor) {
+        let escapedFlavor = escapeMarkdown(currentPrinting.Flavor);
 
         body.push(SpoilerIfSpoilerTagged(ItalicizeText(escapedFlavor), card.SpoilerTag && !spoilerFree));
     }
@@ -86,8 +88,7 @@ const BuildEmbed = exports.BuildEmbed = function(card, alternateArt = null, spoi
         body.push(`${emojiPack.Emoji} **${emojiPack.Name}**`);
     }
     else {
-        let printing = GetPrintingByArtificialId(card, card.Id);
-        let emojiPack = PackDao.PACKS.find(x => x.Id === printing.PackId);
+        let emojiPack = PackDao.PACKS.find(x => x.Id === currentPrinting.PackId);
 
         if (emojiPack.Emoji) {
             body.push(`${emojiPack.Emoji} **${emojiPack.Name}**`);

@@ -1,6 +1,7 @@
 class PrintingEntity {
     constructor (document) {
         this.ArtificialId = document.ArtificialId;
+        this.Flavor = document.Flavor;
         this.PackId = document.PackId;
         this.PackNumber = document.PackNumber;
         this.SetId = document.SetId;
