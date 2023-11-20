@@ -11,6 +11,7 @@ class SetEntity extends BaseCollectionEntity {
         this.Modulars = document.Modulars;
         this.PackId = document.PackId;
         this.Requires = document.Requires;
+        this.Recommends = document.Recommends;
     }
 }
 
