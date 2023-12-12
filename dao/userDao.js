@@ -35,7 +35,7 @@ class UserDao {
     }
 
     static async RetrieveAllUsers(limited) {
-        let users = [];
+        let users = null;
         
         try {
             await this.mongoClient.connect();

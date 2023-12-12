@@ -35,7 +35,7 @@ class DeckDao {
     }
 
     static async RetrieveAllDecks() {
-        let result = [];
+        let result = null;
         
         try {
             await this.mongoClient.connect();

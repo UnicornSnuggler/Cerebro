@@ -352,7 +352,7 @@ app.delete('/decks/:deckId', async function(req, res) {
     
     const result = await DeckDao.DeleteDeck(deckId);
 
-    if (!result.acknowledged) {
+    if (!result || !result.acknowledged) {
         res.status(STATUS_CODES.INTERNAL_SERVER_ERROR)
             .end(JSON.stringify({ error: `An unknown error has occurred...` }));
         
@@ -462,6 +462,13 @@ app.post('/decks', async function(req, res) {
     
     const result = await DeckDao.StoreNewDeck(formattedDeck);
 
+    if (!result) {
+        res.status(STATUS_CODES.INTERNAL_SERVER_ERROR)
+            .end(JSON.stringify({ error: `An unknown error has occurred...` }));
+        
+        return;
+    }
+
     if (!result.acknowledged) {
         if (result.code == DUPLICATE_CODE) {
             res.status(STATUS_CODES.CONFLICT)
@@ -529,6 +536,13 @@ app.put('/decks/:deckId', async function(req, res) {
     
     const result = await DeckDao.UpdateDeck(deckId, formattedDeck);
 
+    if (!result) {
+        res.status(STATUS_CODES.INTERNAL_SERVER_ERROR)
+            .end(JSON.stringify({ error: `An unknown error has occurred...` }));
+        
+        return;
+    }
+
     if (!result.acknowledged) {
         if (result.code == DUPLICATE_CODE) {
             res.status(STATUS_CODES.CONFLICT)
@@ -584,7 +598,7 @@ app.delete('/users/:userId', async function(req, res) {
     
     const result = await UserDao.DeleteUser(userId);
 
-    if (!result.acknowledged) {
+    if (!result || !result.acknowledged) {
         res.status(STATUS_CODES.INTERNAL_SERVER_ERROR)
             .end(JSON.stringify({ error: `An unknown error has occurred...` }));
         
@@ -652,6 +666,13 @@ app.post('/users', async function(req, res) {
     
     const result = await UserDao.StoreNewUser(formattedUser);
 
+    if (!result) {
+        res.status(STATUS_CODES.INTERNAL_SERVER_ERROR)
+            .end(JSON.stringify({ error: `An unknown error has occurred...` }));
+        
+        return;
+    }
+
     if (!result.acknowledged) {
         if (result.code == DUPLICATE_CODE) {
             res.status(STATUS_CODES.CONFLICT)
@@ -707,6 +728,13 @@ app.put('/users/:userId', async function(req, res) {
     formattedUser.updated = Date.now();
     
     const result = await UserDao.UpdateUser(userId, formattedUser);
+
+    if (!result) {
+        res.status(STATUS_CODES.INTERNAL_SERVER_ERROR)
+            .end(JSON.stringify({ error: `An unknown error has occurred...` }));
+        
+        return;
+    }
 
     if (!result.acknowledged) {
         if (result.code == DUPLICATE_CODE) {
