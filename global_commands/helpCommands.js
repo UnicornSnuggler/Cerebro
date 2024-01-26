@@ -30,6 +30,9 @@ module.exports = {
                 { name: 'Advanced Card Queries', value: 'The `/card` command can be used to perform in-depth queries for cards based on a series of filters. ' +
                     'Cards can be filtered by their respective `author`, `classification` *(aspect)*, `cost`, `name`, `resource`, `text`, `traits`, and `type` values.\n' +
                     '[Read more](https://github.com/UnicornSnuggler/Cerebro/wiki/Card-Commands#querying).' },
+                { name: 'Query Syntax', value: 'The `/query` command can be used to perform *even more* advanced queries for cards using comparator operations. ' +
+                    'All of the aforementioned filters can be used in tandem with `AND`, `OR`, and grouping operations for robust, granular querying.\n' +
+                    '[Read more](https://github.com/UnicornSnuggler/Cerebro/wiki/Query-Commands).' },
                 { name: 'Browse Collections', value: 'Sets and packs can be browsed using the `/browse` command. ' +
                     'Card results will be returned with two buttons — `Previous Card` and `Next Card` — that can be used to navigate between all of the cards in the queried collection.\n' +
                     '[Read more](https://github.com/UnicornSnuggler/Cerebro/wiki/Browse-Commands).' },
