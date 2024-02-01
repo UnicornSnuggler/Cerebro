@@ -172,7 +172,7 @@ class CardDao {
             if (origin !== ALL) query.whereEquals('Official', origin === OFFICIAL).andAlso();
 
             query = query.openSubclause()
-                .search('id()', convertedQuery, 'AND').orElse()
+                .search('ArtificialIds', convertedQuery, 'AND').orElse()
                 .search('Name', convertedQuery, 'AND').orElse()
                 .search('TokenizedName', tokenizedQuery, 'AND').orElse()
                 .search('StrippedName', strippedQuery, 'AND').orElse()
