@@ -9,7 +9,7 @@ class DeckDao {
 
     static mongoClient = new MongoClient(process.env.mongoConnectionString);
 
-    static limitedProjection = { projection: { cards: 0 } };
+    static limitedProjection = { projection: { cards: 1 } };
 
     static async DeleteDeck(id) {
         let result = null;
@@ -84,7 +84,7 @@ class DeckDao {
                 query.title = filters.title;
             }
 
-            result = await this.mongoClient.db(DeckEntity.DATABASE).collection(DeckEntity.COLLECTION).findOne(query, limited ? this.limitedProjection : {});
+            result = await this.mongoClient.db(DeckEntity.DATABASE).collection(DeckEntity.COLLECTION).find(query, limited ? this.limitedProjection : {}).toArray();
         }
         catch (e) {
             console.error(`An error occurred while retrieving a deck with filters!\n${e}`);

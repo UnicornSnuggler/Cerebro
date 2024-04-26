@@ -388,24 +388,9 @@ app.get('/decks', async function(req, res) {
         return;
     }
 
-    let results = [];
+	let decks = (Object.keys(filters).length > 0) ? await DeckDao.RetrieveDeckWithFilters(true, filters) : await DeckDao.RetrieveAllDecks();
 
-    if (Object.keys(filters).length > 0) {
-        let deck = await DeckDao.RetrieveDeckWithFilters(true, filters);
-
-        if (deck) {
-            results.push(deck);
-        }
-    }
-    else {
-        let decks = await DeckDao.RetrieveAllDecks();
-
-        if (decks) {
-            results = decks;
-        }
-    }
-
-    res.end(JSON.stringify(results));
+    res.end(decks ? JSON.stringify(decks) : []);
 });
 
 app.get('/decks/:deckId', async function(req, res) {
