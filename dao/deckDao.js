@@ -9,7 +9,7 @@ class DeckDao {
 
     static mongoClient = new MongoClient(process.env.mongoConnectionString);
 
-    static limitedProjection = { projection: { cards: 1 } };
+    static limitedProjection = { projection: { authorId: 1, cards: 1 } };
 
     static async DeleteDeck(id) {
         let result = null;
