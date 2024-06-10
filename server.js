@@ -388,7 +388,7 @@ app.get('/decks', async function(req, res) {
         return;
     }
 
-	let decks = (Object.keys(filters).length > 0) ? await DeckDao.RetrieveDeckWithFilters(true, filters) : await DeckDao.RetrieveAllDecks();
+	let decks = (Object.keys(filters).length > 0) ? await DeckDao.RetrieveDeckWithFilters(filters) : await DeckDao.RetrieveAllDecks();
 
     res.end(decks ? JSON.stringify(decks) : []);
 });
@@ -405,7 +405,7 @@ app.get('/decks/:deckId', async function(req, res) {
         return;
     }
 
-    const result = await DeckDao.RetrieveDeckWithFilters(false, { _id: deckId });
+    const result = await DeckDao.RetrieveDeckWithFilters({ _id: deckId });
 
     if (!result) {
         res.status(STATUS_CODES.NOT_FOUND)
@@ -473,7 +473,7 @@ app.post('/decks', async function(req, res) {
         return;
     }
 
-    const createdDeck = await DeckDao.RetrieveDeckWithFilters(false, { _id: result.insertedId });
+    const createdDeck = await DeckDao.RetrieveDeckWithFilters({ _id: result.insertedId });
 
     res.status(STATUS_CODES.CREATED)
         .end(JSON.stringify(createdDeck));
@@ -553,7 +553,7 @@ app.put('/decks/:deckId', async function(req, res) {
         return;
     }
 
-    const updatedDeck = await DeckDao.RetrieveDeckWithFilters(false, { _id: deckId });
+    const updatedDeck = await DeckDao.RetrieveDeckWithFilters({ _id: deckId });
 
     res.end(JSON.stringify(updatedDeck));
 });
