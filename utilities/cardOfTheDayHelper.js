@@ -7,7 +7,7 @@ const { LogDao } = require('../dao/logDao');
 const { GetDateString } = require('./dateHelper');
 const { ConfigurationDao } = require('../dao/configurationDao');
 const { ReportError } = require('./errorHelper');
-const { PermissionsBitField } = require('discord.js');
+const { PermissionsBitField, PollLayoutType } = require('discord.js');
 
 exports.cardOfTheDayLoop = async function cardOfTheDayLoop(client) {
     for (let [guildId, data] of Object.entries(ConfigurationDao.CONFIGURATION.CardOfTheDay)) {
@@ -57,11 +57,6 @@ const cardOfTheDay = exports.cardOfTheDay = async function(guild, channels, role
                             embeds: [baseEmbed]
                         })
                         .then(message => {
-                            message.react('1️⃣');
-                            message.react('2️⃣');
-                            message.react('3️⃣');
-                            message.react('4️⃣');
-                            message.react('5️⃣');
                             message.startThread({
                                 name: GetDateString(true)
                             })
@@ -71,7 +66,22 @@ const cardOfTheDay = exports.cardOfTheDay = async function(guild, channels, role
                                     allowedMentions: {
                                         parse: ['roles']
                                     }
-                                })
+                                });
+                                thread.send({
+                                    poll: {
+                                        question: { text: 'How do you feel about this card?' },
+                                        answers: [
+                                            { text: 'I hate it', emoji: '1️⃣' },
+                                            { text: 'I dislike it', emoji: '2️⃣' },
+                                            { text: 'I\'m indifferent', emoji: '3️⃣' },
+                                            { text: 'I like it', emoji: '4️⃣' },
+                                            { text: 'I love it', emoji: '5️⃣' },
+                                        ],
+                                        allow_multiselect: false,
+                                        duration: 24,
+                                        layout_type: PollLayoutType.Default
+                                    }
+                                });
                             });
                         });
                     }
@@ -82,13 +92,6 @@ const cardOfTheDay = exports.cardOfTheDay = async function(guild, channels, role
                                 parse: ['roles']
                             },
                             embeds: [baseEmbed]
-                        })
-                        .then(message => {
-                            message.react('1️⃣');
-                            message.react('2️⃣');
-                            message.react('3️⃣');
-                            message.react('4️⃣');
-                            message.react('5️⃣');
                         });
                     }
                 }

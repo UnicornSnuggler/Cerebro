@@ -20,7 +20,7 @@ const { ArtistDao } = require('./dao/artistDao');
 const { GetUserIdFromContext } = require('./utilities/userHelper');
 const { deckOfTheWeekLoop } = require('./utilities/deckOfTheWeekHelper');
 
-const client = new Client({ intents: [GatewayIntentBits.DirectMessages, GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMembers, GatewayIntentBits.MessageContent], partials: [Partials.Channel] });
+const client = new Client({ intents: [GatewayIntentBits.DirectMessages, GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMessagePolls, GatewayIntentBits.GuildMembers, GatewayIntentBits.MessageContent], partials: [Partials.Channel] });
 
 client.commands = new Collection();
 const globalCommandFiles = fs.readdirSync('./global_commands').filter(file => file.endsWith('.js'));
