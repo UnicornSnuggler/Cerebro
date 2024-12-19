@@ -57,6 +57,11 @@ const cardOfTheDay = exports.cardOfTheDay = async function(guild, channels, role
                             embeds: [baseEmbed]
                         })
                         .then(message => {
+                            message.react('1️⃣');
+                            message.react('2️⃣');
+                            message.react('3️⃣');
+                            message.react('4️⃣');
+                            message.react('5️⃣');
                             message.startThread({
                                 name: GetDateString(true)
                             })
@@ -77,6 +82,13 @@ const cardOfTheDay = exports.cardOfTheDay = async function(guild, channels, role
                                 parse: ['roles']
                             },
                             embeds: [baseEmbed]
+                        })
+                        .then(message => {
+                            message.react('1️⃣');
+                            message.react('2️⃣');
+                            message.react('3️⃣');
+                            message.react('4️⃣');
+                            message.react('5️⃣');
                         });
                     }
                 }
