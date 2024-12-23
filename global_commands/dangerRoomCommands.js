@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, spoiler } = require('discord.js');
+const { SlashCommandBuilder } = require('discord.js');
 const { COLORS, MASOCHIST, WIZARD, ACOLYTE, MOJOMANIA } = require('../constants');
 const { ConfigurationDao } = require('../dao/configurationDao');
 const { PackDao } = require('../dao/packDao');
@@ -239,8 +239,6 @@ module.exports = {
             let mojoOption = context.options.getBoolean('mojo');
             let spoilersOption = context.options.getBoolean('spoilers');
             let command = `/danger-room`;
-
-            console.log(`Spoilers are ${spoilersOption ? 'allowed' : 'disallowed'}!`);
 
             new Promise(() => LogCommand(context, command, null));
             
