@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, spoiler } = require('discord.js');
 const { COLORS, MASOCHIST, WIZARD, ACOLYTE, MOJOMANIA } = require('../constants');
 const { ConfigurationDao } = require('../dao/configurationDao');
 const { PackDao } = require('../dao/packDao');
@@ -37,13 +37,13 @@ const TagUnofficial = function(contributions, packId) {
     return result;
 }
 
-const GenerateScenario = function(unofficial = false, scenarioExclusions = null, modularExclusions = null, glitches = true) {
+const GenerateScenario = function(unofficial = false, scenarioExclusions = null, modularExclusions = null, spoilers = false) {
     let scenarioChoices = SetDao.SETS.filter(x =>
         (unofficial || x.Official) &&
         (!scenarioExclusions || !scenarioExclusions.includes(x.Id)) &&
         x.CanSimulate &&
         x.Type === 'Villain Set' &&
-        !PackDao.PACKS.find(y => y.Id === x.PackId).SpoilerTag
+        (spoilers || !PackDao.PACKS.find(y => y.Id === x.PackId).SpoilerTag)
     );
 
     let randomScenario = ChooseRandomElements(scenarioChoices, 1)[0];
@@ -59,7 +59,7 @@ const GenerateScenario = function(unofficial = false, scenarioExclusions = null,
             x.CanSimulate &&
             x.Type === 'Modular Set' &&
             (!randomScenario.Requires || !randomScenario.Requires.includes(x.Id)) &&
-            !PackDao.PACKS.find(y => y.Id === x.PackId).SpoilerTag
+            (spoilers || !PackDao.PACKS.find(y => y.Id === x.PackId).SpoilerTag)
         );
 
         if (randomScenario.Deviation) {
@@ -112,8 +112,8 @@ const GenerateScenario = function(unofficial = false, scenarioExclusions = null,
     };
 }
 
-const GenerateModulars = function(number, mojo, unofficial = false) {
-    let randomModulars = ChooseRandomElements(GetModularChoices(mojo, unofficial), number);
+const GenerateModulars = function(number, mojo, unofficial = false, spoilers = false) {
+    let randomModulars = ChooseRandomElements(GetModularChoices(mojo, unofficial, spoilers), number);
 
     let contributions = [];
 
@@ -135,12 +135,12 @@ const GenerateModulars = function(number, mojo, unofficial = false) {
     };
 }
 
-const GetModularChoices = function(mojo, unofficial) {
+const GetModularChoices = function(mojo, unofficial, spoilers = false) {
     return SetDao.SETS.filter(x =>
         (unofficial || x.Official) &&
         x.Type === 'Modular Set' &&
         x.CanSimulate &&
-        !PackDao.PACKS.find(y => y.Id === x.PackId).SpoilerTag &&
+        (spoilers || !PackDao.PACKS.find(y => y.Id === x.PackId).SpoilerTag) &&
         (!mojo || x.PackId === MOJOMANIA)
     );
 }
@@ -152,7 +152,12 @@ module.exports = {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('mission')
-                .setDescription('Simulate a scenario to fight against.'))
+                .setDescription('Simulate a scenario to fight against.')
+                .addBooleanOption(option =>
+                    option
+                        .setName('spoilers')
+                        .setDescription('Whether to allow encounter sets that are still spoiler-tagged. Defaults to `false`.')
+                        .setRequired(false)))
         .addSubcommand(subcommand =>
             subcommand
                 .setName('hero')
@@ -164,11 +169,21 @@ module.exports = {
                 .addIntegerOption(option =>
                     option
                         .setName('heroes')
-                        .setDescription('The number of heroes to generate.')))
+                        .setDescription('The number of heroes to generate.'))
+                .addBooleanOption(option =>
+                    option
+                        .setName('spoilers')
+                        .setDescription('Whether to allow encounter sets that are still spoiler-tagged. Defaults to `false`.')
+                        .setRequired(false)))
         .addSubcommand(subcommand =>
             subcommand
                 .setName('challenge')
-                .setDescription('Simulate the ultimate training exercise.'))
+                .setDescription('Simulate the ultimate training exercise.')
+                .addBooleanOption(option =>
+                    option
+                        .setName('spoilers')
+                        .setDescription('Whether to allow encounter sets that are still spoiler-tagged. Defaults to `false`.')
+                        .setRequired(false)))
         .addSubcommand(subcommand =>
             subcommand
                 .setName('environment')
@@ -182,6 +197,11 @@ module.exports = {
                     option
                         .setName('mojo')
                         .setDescription('Whether to select only modular sets from the MojoMania scenario pack. Defaults to `false`.')
+                        .setRequired(false))
+                .addBooleanOption(option =>
+                    option
+                        .setName('spoilers')
+                        .setDescription('Whether to allow encounter sets that are still spoiler-tagged. Defaults to `false`.')
                         .setRequired(false))),
     async execute(context) {
         if (!Authorized(context)) return;
@@ -217,12 +237,15 @@ module.exports = {
             let heroesOption = context.options.getInteger('heroes');
             let modularsOption = context.options.getInteger('modulars');
             let mojoOption = context.options.getBoolean('mojo');
+            let spoilersOption = context.options.getBoolean('spoilers');
             let command = `/danger-room`;
+
+            console.log(`Spoilers are ${spoilersOption ? 'allowed' : 'disallowed'}!`);
 
             new Promise(() => LogCommand(context, command, null));
             
             if (subCommand === 'mission') {
-                let results = [GenerateScenario(unofficial)];
+                let results = [GenerateScenario(unofficial, null, null, spoilersOption)];
                 RandomizeGlitches(results, null, donor);
 
                 let content = '**D**:> Rendering combat simulation...' +
@@ -270,7 +293,7 @@ module.exports = {
                     return;
                 }
 
-                let scenarioResults = [GenerateScenario(unofficial)];
+                let scenarioResults = [GenerateScenario(unofficial, null, null, spoilersOption)];
                 let heroResults = [];
                 let contributions = scenarioResults[0].contributions.length > 0 ? scenarioResults[0].contributions : [];
 
@@ -314,7 +337,7 @@ module.exports = {
                 let contributions = [];
 
                 for (let i = 0; i < 4; i++) {
-                    let scenarioResult = GenerateScenario(unofficial, scenarioResults.map(x => x.scenario.Id), modularExclusions);
+                    let scenarioResult = GenerateScenario(unofficial, scenarioResults.map(x => x.scenario.Id), modularExclusions, spoilersOption);
 
                     scenarioResults.push(scenarioResult);
                     scenarioResult.contributions.forEach(x => {
@@ -372,7 +395,7 @@ module.exports = {
                     return;
                 }
 
-                let results = GenerateModulars(modularsOption ?? 1, mojoOption ?? false, unofficial);
+                let results = GenerateModulars(modularsOption ?? 1, mojoOption ?? false, unofficial, spoilersOption);
 
                 let content = '**D**:> Synthesizing environmental composite...' +
                 `${results.modulars.map(x => `\n**D**:> Grafted **${x.Name}**${TagUnofficial(results.contributions, x.PackId)}.`).join('')}` +
