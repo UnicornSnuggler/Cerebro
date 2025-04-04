@@ -92,13 +92,18 @@ async function ValidateToken(req) {
 
     const token = authHeader.substring(7, authHeader.length);
     
-    const request = await axios.get('https://api.github.com/user', {
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
-    });
-    
-    return request.data.id.toString() == process.env.githubUserId;
+    try {
+        const request = await axios.get('https://api.github.com/user', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        return request.data.id.toString() == process.env.githubUserId;
+    }
+    catch (error) {
+        return false;
+    }
 };
 
 // RavenDB endpoints

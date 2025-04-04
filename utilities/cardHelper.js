@@ -9,7 +9,6 @@ const { RELEASED_EMOJI, COLORS, ID_LENGTH, INTERACT_APOLOGY, LOAD_APOLOGY, SYMBO
 const { NavigationCollection } = require('../models/navigationCollection');
 const { SetDao } = require('../dao/setDao');
 const { ReportError } = require('./errorHelper');
-const Canvas = require('canvas');
 const { CreateStringFromArray } = require('./arrayHelper');
 const { ArtistDao } = require('../dao/artistDao');
 const { GetUserIdFromContext } = require('./userHelper');
@@ -104,7 +103,7 @@ const BuildEmbed = exports.BuildEmbed = function(card, alternateArt = null, spoi
     let image = BuildCardImagePath(card, alternateArt ?? card.Id);
 
     embed.setColor(COLORS[(card.Type == 'Villain' || card.Type == 'Main Scheme' ? 'Villain' : card.Classification.replace('\'', ''))]);
-    embed.setTitle(SpoilerIfSpoilerTagged((card.Unique ? SYMBOLS['{u}'] : '') + card.Name + (card.Subname ? ` — ${card.Subname}` : '' ), card.SpoilerTag && !spoilerFree));
+    embed.setTitle(SpoilerIfSpoilerTagged(FormatSymbols((card.Unique ? '{u}' : '') + card.Name + (card.Subname ? ` — ${card.Subname}` : '' ), card.SpoilerTag && !spoilerFree)));
     embed.setURL(image);
     embed.setDescription(description.join('\n\n'));
     embed.setFooter({ text: BuildFooter(card, spoilerFree) });
@@ -296,8 +295,15 @@ exports.CreateSelectBox = function(cards) {
 
         if (card.Resource) emoji = SYMBOLS[card.Resource];
 
+        let trimmedName = card.Name;
+    
+        if (card.Name.match('\({[a-z]}\)')) {
+            emoji = SYMBOLS[card.Name.match('{[a-z]}')];
+            trimmedName = card.Name.replace(/ \({[a-z]}\)/, '');
+        }
+
         selector.addOptions([{
-            label: `${card.Name}${card.Subname ? ` (${card.Subname})` : ''}${card.Stage ? ` — Stage ${card.Stage}` : ''}`,
+            label: `${trimmedName}${card.Subname ? ` (${card.Subname})` : ''}${card.Stage ? ` — Stage ${card.Stage}` : ''}`,
             description: description,
             emoji: emoji,
             value: card.Id

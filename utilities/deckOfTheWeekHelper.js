@@ -7,35 +7,7 @@ const { ConfigurationDao } = require('../dao/configurationDao');
 const { ReportError } = require('./errorHelper');
 const { GenerateHero } = require('./dangerRoomHelper');
 const { CreateStringFromArray } = require('./arrayHelper');
-const Canvas = require('canvas');
 const { AttachmentBuilder, PermissionsBitField } = require('discord.js');
-
-const createImage = async function(cards) {
-    try {        
-        let width = IMAGE_WIDTH * cards.length;
-        let height = IMAGE_HEIGHT;
-        
-        let canvas = Canvas.createCanvas(width, height);
-        let canvasContext = canvas.getContext('2d');
-        
-        for (let x = 0; x < cards.length; x++) {
-            let imagePath = BuildCardImagePath(cards[x], cards[x].Id);
-            let image = await Canvas.loadImage(imagePath);
-            
-            let positionX = IMAGE_WIDTH * x;
-            let positionY = 0;
-            
-            canvasContext.drawImage(image, positionX, positionY, IMAGE_WIDTH, IMAGE_HEIGHT);
-        }
-        
-        let attachment = new AttachmentBuilder(canvas.toBuffer('image/jpeg', {quality: 1.0, progressive: true}), {name: 'DOTW.jpg', description: 'Deck of the Week Image'});
-
-        return attachment;
-    }
-    catch(e) {
-        ReportError(null, e);
-    }
-}
 
 exports.deckOfTheWeekLoop = async function deckOfTheWeekLoop(client) {
     for (let [guildId, data] of Object.entries(ConfigurationDao.CONFIGURATION.DeckOfTheWeek)) {
