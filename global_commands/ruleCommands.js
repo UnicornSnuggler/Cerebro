@@ -76,12 +76,12 @@ const SelectBox = async function(context, rules) {
                 else i.reply({embeds: [CreateEmbed(INTERACT_APOLOGY)], ephemeral: true})
             });
 
-            collector.on('end', (i, reason) => {
+            collector.on('end', async (i, reason) => {
                 let content = TIMEOUT_APOLOGY;
 
                 if (reason === 'selection') content = LOAD_APOLOGY;
                 
-                RemoveComponents(message, content);
+                await RemoveComponents(message, content);
             });
         });
     }

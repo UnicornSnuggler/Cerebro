@@ -61,12 +61,12 @@ const SelectBox = async function(context, collectionEntities, type) {
                 }
             });
 
-            collector.on('end', (i, reason) => {
+            collector.on('end', async (i, reason) => {
                 let content = 'The timeout was reached...';
 
                 if (reason === 'selection') content = LOAD_APOLOGY;
                 
-                RemoveComponents(message, content);
+                await RemoveComponents(message, content);
             });
         });
     }

@@ -83,14 +83,14 @@ const SelectBox = async function(context, cards) {
                 }
             });
 
-            collector.on('end', (i, reason) => {
+            collector.on('end', async (i, reason) => {
                 let content;
 
                 if (reason === 'selection') content = LOAD_APOLOGY;
                 else if (reason === 'cancel') content = 'Selection was canceled...';
                 else content = 'The timeout was reached...';
 
-                new Promise(() => RemoveComponents(message, content));
+                await RemoveComponents(message, content);
             });
         });
     }

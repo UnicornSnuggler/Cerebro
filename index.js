@@ -171,17 +171,17 @@ const PromptForConsolidation = async function(context, matches) {
 
             if (i.user.id === userId) {
                 if (i.customId === 'separate') {
-                    collector.stop('selection');
+                    await collector.stop('selection');
 
                     HandleCardQueries(context, matches);
                 }
                 if (i.customId === 'together') {
-                    collector.stop('selection');
+                    await collector.stop('selection');
 
                     HandleBatchQuery(context, matches);
                 }
                 else {
-                    collector.stop('cancel');
+                    await collector.stop('cancel');
                 }
             }
             else {
@@ -189,7 +189,7 @@ const PromptForConsolidation = async function(context, matches) {
             }
         });
 
-        collector.on('end', (i, reason) => {
+        collector.on('end', async (i, reason) => {
             let content;
 
             if (reason === 'selection') {
@@ -199,7 +199,7 @@ const PromptForConsolidation = async function(context, matches) {
             else if (reason === 'cancel') content = 'Selection was canceled...';
             else content = 'The timeout was reached...';
             
-            RemoveComponents(message, content);
+            await RemoveComponents(message, content);
         });
     });
 }

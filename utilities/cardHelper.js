@@ -477,14 +477,14 @@ const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, current
         promise.then((message) => {
             const collector = message.createMessageComponentCollector({ componentType: ComponentType.Button, time: INTERACT_TIMEOUT * SECOND_MILLIS });
 
-            collector.on('collect', i => {
+            collector.on('collect', async i => {
                 let userId = GetUserIdFromContext(context);
 
                 if (i.customId === 'toggleSpoiler') {
                     Imbibe(i, card, currentArtStyle, currentFace, currentElement, collection, rulesToggle, artToggle, null, true);
                 }
                 else if (i.user.id === userId) {
-                    if (i.customId != 'clearComponents') collector.stop('navigation');
+                    if (i.customId != 'clearComponents') await collector.stop('navigation');
 
                     i.deferUpdate()
                     .then(async () => {
@@ -567,7 +567,7 @@ const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, current
                 else i.reply({embeds: [CreateEmbed(INTERACT_APOLOGY)], ephemeral: true});
             });
 
-            collector.on('end', (i, reason) => {
+            collector.on('end', async (i, reason) => {
                 if (!spoilerToggle) {
                     let content = null;
                     let removeFiles = true;
@@ -575,7 +575,7 @@ const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, current
                     if (reason === 'navigation') content = LOAD_APOLOGY;
                     else removeFiles = !artToggle;
                     
-                    RemoveComponents(message, content, removeFiles);
+                    await RemoveComponents(message, content, removeFiles);
                 }
             });
         });
@@ -718,7 +718,7 @@ let QueueCompiledResult = exports.QueueCompiledResult = async function(context, 
                 else i.reply({embeds: [CreateEmbed(INTERACT_APOLOGY)], ephemeral: true});
             });
 
-            collector.on('end', (i, reason) => {
+            collector.on('end', async (i, reason) => {
                 let content = null;
                 let removeFiles = false;
                 let removeContent = false;
@@ -729,7 +729,7 @@ let QueueCompiledResult = exports.QueueCompiledResult = async function(context, 
                     removeContent = true;
                 }
                 
-                RemoveComponents(message, content, removeFiles, removeContent);
+                await RemoveComponents(message, content, removeFiles, removeContent);
             });
         });
     }
