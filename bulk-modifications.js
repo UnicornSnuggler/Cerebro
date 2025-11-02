@@ -20,6 +20,8 @@ const store = CreateDocumentStore(DeriveDatabase(RuleEntity.DATABASE_SUFFIX)).in
 //     await session.saveChanges();
 // }
 
+let funkyApostrophe = '’';
+
 async function execute() {
     let session = store.openSession();
     let ruleEntities = await session.query({ indexName: `${ALL}${RuleEntity.COLLECTION}` }).all();

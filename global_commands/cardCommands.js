@@ -241,6 +241,7 @@ module.exports = {
                     { name: 'environment', value: 'environment' },
                     { name: 'event', value: 'event' },
                     { name: 'hero', value: 'hero' },
+                    { name: 'leader', value: 'leader' },
                     { name: 'main scheme', value: 'main scheme' },
                     { name: 'minion', value: 'minion' },
                     { name: 'obligation', value: 'obligation' },
