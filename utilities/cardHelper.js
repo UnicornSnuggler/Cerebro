@@ -102,7 +102,7 @@ const BuildEmbed = exports.BuildEmbed = function(card, alternateArt = null, spoi
 
     let image = BuildCardImagePath(card, alternateArt ?? card.Id);
 
-    embed.setColor(COLORS[(card.Type == 'Villain' || card.Type == 'Main Scheme' ? 'Villain' : card.Classification.replace('\'', ''))]);
+    embed.setColor(COLORS[(["Leader", "Main Scheme", "Villain"].includes(card.Type) ? 'Villain' : card.Classification.replace('\'', ''))]);
     embed.setTitle(SpoilerIfSpoilerTagged(FormatSymbols((card.Unique ? '{u}' : '') + card.Name + (card.Subname ? ` — ${card.Subname}` : '' ), card.SpoilerTag && !spoilerFree)));
     embed.setURL(image);
     embed.setDescription(description.join('\n\n'));
