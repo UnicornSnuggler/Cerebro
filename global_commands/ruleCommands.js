@@ -81,7 +81,7 @@ const SelectBox = async function(context, rules) {
 
                 if (reason === 'selection') content = LOAD_APOLOGY;
                 
-                await RemoveComponents(message, content);
+                await new Promise(() => RemoveComponents(message, content));
             });
         });
     }
