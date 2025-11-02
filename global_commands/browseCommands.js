@@ -66,7 +66,7 @@ const SelectBox = async function(context, collectionEntities, type) {
 
                 if (reason === 'selection') content = LOAD_APOLOGY;
                 
-                await RemoveComponents(message, content);
+                await new Promise(() => RemoveComponents(message, content));
             });
         });
     }

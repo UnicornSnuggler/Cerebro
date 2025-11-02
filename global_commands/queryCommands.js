@@ -90,7 +90,7 @@ const SelectBox = async function(context, cards) {
                 else if (reason === 'cancel') content = 'Selection was canceled...';
                 else content = 'The timeout was reached...';
 
-                await RemoveComponents(message, content);
+                await new Promise(() => RemoveComponents(message, content));
             });
         });
     }

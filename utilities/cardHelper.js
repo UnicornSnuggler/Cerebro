@@ -575,7 +575,7 @@ const Imbibe = exports.Imbibe = function(context, card, currentArtStyle, current
                     if (reason === 'navigation') content = LOAD_APOLOGY;
                     else removeFiles = !artToggle;
                     
-                    await RemoveComponents(message, content, removeFiles);
+                    await new Promise(() => RemoveComponents(message, content, removeFiles));
                 }
             });
         });
@@ -729,7 +729,7 @@ let QueueCompiledResult = exports.QueueCompiledResult = async function(context, 
                     removeContent = true;
                 }
                 
-                await RemoveComponents(message, content, removeFiles, removeContent);
+                await new Promise(() => RemoveComponents(message, content, removeFiles, removeContent));
             });
         });
     }

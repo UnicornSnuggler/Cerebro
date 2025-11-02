@@ -58,7 +58,7 @@ exports.DirectMessageUser = async function(user, message) {
     }
 }
 
-exports.RemoveComponents = async function(message, embedContent, removeFiles = true, removeContent = false) {
+exports.RemoveComponents = function(message, embedContent, removeFiles = true, removeContent = false) {
     try {
         let messageOptions = {
             components: []
@@ -75,7 +75,7 @@ exports.RemoveComponents = async function(message, embedContent, removeFiles = t
         
         if (embedContent) messageOptions.embeds = [CreateEmbed(embedContent)];
         
-        await message.edit(messageOptions);
+        return message.edit(messageOptions);
     }
     catch(e) {
         ReportError(message, e);
