@@ -262,8 +262,8 @@ const TrashRequest = async function(context, request, newFlag, inputConfirmation
             });
         });
 
-        buttonCollector.on('end', (i, notification) => {
-            RemoveComponents(message, null);
+        buttonCollector.on('end', async (i, notification) => {
+            await RemoveComponents(message, null);
 
             if (notification) {
                 let prompt = notification === 'time' ? TIMEOUT_APOLOGY : notification;
@@ -435,8 +435,8 @@ const ProcessRequest = exports.ProcessRequest = async function(context, requestE
                 });
             });
 
-            buttonCollector.on('end', (i, notification) => {
-                RemoveComponents(message, null);
+            buttonCollector.on('end', async (i, notification) => {
+                await RemoveComponents(message, null);
 
                 if (notification) {
                     let prompt = notification === 'time' ? TIMEOUT_APOLOGY : notification;
@@ -506,8 +506,8 @@ const SendConfirmation = async function(context, request, prompt, operation) {
                 });
             });
 
-            buttonCollector.on('end', (i, notification) => {
-                RemoveComponents(message, null);
+            buttonCollector.on('end', async (i, notification) => {
+                await RemoveComponents(message, null);
 
                 if (notification) {
                     let prompt = notification === 'time' ? TIMEOUT_APOLOGY : notification;
@@ -650,8 +650,8 @@ exports.SendRequestEmbed = async function(context, request, moderator, owner) {
                     });
                 });
         
-                buttonCollector.on('end', (i, notification) => {
-                    RemoveComponents(message, null);
+                buttonCollector.on('end', async (i, notification) => {
+                    await RemoveComponents(message, null);
         
                     if (notification && notification !== 'time') {
                         let embed = CreateEmbed(notification, COLORS.Basic);
