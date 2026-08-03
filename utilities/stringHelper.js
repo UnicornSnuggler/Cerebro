@@ -23,6 +23,10 @@ exports.EscapeRegex = function(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+let FormatKeywords = exports.FormatKeywords = function(text) {
+    return text.replace(/[\[\]]/g, '***');
+}
+
 let FormatSymbols = exports.FormatSymbols = function(text) {
     for (let key in SYMBOLS) text = text.replaceAll(key, SYMBOLS[key]);
 
@@ -85,7 +89,7 @@ exports.FormatText = function(text, exclusion = null) {
 
     for (let key of Object.keys(replacements)) text = text.replaceAll(key, replacements[key]);
 
-    return FormatSymbols(text);
+    return FormatSymbols(FormatKeywords(text));
 }
 
 const ItalicizeText = exports.ItalicizeText = function(text) {
