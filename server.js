@@ -347,10 +347,26 @@ app.delete('/decks/:deckId', async function(req, res) {
     }
 
     let deckId = req.params.deckId;
+    let authorId = RetrieveQueryParameter(req, 'authorId', false);
 
-    if (!ObjectId.isValid(deckId)) {
+    if (!ObjectId.isValid(deckId) || !authorId || !ObjectId.isValid(authorId)) {
         res.status(STATUS_CODES.BAD_REQUEST)
             .end(JSON.stringify({ error: BAD_ID_APOLOGY }));
+
+        return;
+    }
+
+    let existingDecks = await DeckDao.RetrieveDeckWithFilters({ _id: deckId });
+
+    if (!existingDecks || existingDecks.length == 0) {
+        res.status(STATUS_CODES.NOT_FOUND)
+            .end(JSON.stringify({ error: ID_NOT_FOUND_APOLOGY }));
+
+        return;
+    }
+    else if (existingDecks[0].authorId.toString() != authorId) {
+        res.status(STATUS_CODES.UNAUTHORIZED)
+            .end(JSON.stringify({ error: `You do not have permission to delete this deck...` }));
 
         return;
     }
